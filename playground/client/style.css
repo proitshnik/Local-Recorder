@@ -1,0 +1,25 @@
+.page {
+    margin: 0;
+    padding: 5px;
+    border: 1px solid black;
+    overflow: hidden;
+}
+
+.record-section {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.upload_button_success {
+    background-color: green;
+}
+
+.upload_button_fail {
+    background-color: red;
+}
+
+.output-video {
+    margin: 0;
+    box-sizing: content-box;
+}

@@ -1,0 +1,13 @@
+{
+	"name": "Local proctoring",
+	"description": "Local screencast",
+	"version": "0.1",
+	"manifest_version": 3,
+	"permissions": [],
+	"action": {
+
+	},
+	"background": {
+    	"service_worker": "background.js"
+  	}
+}
