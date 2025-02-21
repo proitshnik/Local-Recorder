@@ -43,7 +43,7 @@ function downloadVideo(url) {
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = `${username}_recording.webm`; // Имя файла для скачивания 
+    a.download = `${username}_recording.webm`; // Имя файла для скачивания
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
