@@ -10,7 +10,7 @@
 
 1. **Установите Docker и Docker Compose.**
 
-2. **Склонируйте папку `playground`**:
+2. **Склонируйте папку `playground`**.
 
 ---
 
