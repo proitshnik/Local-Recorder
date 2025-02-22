@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "Screen Recorder",
+    "version": "1.0",
+    "permissions": ["desktopCapture", "storage", "audioCapture"],
+    "background": {
+    "service_worker": "background.js"
+    },
+    "action": {
+    "default_icon": {
+        "16": "static/icon.png",
+        "48": "static/icon.png",
+        "128": "static/icon.png"
+    }
+    },
+    "web_accessible_resources": [
+    {
+        "resources": ["index.html", "style.css", "index.js", "static/icon.png"],
+        "matches": ["<all_urls>"]
+    }
+    ]
+}
