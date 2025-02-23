@@ -1,22 +1,22 @@
-version: "3.8"
+version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:6.0  # Фиксируем версию, чтобы избежать неожиданных обновлений
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env  # Переменные теперь загружаются из .env
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}  # Используем переменную из .env
+
   flask_app:
     build: .
+    container_name: flask_app
+    restart: always
     ports:
-      - "5000:5000"
+      - ${FLASK_PORT}:${FLASK_PORT}
     depends_on:
       - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017/testdb
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-volumes:
-  mongo_data:
+    env_file:
+      - .env
