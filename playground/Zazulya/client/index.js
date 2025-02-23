@@ -184,24 +184,26 @@ uploadButton.addEventListener('click', async () => {
   formData.append('file', file);
   formData.append('username', username);
 
-  try {
-    const response = await fetch('http://127.0.0.1:5000/upload', {
-      method: 'POST',
-      mode: 'cors',
-      body: formData,
-    });
 
-    if (response.ok) {
-      const result = await response.json();
+  fetch('http://127.0.0.1:5000/upload', {
+    method: 'POST',
+    mode: 'cors',
+    body: formData,
+  })
+    .then(res => {
+      if (res.ok) {
+        return res.json();
+      }
+      return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
+    })
+    .then(result => {
       uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
       uploadButton.classList.remove('upload_button_fail');
       uploadButton.classList.add('upload_button_success');
-    } else {
-      uploadInfo.textContent = `Ошибка при загрузке файла: ${response.statusText}`;
+    })
+    .catch(err => {
+      uploadInfo.textContent = err;
       uploadButton.classList.remove('upload_button_success');
       uploadButton.classList.add('upload_button_fail');
-    }
-  } catch (err) {
-    console.log('Ошибка:', err);
-  }
+    })
 });
