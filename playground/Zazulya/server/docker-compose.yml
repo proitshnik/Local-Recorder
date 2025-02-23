@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # Сервис для Flask приложения
   flask-app:
@@ -17,10 +19,8 @@ services:
 
   # Сервис для MongoDB
   mongo-db:
-    image: mongo:latest
+    image: mongo:8.0
     container_name: mongo-db
-    ports:
-      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
