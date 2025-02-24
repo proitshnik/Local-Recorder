@@ -113,8 +113,6 @@ async function startRecordCallback() {
     uploadInfo.textContent = "";
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
-    startRecordTime = getCurrentDateString(new Date());
-    fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
     recorder.start();
 }
 
@@ -141,6 +139,8 @@ permissionsButton.addEventListener('click', getPermissionsCallback);
 
 saveLocationButton.addEventListener('click', async () => {
   directoryHandle = await window.showDirectoryPicker();
+  startRecordTime = getCurrentDateString(new Date());
+  fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
   console.log(directoryHandle);
 });
 

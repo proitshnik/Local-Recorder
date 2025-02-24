@@ -11,12 +11,29 @@ client = MongoClient('mongodb://mongo-db:27017/')
 db = client["video_database"]
 fs = gridfs.GridFS(db)  # Используем GridFS для работы с файлами
 
+def parse_time(time: str):
+    # 24-2-2025T12-51-55
+    time = time.split('T')
+    date = list(map(int, time[0].split('-')))
+    time = list(map(int, time[1].split('-')))
+    date_time = {
+        'D': date[0],
+        'M': date[1],
+        'Y': date[2],
+        'h': time[0],
+        'm': time[1],
+        's': time[2]
+    }
+    return date_time
+    
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     file = request.files['file']
     username = request.form['username']
-    start = request.form['start']
-    end = request.form['end']
+    start = parse_time(request.form['start'])
+    end = parse_time(request.form['end'])
     file_id = fs.put(file.read(), filename=file.filename, metadata={
         'username': username, 'start': start, 'end': end})
     return jsonify({"file_id": str(file_id)}), 200
