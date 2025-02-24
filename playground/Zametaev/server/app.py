@@ -7,7 +7,7 @@ MONGO_HOST = "mongo"
 MONGO_PORT = 27017
 MONGO_DB = "myDatabase"
 
-app.config["MONGO_URI"] = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/"
+app.config["MONGO_URI"] = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/{MONGO_DB}"
 mongo = PyMongo(app)
 
 db = mongo.db
