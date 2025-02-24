@@ -15,7 +15,10 @@ fs = gridfs.GridFS(db)  # Используем GridFS для работы с ф�
 def upload_file():
     file = request.files['file']
     username = request.form['username']
-    file_id = fs.put(file.read(), filename=file.filename, metadata={'username': username})
+    start = request.form['start']
+    end = request.form['end']
+    file_id = fs.put(file.read(), filename=file.filename, metadata={
+        'username': username, 'start': start, 'end': end})
     return jsonify({"file_id": str(file_id)}), 200
 
 @app.route('/get/<file_id>', methods=['GET'])

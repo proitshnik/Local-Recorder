@@ -13,37 +13,23 @@ const outputVideo = document.querySelector('.output-video');
 let directoryHandle = null;
 let fileHandler = null;
 let recorder = null;
-
 let cancel = false;
+let startRecordTime = null;
+let finishRecordTime = null;
 
-// Not working
-const combineCameraAndScreen = (cameraSelector, screenSelector) => {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = 1280 || screenSelector.videoWidth;
-  canvas.height = 960 || screenSelector.videoHeight;
-  
-  const drawComposite = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Очистка канваса
-    ctx.drawImage(screenSelector, 0, 0, canvas.width, canvas.height);
-    // Рисуем камеру в углу 
-    const camWidth = canvas.width * 0.10;
-    const camHeight = canvas.height * 0.10;
-    ctx.drawImage(cameraSelector, canvas.width - camWidth - 10, canvas.height - camHeight - 10, camWidth, camHeight);
-    
-    requestAnimationFrame(drawComposite);
-  }
-  drawComposite();
-  
-  // fps = 60
-  return canvas.captureStream(60);
-};
+const getCurrentDateString = (date) => {
+  return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
+}
 
 async function getMedia() {
+    if (!directoryHandle) {
+      uploadInfo.textContent = "Выберите место сохранения";
+      return;
+    }
     try {
         // facingMode: "user" - для получения фронтальной камеры
         //const cameraStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "user"} });
-        
+
         const screenStream = await navigator.mediaDevices.getDisplayMedia({video: true});
         const audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
 
@@ -72,11 +58,10 @@ async function getMedia() {
 
         // Для записи создаем новый MediaRecorder
         recorder = new MediaRecorder(combinedStream, {mimeType: "video/webm"});
-        console.log(recorder);
-        // Получаем путь для сохранения файла
-        fileHandler = await directoryHandle.getFileHandle("testreco.webm", {create: true});
-        const writableStream = await fileHandler.createWritable();
 
+        // Получаем путь для сохранения файла
+
+        const writableStream = await fileHandler.createWritable();
         recorder.ondataavailable = async (event) => {
             if (event.data.size > 0) {
                 await writableStream.write(event.data);
@@ -116,7 +101,7 @@ async function getMedia() {
     }
 }
 
-function startRecordCallback() {
+async function startRecordCallback() {
     if (directoryHandle === null) {
       uploadInfo.textContent = "Выберите место сохранения";
       return;
@@ -128,12 +113,15 @@ function startRecordCallback() {
     uploadInfo.textContent = "";
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
+    startRecordTime = getCurrentDateString(new Date());
+    fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
     recorder.start();
 }
 
 function stopRecordCallback() {
     stopRecordButton.setAttribute('disabled', '');
     startRecordButton.removeAttribute('disabled');
+    finishRecordTime = getCurrentDateString(new Date());
     recorder.stop();
 }
 
@@ -141,6 +129,7 @@ function getPermissionsCallback() {
   cancel = false;
   uploadButton.classList.remove('upload_button_fail');
   uploadButton.classList.remove('upload_button_success');
+  uploadInfo.textContent = "";
   getMedia();
 }
 
@@ -183,6 +172,8 @@ uploadButton.addEventListener('click', async () => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('username', username);
+  formData.append('start', startRecordTime);
+  formData.append('end', finishRecordTime);
 
 
   fetch('http://127.0.0.1:5000/upload', {
