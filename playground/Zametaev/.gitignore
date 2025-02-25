@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+
+# Python-specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Flask-specific
+instance/
+*.sqlite
+
+# Build and distribution
+dist/
+build/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+.pytest_cache/
+coverage/
+*.cover
+*.coverage
+htmlcov/
+
+# Environment variables
+.env
+*.env.*
+.github
