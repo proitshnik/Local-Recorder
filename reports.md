@@ -14,3 +14,8 @@ https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9C%D0%B0%D0%BA%D0%B5%D1%82-UI
 
 ## Презентация: 
 https://drive.google.com/file/d/1Mwx8LMa3Bn4AUBtJnGpCO8xD1Or754nc/view?usp=drive_link
+
+## Issue итерации:
+Beginnings https://github.com/moevm/mse1h2025-prctr/issues/1
+
+Basics https://github.com/moevm/mse1h2025-prctr/issues/2
