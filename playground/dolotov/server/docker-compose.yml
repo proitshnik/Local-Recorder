@@ -1,0 +1,27 @@
+version: '3'
+services:
+    mongo:
+        image: mongo:8.0
+        container_name: mongo
+        volumes:
+            - mongo_data:/data/db
+        networks:
+            - backend
+
+    app:
+        build: .
+        ports:
+            - "5000:5000"
+        volumes:
+            - ./data:/data
+        depends_on:
+            - mongo
+        networks:
+            - backend
+
+volumes:
+  mongo_data:
+
+networks:
+  backend:
+    driver: bridge
