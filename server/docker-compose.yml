@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Сервис для Flask приложения
+  flask-app:
+    build: .
+    container_name: flask-app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo-db
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+  # Сервис для MongoDB
+  mongo-db:
+    image: mongo:8.0
+    container_name: mongo-db
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+
+networks:
+  app-network:
+    driver: bridge
