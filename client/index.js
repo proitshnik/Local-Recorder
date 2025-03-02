@@ -142,8 +142,12 @@ async function startRecordCallback() {
     startRecordTime = getCurrentDateString(new Date());
     fileName = `proctoring_${startRecordTime}.webm`;
     fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
-    addFileToTempList(fileName);
     writableStream = await fileHandle.createWritable();
+    addFileToTempList(fileName);
+    await chrome.runtime.sendMessage({ 
+      action: 'scheduleCleanup', 
+      delayMinutes: 240 // Через 4 часа
+    });
     recorder.start(1000);
 }
 
