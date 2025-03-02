@@ -220,6 +220,11 @@ uploadButton.addEventListener('click', async () => {
       uploadButton.classList.remove('upload_button_fail');
       uploadButton.classList.add('upload_button_success');
       await deleteFilesFromTempList();
+      chrome.alarms.get('dynamicCleanup', (alarm) => {
+        if (alarm) {
+          chrome.alarms.clear('dynamicCleanup');
+        }
+      });
     })
     .catch(err => {
       uploadInfo.textContent = err;
