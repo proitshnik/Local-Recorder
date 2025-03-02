@@ -10,22 +10,52 @@ const outputVideo = document.querySelector('.output-video');
 //const screenSelector = document.querySelector('.screen');
 //const audioSelector = document.querySelector('.microphone');
 
-let directoryHandle = null;
-let fileHandler = null;
 let recorder = null;
 let cancel = false;
 let startRecordTime = null;
 let finishRecordTime = null;
+
+// Сохранение в Origin Private File System
+
+let rootDirectory = null;
+let fileName = null;
+let fileHandle = null;
+let writableStream = null;
+
+const getStorage = async () => {
+  rootDirectory = await navigator.storage.getDirectory();
+};
+
+
+function addFileToTempList(fileName) {
+  const tempFiles = JSON.parse(sessionStorage.getItem('tempFiles')) || [];
+  if (!tempFiles.includes(fileName)) {
+    tempFiles.push(fileName);
+  }
+  sessionStorage.setItem('tempFiles', JSON.stringify(tempFiles));
+}
+
+async function deleteFilesFromTempList() {
+  const tempFiles = JSON.parse(sessionStorage.getItem('tempFiles')) || [];
+  if (tempFiles.length > 0) {
+    const root = await navigator.storage.getDirectory();
+    for (const file of tempFiles) {
+      await root.removeEntry(file).catch((e) => {console.log(e)});
+    }
+    sessionStorage.removeItem('tempFiles');
+  }
+}
+
+const getAvailableDiskSpace = async () => {
+    const estimate = await navigator.storage.estimate();
+    return estimate.quota - estimate.usage;
+};
 
 const getCurrentDateString = (date) => {
   return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
 
 async function getMedia() {
-    if (!directoryHandle) {
-      uploadInfo.textContent = "Выберите место сохранения";
-      return;
-    }
     try {
         // facingMode: "user" - для получения фронтальной камеры
         //const cameraStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "user"} });
@@ -56,20 +86,28 @@ async function getMedia() {
           cancel = true;
         };
 
-        // Для записи создаем новый MediaRecorder
         recorder = new MediaRecorder(combinedStream, {mimeType: "video/webm"});
 
-        // Получаем путь для сохранения файла
-
-        const writableStream = await fileHandler.createWritable();
         recorder.ondataavailable = async (event) => {
             if (event.data.size > 0) {
-                await writableStream.write(event.data);
+              await writableStream.write(event.data);
+            }
+            const freeSpace = await getAvailableDiskSpace();
+            if (freeSpace < 1000000000) {
+              alert('Свободного места осталось меньше 1 Гб');
             }
         };
 
         recorder.onstop = async () => {
             await writableStream.close();
+
+            const file = await fileHandle.getFile();
+            const url = URL.createObjectURL(file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+
             console.log("Запись завершена и файл сохранён локально.");
             //if (cameraStream) {
             //    cameraStream.getTracks().forEach(track => track.stop());
@@ -102,10 +140,6 @@ async function getMedia() {
 }
 
 async function startRecordCallback() {
-    if (directoryHandle === null) {
-      uploadInfo.textContent = "Выберите место сохранения";
-      return;
-    }
     if (!outputVideo.srcObject) {
       uploadInfo.textContent = "Выдайте разрешения";
       return;
@@ -113,7 +147,12 @@ async function startRecordCallback() {
     uploadInfo.textContent = "";
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
-    recorder.start();
+    startRecordTime = getCurrentDateString(new Date());
+    fileName = `proctoring_${startRecordTime}.webm`;
+    fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
+    addFileToTempList(fileName);
+    writableStream = await fileHandle.createWritable();
+    recorder.start(1000);
 }
 
 function stopRecordCallback() {
@@ -124,10 +163,12 @@ function stopRecordCallback() {
 }
 
 function getPermissionsCallback() {
+  console.log('aa')
   cancel = false;
   uploadButton.classList.remove('upload_button_fail');
   uploadButton.classList.remove('upload_button_success');
   uploadInfo.textContent = "";
+  getStorage();
   getMedia();
 }
 
@@ -137,13 +178,6 @@ stopRecordButton.addEventListener('click', stopRecordCallback)
 
 permissionsButton.addEventListener('click', getPermissionsCallback);
 
-saveLocationButton.addEventListener('click', async () => {
-  directoryHandle = await window.showDirectoryPicker();
-  startRecordTime = getCurrentDateString(new Date());
-  fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
-  console.log(directoryHandle);
-});
-
 uploadButton.addEventListener('click', async () => {
   console.log("Отправка...");
   if (usernameInput.value === '') {
@@ -151,8 +185,8 @@ uploadButton.addEventListener('click', async () => {
     uploadButton.classList.add('upload_button_fail');
     return;
   }
-  if (!fileHandler || cancel) {
-    uploadInfo.textContent = `Записи не было или сбросили разрешение2!`;
+  if (!fileHandle || cancel) {
+    uploadInfo.textContent = `Записи не было или сбросили разрешение!`;
     uploadButton.classList.add('upload_button_fail');
     return;
   }
@@ -161,7 +195,7 @@ uploadButton.addEventListener('click', async () => {
     uploadButton.classList.add('upload_button_fail');
     return;
   }
-  const file = await fileHandler.getFile();
+  const file = await fileHandle.getFile();
   if (!file) {
     uploadInfo.textContent = `Файл не найден!`;
     uploadButton.classList.add('upload_button_fail');
@@ -175,7 +209,6 @@ uploadButton.addEventListener('click', async () => {
   formData.append('start', startRecordTime);
   formData.append('end', finishRecordTime);
 
-
   fetch('http://127.0.0.1:5000/upload', {
     method: 'POST',
     mode: 'cors',
@@ -187,7 +220,7 @@ uploadButton.addEventListener('click', async () => {
       }
       return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
     })
-    .then(result => {
+    .then(async (result) => {
       uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
       uploadButton.classList.remove('upload_button_fail');
       uploadButton.classList.add('upload_button_success');
@@ -196,5 +229,8 @@ uploadButton.addEventListener('click', async () => {
       uploadInfo.textContent = err;
       uploadButton.classList.remove('upload_button_success');
       uploadButton.classList.add('upload_button_fail');
+    })
+    .finally(() => {
+      deleteFilesFromTempList();
     })
 });

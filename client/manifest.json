@@ -4,9 +4,7 @@
 	"version": "0.1",
 	"manifest_version": 3,
 	"permissions": [],
-	"action": {
-
-	},
+	"action": {},
 	"background": {
     	"service_worker": "background.js"
   	}
