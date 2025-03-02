@@ -28,8 +28,7 @@ services:
     ports:
       - "${FLASK_PORT}:${FLASK_PORT}"
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     env_file:
       - .env
     environment:
