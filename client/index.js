@@ -1,3 +1,5 @@
+import { deleteFilesFromTempList } from "./common.js";
+
 const saveLocationButton = document.querySelector('.save-location_button');
 const startRecordButton = document.querySelector('.record-start_button');
 const stopRecordButton = document.querySelector('.record-stop_button');
@@ -22,28 +24,18 @@ let fileName = null;
 let fileHandle = null;
 let writableStream = null;
 
+
 const getStorage = async () => {
   rootDirectory = await navigator.storage.getDirectory();
 };
 
-
-function addFileToTempList(fileName) {
-  const tempFiles = JSON.parse(sessionStorage.getItem('tempFiles')) || [];
+async function addFileToTempList(fileName) {
+  const tempFiles =  (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+  // get tempFiles = {'tempFiles': [...]}
   if (!tempFiles.includes(fileName)) {
     tempFiles.push(fileName);
   }
-  sessionStorage.setItem('tempFiles', JSON.stringify(tempFiles));
-}
-
-async function deleteFilesFromTempList() {
-  const tempFiles = JSON.parse(sessionStorage.getItem('tempFiles')) || [];
-  if (tempFiles.length > 0) {
-    const root = await navigator.storage.getDirectory();
-    for (const file of tempFiles) {
-      await root.removeEntry(file).catch((e) => {console.log(e)});
-    }
-    sessionStorage.removeItem('tempFiles');
-  }
+  chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
 const getAvailableDiskSpace = async () => {
@@ -223,13 +215,11 @@ uploadButton.addEventListener('click', async () => {
       uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
       uploadButton.classList.remove('upload_button_fail');
       uploadButton.classList.add('upload_button_success');
+      await deleteFilesFromTempList();
     })
     .catch(err => {
       uploadInfo.textContent = err;
       uploadButton.classList.remove('upload_button_success');
       uploadButton.classList.add('upload_button_fail');
-    })
-    .finally(() => {
-      deleteFilesFromTempList();
-    })
+    });
 });
