@@ -2,8 +2,6 @@
   "manifest_version": 3,
   "short_name": "Screen Recorder",
   "name": "Прокторинг",
-  "start_url": "/index.html",
-  "background_color": "#ffffff",
   "action": {},
   "version": "1.0",
   "description": "Приложение для записи экрана с возможностью сохранения видео",
