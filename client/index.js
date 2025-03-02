@@ -92,10 +92,6 @@ async function getMedia() {
             if (event.data.size > 0) {
               await writableStream.write(event.data);
             }
-            const freeSpace = await getAvailableDiskSpace();
-            if (freeSpace < 1000000000) {
-              alert('Свободного места осталось меньше 1 Гб');
-            }
         };
 
         recorder.onstop = async () => {
@@ -140,6 +136,10 @@ async function getMedia() {
 }
 
 async function startRecordCallback() {
+    if (getAvailableDiskSpace() < 2600000000) {
+      uploadInfo.textContent = "На диске недостаточно места! Очистите место и попробуйте снова!";
+      return;
+    }
     if (!outputVideo.srcObject) {
       uploadInfo.textContent = "Выдайте разрешения";
       return;
@@ -163,7 +163,6 @@ function stopRecordCallback() {
 }
 
 function getPermissionsCallback() {
-  console.log('aa')
   cancel = false;
   uploadButton.classList.remove('upload_button_fail');
   uploadButton.classList.remove('upload_button_success');
