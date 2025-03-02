@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${MONGO_PORT}:${MONGO_PORT}"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "admin", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+        ignore: true
+
+  flask_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_app
+    restart: always
+    ports:
+      - "${FLASK_PORT}:${FLASK_PORT}"
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URL=${MONGODB_URL}
+
+volumes:
+  mongo_data:
