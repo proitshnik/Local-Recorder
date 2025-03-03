@@ -140,12 +140,12 @@ stopRecordButton.addEventListener('click', stopRecordCallback)
 
 permissionsButton.addEventListener('click', getPermissionsCallback);
 
-saveLocationButton.addEventListener('click', async () => {
-    directoryHandle = await window.showDirectoryPicker();
-    startRecordTime = getCurrentDateString(new Date());
-    fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
-    console.log(directoryHandle);
-});
+// saveLocationButton.addEventListener('click', async () => {
+//     directoryHandle = await window.showDirectoryPicker();
+//     startRecordTime = getCurrentDateString(new Date());
+//     fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
+//     console.log(directoryHandle);
+// });
 
 uploadButton.addEventListener('click', async () => {
     console.log("Отправка...");
