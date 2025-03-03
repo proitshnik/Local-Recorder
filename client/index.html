@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body class="page">
-        <h1>Локальный прокторинг</h1>
-        <input type="text" name="name" id="username_input" placeholder="Введите имя" required minlength="2" maxlength="40">
-        <div class="record-section">
-            <button class="save-location_button">Выбрать место сохранения</button>
-            <button class="permissions_button">Разрешения</button>
-            <button class="upload_button">Отправить</button>
-            <span class="upload_info"></span>
-        </div>
-        <div class="record-section">
-            <button class="record-start_button">Начать запись</button>
-            <button class="record-stop_button" disabled>Остановить запись</button>
-        </div>
-        <video class="output-video" controls autoplay ></video>
-        <!--<video class="camera" width="320" height="240"></video>
-        <video class="screen" width="800" height="600"></video>
-        <audio class="microphone" src=""></audio>-->
-        
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page">
+<h1 class="page__title">Локальный прокторинг</h1>
+<input type="text" name="name" id="username_input" class="user-inputs__input user-inputs__input--standalone" placeholder="Введите имя" required minlength="2" maxlength="40">
+<div class="user-inputs user-inputs--fio">
+    <input type="text" name="surname" id="surname_input" class="user-inputs__input" placeholder="Введите фамилию" required minlength="2" maxlength="40">
+    <input type="text" name="name" id="name_input" class="user-inputs__input" placeholder="Введите имя" required minlength="2" maxlength="40">
+    <input type="text" name="patronymic" id="patronymic_input" class="user-inputs__input" placeholder="Введите отчество" required minlength="2" maxlength="40">
+</div>
+<div class="user-inputs user-inputs--group">
+    <input type="text" name="group" id="group_input" class="user-inputs__input" placeholder="Введите группу" required minlength="2" maxlength="20">
+</div>
+<div class="record-section">
+    <button class="record-section__button record-section__button_permissions">Разрешения</button>
+    <button class="record-section__button record-section__button_upload">Отправить</button>
+    <span class="record-section__upload-info"></span>
+</div>
+<div class="record-section">
+    <button class="record-section__button record-section__button_record-start">Начать запись</button>
+    <button class="record-section__button record-section__button_record-stop">Остановить запись</button>
+</div>
+<video class="output-video" controls autoplay></video>
 
-        <script src="index.js"></script>
-    </body>
+<script src="index.js"></script>
+</body>
 </html>
