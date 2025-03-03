@@ -6,7 +6,12 @@
     </head>
     <body class="page">
         <h1>Локальный прокторинг</h1>
-        <input type="text" name="name" id="username_input" placeholder="Введите имя" required minlength="2" maxlength="40">
+        <div class="user-inputs">
+            <input type="text" name="group" id="group_input" placeholder="Введите группу" required minlength="2" maxlength="20">
+            <input type="text" name="surname" id="surname_input" placeholder="Введите фамилию" required minlength="2" maxlength="40">
+            <input type="text" name="name" id="name_input" placeholder="Введите имя" required minlength="2" maxlength="40">
+            <input type="text" name="patronymic" id="patronymic_input" placeholder="Введите отчество" required minlength="2" maxlength="40">
+        </div>
         <div class="record-section">
             <button class="save-location_button">Выбрать место сохранения</button>
             <button class="permissions_button">Разрешения</button>
@@ -21,7 +26,7 @@
         <!--<video class="camera" width="320" height="240"></video>
         <video class="screen" width="800" height="600"></video>
         <audio class="microphone" src=""></audio>-->
-        
+
 
         <script src="index.js"></script>
     </body>

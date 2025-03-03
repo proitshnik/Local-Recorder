@@ -4,7 +4,10 @@ const stopRecordButton = document.querySelector('.record-stop_button');
 const permissionsButton = document.querySelector('.permissions_button');
 const uploadButton = document.querySelector('.upload_button');
 const uploadInfo = document.querySelector('.upload_info');
-const usernameInput = document.querySelector('#username_input');
+const groupInput = document.querySelector('#group_input');
+const surnameInput = document.querySelector('#surname_input');
+const nameInput = document.querySelector('#name_input');
+const patronymicInput = document.querySelector('#patronymic_input');
 const outputVideo = document.querySelector('.output-video');
 //const cameraSelector = document.querySelector('.camera');
 //const screenSelector = document.querySelector('.screen');
@@ -18,13 +21,13 @@ let startRecordTime = null;
 let finishRecordTime = null;
 
 const getCurrentDateString = (date) => {
-  return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
+    return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
 
 async function getMedia() {
     if (!directoryHandle) {
-      uploadInfo.textContent = "Выберите место сохранения";
-      return;
+        uploadInfo.textContent = "Выберите место сохранения";
+        return;
     }
     try {
         // facingMode: "user" - для получения фронтальной камеры
@@ -35,25 +38,25 @@ async function getMedia() {
 
         const audioTrack = audioStream.getAudioTracks()[0];
         const videoTrack = screenStream.getVideoTracks()[0];
-        
+
         const combinedStream = new MediaStream([videoTrack, audioTrack]);
 
         outputVideo.srcObject = combinedStream;
 
-        outputVideo.onloadedmetadata = function() {
+        outputVideo.onloadedmetadata = function () {
             outputVideo.width = outputVideo.videoWidth > 800 ? 800 : outputVideo.videoWidth;
             outputVideo.height = outputVideo.videoHeight > 600 ? 600 : outputVideo.videoHeight;
         };
 
 
-        videoTrack.onended = function() {
-          uploadInfo.textContent = "Демонстрация экрана была прекращена. Пожалуйста, перезапустите запись.";
-          cancel = true;
+        videoTrack.onended = function () {
+            uploadInfo.textContent = "Демонстрация экрана была прекращена. Пожалуйста, перезапустите запись.";
+            cancel = true;
         };
 
-        audioTrack.onended = function() {
-          uploadInfo.textContent = "Разрешение на микрофон было сброшено. Пожалуйста, разрешите микрофон для продолжения.";
-          cancel = true;
+        audioTrack.onended = function () {
+            uploadInfo.textContent = "Разрешение на микрофон было сброшено. Пожалуйста, разрешите микрофон для продолжения.";
+            cancel = true;
         };
 
         // Для записи создаем новый MediaRecorder
@@ -74,19 +77,19 @@ async function getMedia() {
             //if (cameraStream) {
             //    cameraStream.getTracks().forEach(track => track.stop());
             //}
-        
+
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
             }
-        
+
             if (audioStream) {
                 audioStream.getTracks().forEach(track => track.stop());
             }
-        
+
             //if (canvasStream) {
             //    canvasStream.getTracks().forEach(track => track.stop());
             //}
-            
+
             if (combinedStream) {
                 combinedStream.getTracks().forEach(track => track.stop());
             }
@@ -95,20 +98,20 @@ async function getMedia() {
 
             console.log("Все потоки и запись остановлены.");
         };
-        
-    } catch(err) {
+
+    } catch (err) {
         console.log(err);
     }
 }
 
 async function startRecordCallback() {
     if (directoryHandle === null) {
-      uploadInfo.textContent = "Выберите место сохранения";
-      return;
+        uploadInfo.textContent = "Выберите место сохранения";
+        return;
     }
     if (!outputVideo.srcObject) {
-      uploadInfo.textContent = "Выдайте разрешения";
-      return;
+        uploadInfo.textContent = "Выдайте разрешения";
+        return;
     }
     uploadInfo.textContent = "";
     startRecordButton.setAttribute('disabled', '');
@@ -124,11 +127,11 @@ function stopRecordCallback() {
 }
 
 function getPermissionsCallback() {
-  cancel = false;
-  uploadButton.classList.remove('upload_button_fail');
-  uploadButton.classList.remove('upload_button_success');
-  uploadInfo.textContent = "";
-  getMedia();
+    cancel = false;
+    uploadButton.classList.remove('upload_button_fail');
+    uploadButton.classList.remove('upload_button_success');
+    uploadInfo.textContent = "";
+    getMedia();
 }
 
 startRecordButton.addEventListener('click', startRecordCallback);
@@ -138,63 +141,66 @@ stopRecordButton.addEventListener('click', stopRecordCallback)
 permissionsButton.addEventListener('click', getPermissionsCallback);
 
 saveLocationButton.addEventListener('click', async () => {
-  directoryHandle = await window.showDirectoryPicker();
-  startRecordTime = getCurrentDateString(new Date());
-  fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
-  console.log(directoryHandle);
+    directoryHandle = await window.showDirectoryPicker();
+    startRecordTime = getCurrentDateString(new Date());
+    fileHandler = await directoryHandle.getFileHandle(`proctoring_${startRecordTime}`, {create: true});
+    console.log(directoryHandle);
 });
 
 uploadButton.addEventListener('click', async () => {
-  console.log("Отправка...");
-  if (usernameInput.value === '') {
-    uploadInfo.textContent = `Введите имя в поле!`;
-    uploadButton.classList.add('upload_button_fail');
-    return;
-  }
-  if (!fileHandler || cancel) {
-    uploadInfo.textContent = `Записи не было или сбросили разрешение2!`;
-    uploadButton.classList.add('upload_button_fail');
-    return;
-  }
-  if (recorder.state !== 'inactive') {
-    uploadInfo.textContent = `Остановите запись!`;
-    uploadButton.classList.add('upload_button_fail');
-    return;
-  }
-  const file = await fileHandler.getFile();
-  if (!file) {
-    uploadInfo.textContent = `Файл не найден!`;
-    uploadButton.classList.add('upload_button_fail');
-    return;
-  }
-  uploadInfo.textContent = "";
-  const username = usernameInput.value;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('username', username);
-  formData.append('start', startRecordTime);
-  formData.append('end', finishRecordTime);
+    console.log("Отправка...");
+    if (groupInput.value === '' || surnameInput.value === '' ||
+        nameInput.value === '' || patronymicInput.value === '') {
+        uploadInfo.textContent = `Заполните все поля!`;
+        uploadButton.classList.add('upload_button_fail');
+        return;
+    }
+    if (!fileHandler || cancel) {
+        uploadInfo.textContent = `Записи не было или сбросили разрешение2!`;
+        uploadButton.classList.add('upload_button_fail');
+        return;
+    }
+    if (recorder.state !== 'inactive') {
+        uploadInfo.textContent = `Остановите запись!`;
+        uploadButton.classList.add('upload_button_fail');
+        return;
+    }
+    const file = await fileHandler.getFile();
+    if (!file) {
+        uploadInfo.textContent = `Файл не найден!`;
+        uploadButton.classList.add('upload_button_fail');
+        return;
+    }
+    uploadInfo.textContent = "";
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('group', groupInput.value);
+    formData.append('surname', surnameInput.value);
+    formData.append('name', nameInput.value);
+    formData.append('patronymic', patronymicInput.value);
+    formData.append('start', startRecordTime);
+    formData.append('end', finishRecordTime);
 
 
-  fetch('http://127.0.0.1:5000/upload', {
-    method: 'POST',
-    mode: 'cors',
-    body: formData,
-  })
-    .then(res => {
-      if (res.ok) {
-        return res.json();
-      }
-      return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
+    fetch('http://127.0.0.1:5000/upload', {
+        method: 'POST',
+        mode: 'cors',
+        body: formData,
     })
-    .then(result => {
-      uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
-      uploadButton.classList.remove('upload_button_fail');
-      uploadButton.classList.add('upload_button_success');
-    })
-    .catch(err => {
-      uploadInfo.textContent = err;
-      uploadButton.classList.remove('upload_button_success');
-      uploadButton.classList.add('upload_button_fail');
-    })
+        .then(res => {
+            if (res.ok) {
+                return res.json();
+            }
+            return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
+        })
+        .then(result => {
+            uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
+            uploadButton.classList.remove('upload_button_fail');
+            uploadButton.classList.add('upload_button_success');
+        })
+        .catch(err => {
+            uploadInfo.textContent = err;
+            uploadButton.classList.remove('upload_button_success');
+            uploadButton.classList.add('upload_button_fail');
+        })
 });

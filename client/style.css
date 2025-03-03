@@ -23,3 +23,15 @@
     margin: 0;
     box-sizing: content-box;
 }
+
+.user-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.user-inputs input {
+    padding: 8px;
+    margin: 0;
+}
