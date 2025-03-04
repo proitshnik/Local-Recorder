@@ -24,6 +24,8 @@ let fileName = null;
 let fileHandle = null;
 let writableStream = null;
 
+let forceTimeout = null;
+
 
 const getStorage = async () => {
   rootDirectory = await navigator.storage.getDirectory();
@@ -87,6 +89,9 @@ async function getMedia() {
         };
 
         recorder.onstop = async () => {
+            if (forceTimeout) {  
+              clearTimeout(forceTimeout);
+            }
             await writableStream.close();
 
             const file = await fileHandle.getFile();
@@ -97,9 +102,6 @@ async function getMedia() {
             link.click();
 
             console.log("Запись завершена и файл сохранён локально.");
-            //if (cameraStream) {
-            //    cameraStream.getTracks().forEach(track => track.stop());
-            //}
         
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
@@ -108,11 +110,7 @@ async function getMedia() {
             if (audioStream) {
                 audioStream.getTracks().forEach(track => track.stop());
             }
-        
-            //if (canvasStream) {
-            //    canvasStream.getTracks().forEach(track => track.stop());
-            //}
-            
+
             if (combinedStream) {
                 combinedStream.getTracks().forEach(track => track.stop());
             }
@@ -144,10 +142,15 @@ async function startRecordCallback() {
     fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
     writableStream = await fileHandle.createWritable();
     addFileToTempList(fileName);
+    // Через 4 часа
     await chrome.runtime.sendMessage({ 
       action: 'scheduleCleanup', 
-      delayMinutes: 240 // Через 4 часа
+      delayMinutes: 245 
     });
+    forceTimeout = setTimeout(() => {
+      uploadInfo.textContent = 'Запись была принудительно завершена спустя 4 часа!';
+      stopRecordCallback();
+    }, 14400000);
     recorder.start(1000);
 }
 
