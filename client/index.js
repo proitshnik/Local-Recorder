@@ -4,6 +4,7 @@ const stopRecordButton = document.querySelector('.record-stop_button');
 const permissionsButton = document.querySelector('.permissions_button');
 const uploadButton = document.querySelector('.upload_button');
 const uploadInfo = document.querySelector('.upload_info');
+const userInputs = document.querySelectorAll('.user-inputs > input');
 const outputVideo = document.querySelector('.output-video');
 //const cameraSelector = document.querySelector('.camera');
 //const screenSelector = document.querySelector('.screen');
@@ -146,8 +147,6 @@ permissionsButton.addEventListener('click', getPermissionsCallback);
 uploadButton.addEventListener('click', async () => {
     console.log("Отправка...");
 
-    // Собираем все поля ввода
-    const userInputs = document.querySelectorAll('.user-inputs > input');
     const formData = new FormData();
 
     // Проверяем заполненность полей и добавляем их в formData
