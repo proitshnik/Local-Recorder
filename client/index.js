@@ -149,48 +149,65 @@ permissionsButton.addEventListener('click', getPermissionsCallback);
 
 uploadButton.addEventListener('click', async () => {
     console.log("Отправка...");
-    if (groupInput.value === '' || surnameInput.value === '' ||
-        nameInput.value === '' || patronymicInput.value === '') {
-        uploadInfo.textContent = `Заполните все поля!`;
-        uploadButton.classList.add('upload_button_fail');
-        return;
+
+    // Собираем все поля ввода
+    const userInputs = document.querySelectorAll('.user-inputs > input');
+    const formData = new FormData();
+
+    // Проверяем заполненность полей и добавляем их в formData
+    let allFieldsFilled = true;
+    for (let elem of userInputs) {
+        const fieldName = elem.getAttribute('name');
+        const fieldValue = elem.value.trim();
+
+        if (fieldValue === '') {
+            allFieldsFilled = false;
+            uploadInfo.textContent = `Заполните все поля!`;
+            uploadButton.classList.add('upload_button_fail');
+            break; // Прерываем цикл, если нашли пустое поле
+        }
+
+        formData.append(fieldName, fieldValue);
     }
+
+    // Если поля не заполнены, выходим
+    if (!allFieldsFilled) return;
+
+    // Проверяем остальные условия
     if (!fileHandler || cancel) {
-        uploadInfo.textContent = `Записи не было или сбросили разрешение2!`;
+        uploadInfo.textContent = `Записи не было или сбросили разрешение!`;
         uploadButton.classList.add('upload_button_fail');
         return;
     }
+
     if (recorder.state !== 'inactive') {
         uploadInfo.textContent = `Остановите запись!`;
         uploadButton.classList.add('upload_button_fail');
         return;
     }
+
     const file = await fileHandler.getFile();
     if (!file) {
         uploadInfo.textContent = `Файл не найден!`;
         uploadButton.classList.add('upload_button_fail');
         return;
     }
-    uploadInfo.textContent = "";
-    const formData = new FormData();
+
+    // Добавляем файл и временные метки
     formData.append('file', file);
-    formData.append('group', groupInput.value);
-    formData.append('surname', surnameInput.value);
-    formData.append('name', nameInput.value);
-    formData.append('patronymic', patronymicInput.value);
     formData.append('start', startRecordTime);
     formData.append('end', finishRecordTime);
 
+    uploadInfo.textContent = "";
 
+    // Отправка данных
     fetch('http://127.0.0.1:5000/upload', {
         method: 'POST',
         mode: 'cors',
         body: formData,
     })
         .then(res => {
-            if (res.ok) {
-                return res.json();
-            }
+            if (res.ok) return res.json();
             return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
         })
         .then(result => {
@@ -202,5 +219,5 @@ uploadButton.addEventListener('click', async () => {
             uploadInfo.textContent = err;
             uploadButton.classList.remove('upload_button_success');
             uploadButton.classList.add('upload_button_fail');
-        })
+        });
 });
