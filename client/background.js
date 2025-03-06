@@ -17,12 +17,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 	if (message.action === 'startRecord') {
-		await chrome.tabs.create({ url: chrome.runtime.getURL('media.html') });
+		const tab = await chrome.tabs.create({
+			url: chrome.runtime.getURL('media.html'),
+			index: 0, // Устанавливаем вкладку в начало списка
+			pinned: true // Закрепляем вкладку
+		});
 		chrome.runtime.sendMessage({
 			action: 'startRecording'
 		});
-	}
-	else if (message.action === 'stopRecord') {
+	} else if (message.action === 'stopRecord') {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
