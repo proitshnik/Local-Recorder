@@ -1,0 +1,32 @@
+body {
+    font-family: Arial, sans-serif;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+h1{
+    color: #F80054;
+}
+
+.inputName{
+    border-color: #F80054;
+    border-radius: 20%;
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px;
+}
+
+.userArea_buttonStart{
+    background-color: #FF7AA7;
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px;
+}
+
+.userArea_buttonStop{
+    background-color: #FF7AA7;
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px;
+}

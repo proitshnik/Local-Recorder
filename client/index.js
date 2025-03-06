@@ -6,7 +6,7 @@ const stopRecordButton = document.querySelector('.record-stop_button');
 const permissionsButton = document.querySelector('.permissions_button');
 const uploadButton = document.querySelector('.upload_button');
 const uploadInfo = document.querySelector('.upload_info');
-const usernameInput = document.querySelector('#username_input');
+const userInputs = document.querySelectorAll('.user-inputs > input');
 const outputVideo = document.querySelector('.output-video');
 //const cameraSelector = document.querySelector('.camera');
 //const screenSelector = document.querySelector('.screen');
@@ -46,7 +46,7 @@ const getAvailableDiskSpace = async () => {
 };
 
 const getCurrentDateString = (date) => {
-  return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
+    return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
 
 async function getMedia() {
@@ -59,25 +59,25 @@ async function getMedia() {
 
         const audioTrack = audioStream.getAudioTracks()[0];
         const videoTrack = screenStream.getVideoTracks()[0];
-        
+
         const combinedStream = new MediaStream([videoTrack, audioTrack]);
 
         outputVideo.srcObject = combinedStream;
 
-        outputVideo.onloadedmetadata = function() {
+        outputVideo.onloadedmetadata = function () {
             outputVideo.width = outputVideo.videoWidth > 800 ? 800 : outputVideo.videoWidth;
             outputVideo.height = outputVideo.videoHeight > 600 ? 600 : outputVideo.videoHeight;
         };
 
 
-        videoTrack.onended = function() {
-          uploadInfo.textContent = "Демонстрация экрана была прекращена. Пожалуйста, перезапустите запись.";
-          cancel = true;
+        videoTrack.onended = function () {
+            uploadInfo.textContent = "Демонстрация экрана была прекращена. Пожалуйста, перезапустите запись.";
+            cancel = true;
         };
 
-        audioTrack.onended = function() {
-          uploadInfo.textContent = "Разрешение на микрофон было сброшено. Пожалуйста, разрешите микрофон для продолжения.";
-          cancel = true;
+        audioTrack.onended = function () {
+            uploadInfo.textContent = "Разрешение на микрофон было сброшено. Пожалуйста, разрешите микрофон для продолжения.";
+            cancel = true;
         };
 
         recorder = new MediaRecorder(combinedStream, {mimeType: "video/webm"});
@@ -102,11 +102,10 @@ async function getMedia() {
             link.click();
 
             console.log("Запись завершена и файл сохранён локально.");
-        
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
             }
-        
+
             if (audioStream) {
                 audioStream.getTracks().forEach(track => track.stop());
             }
@@ -119,8 +118,8 @@ async function getMedia() {
 
             console.log("Все потоки и запись остановлены.");
         };
-        
-    } catch(err) {
+
+    } catch (err) {
         console.log(err);
     }
 }
@@ -131,8 +130,8 @@ async function startRecordCallback() {
       return;
     }
     if (!outputVideo.srcObject) {
-      uploadInfo.textContent = "Выдайте разрешения";
-      return;
+        uploadInfo.textContent = "Выдайте разрешения";
+        return;
     }
     uploadInfo.textContent = "";
     startRecordButton.setAttribute('disabled', '');

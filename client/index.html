@@ -6,22 +6,27 @@
     </head>
     <body class="page">
         <h1>Локальный прокторинг</h1>
-        <input type="text" name="name" id="username_input" placeholder="Введите имя" required minlength="2" maxlength="40">
+        <div class="user-inputs">
+            <input type="text" name="group" id="group_input" class="user-inputs__input" placeholder="Введите группу" required minlength="2" maxlength="20">
+            <input type="text" name="surname" id="surname_input" class="user-inputs__input" placeholder="Введите фамилию" required minlength="2" maxlength="40">
+            <input type="text" name="name" id="name_input" class="user-inputs__input" placeholder="Введите имя" required minlength="2" maxlength="40">
+            <input type="text" name="patronymic" id="patronymic_input" class="user-inputs__input" placeholder="Введите отчество" required minlength="2" maxlength="40">
+        </div>
         <div class="record-section">
-            <button class="save-location_button">Выбрать место сохранения</button>
+<!--            <button class="save-location_button">Выбрать место сохранения</button>-->
             <button class="permissions_button">Разрешения</button>
             <button class="upload_button">Отправить</button>
             <span class="upload_info"></span>
         </div>
         <div class="record-section">
-            <button class="record-start_button">Начать запись</button>
-            <button class="record-stop_button" disabled>Остановить запись</button>
+            <button class="record-section__button record-section__button_record-start record-start_button">Начать запись</button>
+            <button class="record-section__button record-section__button_record-stop record-stop_button">Остановить запись</button>
         </div>
-        <video class="output-video" controls autoplay ></video>
+        <video class="output-video" controls autoplay></video>
         <!--<video class="camera" width="320" height="240"></video>
         <video class="screen" width="800" height="600"></video>
         <audio class="microphone" src=""></audio>-->
-        
+
 
         <script type="module" src="index.js"></script>
     </body>

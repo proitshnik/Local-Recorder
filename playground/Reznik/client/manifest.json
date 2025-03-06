@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "short_name": "Screen Recorder",
+  "name": "Прокторинг",
+  "action": {},
+  "version": "1.0",
+  "description": "Приложение для записи экрана с возможностью сохранения видео",
+  "permissions": [
+    "desktopCapture",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
