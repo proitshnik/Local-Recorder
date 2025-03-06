@@ -19,67 +19,111 @@ var startRecordTime = null;
 var finishRecordTime = null;
 
 async function getMediaDevices() {
-    try {
-        // TODO. Оставить выбор только всего экрана. Если получится сделать чтобы при выборе звук экрана нельзя было отключить
-        streams.screen = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true,});
-        streams.microphone = await navigator.mediaDevices.getUserMedia({audio: true});
+    return new Promise((resolve, reject) => {
+        try {
+            chrome.desktopCapture.chooseDesktopMedia(['screen', 'audio'], async (streamId) => {
+                if (!streamId) {
+                    console.error('Пользователь отменил выбор экрана');
+                    reject('Пользователь отменил выбор экрана');
+                    return;
+                }
+                try {
+                    streams.screen = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: streamId
+                            }
+                        },
+                        audio: {
+                            mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: streamId,
+                            }
+                        }
+                    });
 
-        streams.combined = new MediaStream([streams.screen.getVideoTracks()[0],
-            streams.screen.getAudioTracks()[0], streams.microphone.getAudioTracks()[0]]);
+                    if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
+                        throw new Error('Не удалось получить видеопоток с экрана');
+                    }
+                    if (streams.screen.getAudioTracks().length === 0) {
+                        throw new Error('Не удалось получить аудиопоток с экрана');
+                    }
+                    
+                    streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
+                        throw new Error('Не удалось получить аудиопоток с микрофона');
+                    }
+
+
+                    console.log(streams.screen);
         
-        previewVideo.srcObject = streams.combined;
-
-        previewVideo.onloadedmetadata = function() {
-            previewVideo.width = previewVideo.videoWidth > 1280 ? 1280 : previewVideo.videoWidth;
-            previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
-        };
-
-        recorder = new MediaRecorder(streams.combined, { mimeType: "video/mp4;codecs=avc1,mp4a.40.2" });
+                    streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.screen.getAudioTracks()[0],
+                        streams.microphone.getAudioTracks()[0]]);
+                        
+                    previewVideo.srcObject = streams.combined;
         
-        recorder.ondataavailable = async (event) => {
-            if (event.data.size > 0) {
-              await writableStream.write(event.data);
-            }
-        };
-
-        recorder.onstop = async () => {
-            if (forceTimeout) {  
-                clearTimeout(forceTimeout);
-            }
-            await writableStream.close();
-
-            const file = await fileHandle.getFile();
-            const url = URL.createObjectURL(file);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            link.click();
-
-            console.log('Запись завершена и файл сохранён локально.');
+                    previewVideo.onloadedmetadata = function() {
+                        previewVideo.width = previewVideo.videoWidth > 1280 ? 1280 : previewVideo.videoWidth;
+                        previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
+                    };
         
-            if (streams.screen) {
-                streams.screen.getTracks().forEach(track => track.stop());
-            }
+                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/mp4;codecs="avc1.42E01E, mp4a.40.2"' });
+                    
+                    recorder.ondataavailable = async (event) => {
+                        if (event.data.size > 0) {
+                            await writableStream.write(event.data);
+                        }
+                    };
         
-            if (streams.microphone) {
-                streams.microphone.getTracks().forEach(track => track.stop());
-            }
+                    recorder.onstop = async () => {
+                        if (forceTimeout) {  
+                            clearTimeout(forceTimeout);
+                        }
+                        await writableStream.close();
+            
+                        const file = await fileHandle.getFile();
+                        const url = URL.createObjectURL(file);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = fileName;
+                        link.click();
+            
+                        console.log('Запись завершена и файл сохранён локально.');
+                    
+                        if (streams.screen) {
+                            streams.screen.getTracks().forEach(track => track.stop());
+                        }
+                    
+                        if (streams.microphone) {
+                            streams.microphone.getTracks().forEach(track => track.stop());
+                        }
+            
+                        if (streams.combined) {
+                            streams.combined.getTracks().forEach(track => track.stop());
+                        }
+            
+                        previewVideo.srcObject = null;
+            
+                        console.log('Все потоки и запись остановлены.');
+                    };
 
-            if (streams.combined) {
-                streams.combined.getTracks().forEach(track => track.stop());
-            }
-
-            previewVideo.srcObject = null;
-
-            console.log('Все потоки и запись остановлены.');
-        };
-
-        
-    } catch (error) {
-        // TODO.
-        console.log(error);
-    }
+                    resolve();
+                } catch (error) {
+                    console.error('Ошибка при захвате:', error);
+                    streams.screen = null;
+                    streams.microphone = null;
+                    reject(error);
+                }
+            });
+        } catch (error) {
+            console.log(error);
+            reject(error);
+        }
+    });
 }
+  
 
 const getCurrentDateString = (date) => {
     return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
@@ -105,6 +149,14 @@ window.addEventListener('load', async () => {
     } catch (error) {
         console.log(error);
     }
+});
+
+
+// TODO. Если не делать никаких действий на открытой странице, то нет эффекта.
+window.addEventListener('beforeunload', (event) => {
+    event.preventDefault();
+    event.returnValue = true;
+    stopRecord();
 });
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
