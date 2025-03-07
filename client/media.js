@@ -31,14 +31,14 @@ async function getMediaDevices() {
                     streams.screen = await navigator.mediaDevices.getUserMedia({
                         video: {
                             mandatory: {
-                            chromeMediaSource: 'desktop',
-                            chromeMediaSourceId: streamId
+                                chromeMediaSource: 'desktop',
+                                chromeMediaSourceId: streamId
                             }
                         },
                         audio: {
                             mandatory: {
-                            chromeMediaSource: 'desktop',
-                            chromeMediaSourceId: streamId,
+                                chromeMediaSource: 'desktop',
+                                chromeMediaSourceId: streamId,
                             }
                         }
                     });
@@ -55,9 +55,6 @@ async function getMediaDevices() {
                     if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
                         throw new Error('Не удалось получить аудиопоток с микрофона');
                     }
-
-
-                    console.log(streams.screen);
         
                     streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.screen.getAudioTracks()[0],
                         streams.microphone.getAudioTracks()[0]]);
@@ -124,7 +121,6 @@ async function getMediaDevices() {
     });
 }
   
-
 const getCurrentDateString = (date) => {
     return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
@@ -142,35 +138,27 @@ async function addFileToTempList(fileName) {
     chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
-window.addEventListener('load', async () => {
-    try {
-        await getMediaDevices();
-        await startRecord();
-    } catch (error) {
-        console.log(error);
-    }
-});
-
-
-// TODO. Если не делать никаких действий на открытой странице, то нет эффекта.
-window.addEventListener('beforeunload', (event) => {
+const beforeUnloadHandler = (event) => {
     event.preventDefault();
     event.returnValue = true;
-    stopRecord();
-});
+};
+
+// Если не делать никаких действий на открытой странице, то нет эффекта.
+window.addEventListener('beforeunload', beforeUnloadHandler);
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
         if (recorder) {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
         }
     }
-    // TODO.
     else if (message.action === 'startRecording' && !recorder) {
         try {
             await getMediaDevices();
             await startRecord();
         } catch (error) {
+            // TODO. Обрабатывать ошибки
             console.log(error);
         }
     }
@@ -193,6 +181,7 @@ async function startRecord() {
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
     fileName = `proctoring_${startRecordTime}.mp4`;
+    chrome.storage.local.set({'fileName': fileName});
     fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
     writableStream = await fileHandle.createWritable();
     addFileToTempList(fileName);

@@ -22,6 +22,17 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 			index: 0, // Устанавливаем вкладку в начало списка
 			pinned: true // Закрепляем вкладку
 		});
+		await new Promise((resolve) => {
+			const listener = (tabId, changed, currentTab) => {
+				if (tabId === tab.id && changed.status === 'complete') {
+					chrome.tabs.onUpdated.removeListener(listener);
+					resolve();
+			  	}
+			};
+			chrome.tabs.onUpdated.addListener(listener);
+		});
+		  
+		// Отправляем сообщение после загрузки
 		chrome.runtime.sendMessage({
 			action: 'startRecording'
 		});
