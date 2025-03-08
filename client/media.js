@@ -18,10 +18,19 @@ var forceTimeout = null;
 var startRecordTime = null;
 var finishRecordTime = null;
 
+const stopStreams = () => {
+    Object.entries(streams).forEach(([stream, value]) => {
+        if (value) {
+            value.getTracks().forEach(track => track.stop());
+            stream[value] = null;
+        }
+    });
+};
+
 async function getMediaDevices() {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
-            chrome.desktopCapture.chooseDesktopMedia(['screen', 'audio'], async (streamId) => {
+            chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
                     console.error('Пользователь отменил выбор экрана');
                     reject('Пользователь отменил выбор экрана');
@@ -35,19 +44,10 @@ async function getMediaDevices() {
                                 chromeMediaSourceId: streamId
                             }
                         },
-                        audio: {
-                            mandatory: {
-                                chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: streamId,
-                            }
-                        }
                     });
 
                     if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
                         throw new Error('Не удалось получить видеопоток с экрана');
-                    }
-                    if (streams.screen.getAudioTracks().length === 0) {
-                        throw new Error('Не удалось получить аудиопоток с экрана');
                     }
                     
                     streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -56,8 +56,7 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить аудиопоток с микрофона');
                     }
         
-                    streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.screen.getAudioTracks()[0],
-                        streams.microphone.getAudioTracks()[0]]);
+                    streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.microphone.getAudioTracks()[0]]);
                         
                     previewVideo.srcObject = streams.combined;
         
@@ -66,7 +65,7 @@ async function getMediaDevices() {
                         previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
                     };
         
-                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/mp4;codecs="avc1.42E01E, mp4a.40.2"' });
+                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
                     
                     recorder.ondataavailable = async (event) => {
                         if (event.data.size > 0) {
@@ -79,7 +78,7 @@ async function getMediaDevices() {
                             clearTimeout(forceTimeout);
                         }
                         await writableStream.close();
-            
+                        finishRecordTime = getCurrentDateString(new Date());
                         const file = await fileHandle.getFile();
                         const url = URL.createObjectURL(file);
                         const link = document.createElement('a');
@@ -88,19 +87,8 @@ async function getMediaDevices() {
                         link.click();
             
                         console.log('Запись завершена и файл сохранён локально.');
-                    
-                        if (streams.screen) {
-                            streams.screen.getTracks().forEach(track => track.stop());
-                        }
-                    
-                        if (streams.microphone) {
-                            streams.microphone.getTracks().forEach(track => track.stop());
-                        }
-            
-                        if (streams.combined) {
-                            streams.combined.getTracks().forEach(track => track.stop());
-                        }
-            
+
+                        stopStreams();
                         previewVideo.srcObject = null;
             
                         console.log('Все потоки и запись остановлены.');
@@ -109,13 +97,11 @@ async function getMediaDevices() {
                     resolve();
                 } catch (error) {
                     console.error('Ошибка при захвате:', error);
-                    streams.screen = null;
-                    streams.microphone = null;
+                    stopStreams();
                     reject(error);
                 }
             });
         } catch (error) {
-            console.log(error);
             reject(error);
         }
     });
@@ -158,7 +144,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             await getMediaDevices();
             await startRecord();
         } catch (error) {
-            // TODO. Обрабатывать ошибки
+            alert(error);
             console.log(error);
         }
     }
@@ -180,7 +166,7 @@ async function startRecord() {
     }
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
-    fileName = `proctoring_${startRecordTime}.mp4`;
+    fileName = `proctoring_${startRecordTime}.webm`;
     chrome.storage.local.set({'fileName': fileName});
     fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
     writableStream = await fileHandle.createWritable();
