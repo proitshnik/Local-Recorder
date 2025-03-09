@@ -46,7 +46,7 @@ async function stopRecCallback() {
 
 startRecordButton.addEventListener('click', startRecCallback);
 
-stopRecordButton.addEventListener('click', stopRecCallback)
+stopRecordButton.addEventListener('click', stopRecCallback);
 
 uploadButton.addEventListener('click', async () => {
 	console.log("Отправка...");
