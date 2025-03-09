@@ -34,11 +34,11 @@ def parse_time(time: str):
 def start_session():
     """Создает новую запись сессии в базе данных"""
     try:
-        data = request.json
+        data = request.form
         student_group = data.get("group")
-        last_name = data.get("last_name")
-        first_name = data.get("first_name")
-        middle_name = data.get("middle_name")
+        last_name = data.get("surname")
+        first_name = data.get("name")
+        middle_name = data.get("patronymic")
 
         if not (student_group and last_name and first_name and middle_name):
             return jsonify({"error": "Все поля обязательны"}), 400
@@ -59,7 +59,7 @@ def start_session():
         }
 
         sessions_collection.insert_one(session_data)
-        return jsonify({"session_id": str(session_id)}), 201
+        return jsonify({"id": str(session_id)}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
