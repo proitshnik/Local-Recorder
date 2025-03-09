@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import gridfs
@@ -13,21 +14,8 @@ db = client["video_database"]
 fs = gridfs.GridFS(db)  # Используем GridFS для работы с файлами
 sessions_collection = db["sessions"]
 
-
-def parse_time(time: str):
-    # 24-2-2025T12-51-55
-    time = time.split('T')
-    date = list(map(int, time[0].split('-')))
-    time = list(map(int, time[1].split('-')))
-    date_time = {
-        'D': date[0],
-        'M': date[1],
-        'Y': date[2],
-        'h': time[0],
-        'm': time[1],
-        's': time[2]
-    }
-    return date_time
+UPLOAD_FOLDER = "data"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 @app.route("/start_session", methods=["POST"])
@@ -65,15 +53,38 @@ def start_session():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    file = request.files['file']
-    username = request.form['username']
-    start = parse_time(request.form['start'])
-    end = parse_time(request.form['end'])
-    file_id = fs.put(file.read(), filename=file.filename, metadata={
-        'username': username, 'start': start, 'end': end})
-    return jsonify({"file_id": str(file_id)}), 200
+@app.route("/upload_video", methods=["POST"])
+def upload_video():
+    """Обрабатывает загрузку видео с клиента, сохраняет файл и обновляет данные сеанса."""
+    try:
+        if "video" not in request.files or "id" not in request.form:
+            return jsonify({"error": "Отсутствует видеофайл или ID сессии"}), 400
+
+        video = request.files["video"]
+        session_id = request.form["id"]
+
+        session = sessions_collection.find_one({"_id": ObjectId(session_id)})
+        if not session:
+            return jsonify({"error": "Сессия не найдена"}), 404
+
+        timestamp = datetime.utcnow()
+        extension = os.path.splitext(video.filename)[1] or ".webm"
+        filename = f"{session_id}_{session['session_start'].strftime('%Y%m%dT%H%M%S')}_{session['last_name']}{extension}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        video.save(filepath)
+
+        sessions_collection.update_one(
+            {"_id": ObjectId(session_id)},
+            {"$set": {
+                "session_end": timestamp,
+                "video_path": filepath,
+                "status": "completed"
+            }}
+        )
+
+        return jsonify({"message": "Видео успешно загружено", "video_path": filepath}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/get/<file_id>', methods=['GET'])
