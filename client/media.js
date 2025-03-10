@@ -22,7 +22,7 @@ const stopStreams = () => {
     Object.entries(streams).forEach(([stream, value]) => {
         if (value) {
             value.getTracks().forEach(track => track.stop());
-            stream[value] = null;
+            streams[stream] = null;
         }
     });
 };
