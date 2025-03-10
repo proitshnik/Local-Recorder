@@ -4,7 +4,7 @@ from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -61,28 +61,28 @@ def upload_video():
             return jsonify({"error": "Отсутствует видеофайл или ID сессии"}), 400
 
         video = request.files["video"]
-        session_id = request.form["id"]
+        id = request.form["id"]
 
-        session = sessions_collection.find_one({"_id": ObjectId(session_id)})
+        session = sessions_collection.find_one({"_id": ObjectId(id)})
         if not session:
             return jsonify({"error": "Сессия не найдена"}), 404
 
-        timestamp = datetime.utcnow()
+        session_end = datetime.now(timezone.utc)
         extension = os.path.splitext(video.filename)[1] or ".webm"
-        filename = f"{session_id}_{session['session_start'].strftime('%Y%m%dT%H%M%S')}_{session['last_name']}{extension}"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        video.save(filepath)
+        video_name = f"{id}_{session['session_start'].strftime('%Y%m%dT%H%M%S')}_{session['surname']}{extension}"
+        video_path = os.path.join(UPLOAD_FOLDER, video_name)
+        video.save(video_path)
 
         sessions_collection.update_one(
-            {"_id": ObjectId(session_id)},
+            {"_id": ObjectId(id)},
             {"$set": {
-                "session_end": timestamp,
-                "video_path": filepath,
-                "status": "completed"
+                "session_end": session_end,
+                "video_path": video_path,
+                "status": "good"
             }}
         )
 
-        return jsonify({"message": "Видео успешно загружено", "video_path": filepath}), 200
+        return jsonify({"message": "Видео успешно загружено", "video_path": video_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
