@@ -53,8 +53,21 @@ async function getMediaDevices() {
                         },
                     });
 
+                    if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
+                        throw new Error('Не удалось получить видеопоток с экрана');
+                    }
+
                     streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                    if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
+                        throw new Error('Не удалось получить аудиопоток с микрофона');
+                    }
+
                     streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+
+                    if (!streams.camera || streams.camera.getVideoTracks().length === 0) {
+                        throw new Error('Не удалось получить видеопоток с камеры');
+                    }
 
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
