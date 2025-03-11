@@ -5,14 +5,21 @@ var streams = {
     combined: null
 };
 
-var recorder = null;
-var previewVideo = document.querySelector('.main__preview');
+var recorders = {
+    main: null,
+    camera: null
+};
 
-// Переменные для записи и сохранения файла
+var previewVideo = document.querySelector('.main__preview');
+var cameraPreview = document.querySelector('.camera__preview');
+
 var rootDirectory = null;
 var fileName = null;
+var cameraFileName = null;
 var fileHandle = null;
+var cameraFileHandle = null;
 var writableStream = null;
+var cameraWritableStream = null;
 var forceTimeout = null;
 
 var startRecordTime = null;
@@ -46,52 +53,65 @@ async function getMediaDevices() {
                         },
                     });
 
-                    if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
-                        throw new Error('Не удалось получить видеопоток с экрана');
-                    }
-                    
                     streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
-                        throw new Error('Не удалось получить аудиопоток с микрофона');
-                    }
-        
-                    streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.microphone.getAudioTracks()[0]]);
-                        
+                    streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+
+                    streams.combined = new MediaStream([
+                        streams.screen.getVideoTracks()[0],
+                        streams.microphone.getAudioTracks()[0]
+                    ]);
+
                     previewVideo.srcObject = streams.combined;
-        
+                    cameraPreview.srcObject = streams.camera;
+
                     previewVideo.onloadedmetadata = function() {
                         previewVideo.width = previewVideo.videoWidth > 1280 ? 1280 : previewVideo.videoWidth;
                         previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
                     };
-        
-                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
-                    
-                    recorder.ondataavailable = async (event) => {
-                        if (event.data.size > 0) {
+
+                    cameraPreview.onloadedmetadata = function() {
+                        cameraPreview.width = 320;
+                        cameraPreview.height = 240;
+                    };
+
+                    recorders.main = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
+                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/webm; codecs=vp9' });
+
+                    let mainFinished = false;
+                    let cameraFinished = false;
+
+                    recorders.main.ondataavailable = async (event) => {
+                        if (event.data.size > 0 && writableStream) {
                             await writableStream.write(event.data);
                         }
                     };
-        
-                    recorder.onstop = async () => {
-                        if (forceTimeout) {  
-                            clearTimeout(forceTimeout);
-                        }
-                        await writableStream.close();
-                        finishRecordTime = getCurrentDateString(new Date());
-                        const file = await fileHandle.getFile();
-                        const url = URL.createObjectURL(file);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = fileName;
-                        link.click();
-            
-                        console.log('Запись завершена и файл сохранён локально.');
 
-                        stopStreams();
-                        previewVideo.srcObject = null;
-            
-                        console.log('Все потоки и запись остановлены.');
+                    recorders.camera.ondataavailable = async (event) => {
+                        if (event.data.size > 0 && cameraWritableStream) {
+                            await cameraWritableStream.write(event.data);
+                        }
+                    };
+
+                    recorders.main.onstop = async () => {
+                        mainFinished = true;
+                        if (writableStream) {
+                            await writableStream.close();
+                            await handleFileSave(fileHandle, fileName);
+                        }
+                        if (mainFinished && cameraFinished) {
+                            cleanup();
+                        }
+                    };
+
+                    recorders.camera.onstop = async () => {
+                        cameraFinished = true;
+                        if (cameraWritableStream) {
+                            await cameraWritableStream.close();
+                            await handleFileSave(cameraFileHandle, cameraFileName);
+                        }
+                        if (mainFinished && cameraFinished) {
+                            cleanup();
+                        }
                     };
 
                     resolve();
@@ -106,7 +126,32 @@ async function getMediaDevices() {
         }
     });
 }
-  
+
+async function cleanup() {
+    if (forceTimeout) {
+        clearTimeout(forceTimeout);
+    }
+    stopStreams();
+    previewVideo.srcObject = null;
+    cameraPreview.srcObject = null;
+    finishRecordTime = getCurrentDateString(new Date());
+    console.log('Все потоки и запись остановлены.');
+}
+
+async function handleFileSave(handle, name) {
+    try {
+        const file = await handle.getFile();
+        const url = URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = name;
+        link.click();
+        console.log(`Файл ${name} сохранен`);
+    } catch (error) {
+        console.error(`Ошибка при сохранении файла ${name}:`, error);
+    }
+}
+
 const getCurrentDateString = (date) => {
     return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
@@ -129,17 +174,16 @@ const beforeUnloadHandler = (event) => {
     event.returnValue = true;
 };
 
-// Если не делать никаких действий на открытой странице, то нет эффекта.
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
-        if (recorder) {
+        if (recorders.main || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
         }
     }
-    else if (message.action === 'startRecording' && !recorder) {
+    else if (message.action === 'startRecording' && !recorders.main) {
         try {
             await getMediaDevices();
             await startRecord();
@@ -151,34 +195,53 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 function stopRecord() {
-    finishRecordTime = getCurrentDateString(new Date());
-    recorder.stop();
+    if (recorders.main) recorders.main.stop();
+    if (recorders.camera) recorders.camera.stop();
 }
 
 async function startRecord() {
     if (getAvailableDiskSpace() < 2600000000) {
-      console.log('На диске недостаточно места! Очистите место и попробуйте снова!');
-      return;
+        console.log('На диске недостаточно места!');
+        return;
     }
-    if (!previewVideo.srcObject) {
-      console.log('Выдайте разрешения');
-      return;
+    if (!previewVideo.srcObject || !cameraPreview.srcObject) {
+        console.log('Выдайте разрешения');
+        return;
     }
+
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
-    fileName = `proctoring_${startRecordTime}.webm`;
-    chrome.storage.local.set({'fileName': fileName});
-    fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
-    writableStream = await fileHandle.createWritable();
-    addFileToTempList(fileName);
-    // Через 4 часа
-    await chrome.runtime.sendMessage({ 
-        action: 'scheduleCleanup', 
-        delayMinutes: 245 
-    });
-    forceTimeout = setTimeout(() => {
-        console.log('Запись была принудительно завершена спустя 4 часа!');
-        stopRecord();
-    }, 14400000);
-    recorder.start(5000);
+
+    fileName = `proctoring_screen_${startRecordTime}.webm`;
+    cameraFileName = `proctoring_camera_${startRecordTime}.webm`;
+
+    try {
+        fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
+        writableStream = await fileHandle.createWritable();
+
+        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
+        cameraWritableStream = await cameraFileHandle.createWritable();
+
+        await Promise.all([
+            addFileToTempList(fileName),
+            addFileToTempList(cameraFileName)
+        ]);
+
+        await chrome.runtime.sendMessage({
+            action: 'scheduleCleanup',
+            delayMinutes: 245
+        });
+
+        forceTimeout = setTimeout(() => {
+            console.log('Запись принудительно завершена спустя 4 часа!');
+            stopRecord();
+        }, 14400000);
+
+        recorders.main.start(5000);
+        recorders.camera.start(5000);
+        console.log('Запись начата');
+    } catch (error) {
+        console.error('Ошибка при запуске записи:', error);
+        cleanup();
+    }
 }

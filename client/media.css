@@ -1,12 +1,24 @@
-* {
-    margin: 0;
-    padding: 0;
+.main {
+    padding: 20px;
 }
 
-.main {
+.main__header {
+    margin-bottom: 20px;
+}
+
+.preview-container {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.main__preview {
+    max-width: 1280px;
+    max-height: 720px;
+}
+
+.camera__preview {
+    width: 320px;
+    height: 240px;
+    border: 1px solid #ccc;
 }
