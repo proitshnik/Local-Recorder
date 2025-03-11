@@ -227,6 +227,13 @@ async function startRecord() {
             addFileToTempList(cameraFileName)
         ]);
 
+        chrome.storage.local.set({
+            'fileNames': {
+                screen: fileName,
+                camera: cameraFileName
+            }
+        });
+
         await chrome.runtime.sendMessage({
             action: 'scheduleCleanup',
             delayMinutes: 245
