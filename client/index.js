@@ -11,17 +11,7 @@ const inputElements = {
 	patronymic: document.querySelector('#patronymic_input')
 };
 
-window.addEventListener('load', async () => {
-	let inputValues = await chrome.storage.local.get('inputElementsValue');
-    inputValues = inputValues.inputElementsValue || {};
-	for (const [key, value] of Object.entries(inputValues)) {
-		inputElements[key].value = value;
-	}
-});
-
-async function startRecCallback() {
-	startRecordButton.setAttribute('disabled', '');
-    stopRecordButton.removeAttribute('disabled');
+function saveInputValues() {
 	chrome.storage.local.set({
 		'inputElementsValue': {
 			group: inputElements.group.value,
@@ -30,6 +20,24 @@ async function startRecCallback() {
 			patronymic: inputElements.patronymic.value
 		}
 	});
+}
+
+window.addEventListener('load', async () => {
+	let inputValues = await chrome.storage.local.get('inputElementsValue');
+	inputValues = inputValues.inputElementsValue || {};
+	for (const [key, value] of Object.entries(inputValues)) {
+		inputElements[key].value = value;
+	}
+
+	Object.values(inputElements).forEach(input => {
+		input.addEventListener('input', saveInputValues);
+	});
+});
+
+async function startRecCallback() {
+	startRecordButton.setAttribute('disabled', '');
+	stopRecordButton.removeAttribute('disabled');
+	saveInputValues();
 
 	await chrome.runtime.sendMessage({
 		action: "startRecord"
@@ -38,7 +46,7 @@ async function startRecCallback() {
 
 async function stopRecCallback() {
 	stopRecordButton.setAttribute('disabled', '');
-    startRecordButton.removeAttribute('disabled');
+	startRecordButton.removeAttribute('disabled');
 	await chrome.runtime.sendMessage({
 		action: "stopRecord"
 	});
