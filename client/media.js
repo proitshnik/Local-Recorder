@@ -10,15 +10,15 @@ var recorders = {
     camera: null
 };
 
-var previewVideo = document.querySelector('.main__preview');
+var combinedPreview = document.querySelector('.combined__preview');
 var cameraPreview = document.querySelector('.camera__preview');
 
 var rootDirectory = null;
-var fileName = null;
+var combinedFileName = null;
 var cameraFileName = null;
-var fileHandle = null;
+var combinedFileHandle = null;
 var cameraFileHandle = null;
-var writableStream = null;
+var combinedWritableStream = null;
 var cameraWritableStream = null;
 var forceTimeout = null;
 
@@ -74,12 +74,12 @@ async function getMediaDevices() {
                         streams.microphone.getAudioTracks()[0]
                     ]);
 
-                    previewVideo.srcObject = streams.combined;
+                    combinedPreview.srcObject = streams.combined;
                     cameraPreview.srcObject = streams.camera;
 
-                    previewVideo.onloadedmetadata = function() {
-                        previewVideo.width = previewVideo.videoWidth > 1280 ? 1280 : previewVideo.videoWidth;
-                        previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
+                    combinedPreview.onloadedmetadata = function() {
+                        combinedPreview.width = combinedPreview.videoWidth > 1280 ? 1280 : combinedPreview.videoWidth;
+                        combinedPreview.height = combinedPreview.videoHeight > 720 ? 720 : combinedPreview.videoHeight;
                     };
 
                     cameraPreview.onloadedmetadata = function() {
@@ -90,12 +90,12 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/webm; codecs=vp9' });
 
-                    let mainFinished = false;
+                    let combinedFinished = false;
                     let cameraFinished = false;
 
                     recorders.combined.ondataavailable = async (event) => {
-                        if (event.data.size > 0 && writableStream) {
-                            await writableStream.write(event.data);
+                        if (event.data.size > 0 && combinedWritableStream) {
+                            await combinedWritableStream.write(event.data);
                         }
                     };
 
@@ -106,12 +106,12 @@ async function getMediaDevices() {
                     };
 
                     recorders.combined.onstop = async () => {
-                        mainFinished = true;
-                        if (writableStream) {
-                            await writableStream.close();
-                            await handleFileSave(fileHandle, fileName);
+                        combinedFinished = true;
+                        if (combinedWritableStream) {
+                            await combinedWritableStream.close();
+                            await handleFileSave(combinedFileHandle, combinedFileName);
                         }
-                        if (mainFinished && cameraFinished) {
+                        if (combinedFinished && cameraFinished) {
                             cleanup();
                         }
                     };
@@ -122,7 +122,7 @@ async function getMediaDevices() {
                             await cameraWritableStream.close();
                             await handleFileSave(cameraFileHandle, cameraFileName);
                         }
-                        if (mainFinished && cameraFinished) {
+                        if (combinedFinished && cameraFinished) {
                             cleanup();
                         }
                     };
@@ -145,7 +145,7 @@ async function cleanup() {
         clearTimeout(forceTimeout);
     }
     stopStreams();
-    previewVideo.srcObject = null;
+    combinedPreview.srcObject = null;
     cameraPreview.srcObject = null;
     finishRecordTime = getCurrentDateString(new Date());
     console.log('Все потоки и запись остановлены.');
@@ -217,7 +217,7 @@ async function startRecord() {
         console.log('На диске недостаточно места!');
         return;
     }
-    if (!previewVideo.srcObject || !cameraPreview.srcObject) {
+    if (!combinedPreview.srcObject || !cameraPreview.srcObject) {
         console.log('Выдайте разрешения');
         return;
     }
@@ -225,24 +225,24 @@ async function startRecord() {
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
 
-    fileName = `proctoring_screen_${startRecordTime}.webm`;
+    combinedFileName = `proctoring_screen_${startRecordTime}.webm`;
     cameraFileName = `proctoring_camera_${startRecordTime}.webm`;
 
     try {
-        fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
-        writableStream = await fileHandle.createWritable();
+        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });
+        combinedWritableStream = await combinedFileHandle.createWritable();
 
         cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
         cameraWritableStream = await cameraFileHandle.createWritable();
 
         await Promise.all([
-            addFileToTempList(fileName),
+            addFileToTempList(combinedFileName),
             addFileToTempList(cameraFileName)
         ]);
 
         chrome.storage.local.set({
             'fileNames': {
-                screen: fileName,
+                screen: combinedFileName,
                 camera: cameraFileName
             }
         });
