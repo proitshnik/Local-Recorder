@@ -6,7 +6,7 @@ var streams = {
 };
 
 var recorders = {
-    main: null,
+    combined: null,
     camera: null
 };
 
@@ -87,13 +87,13 @@ async function getMediaDevices() {
                         cameraPreview.height = 240;
                     };
 
-                    recorders.main = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
+                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/webm; codecs=vp9' });
 
                     let mainFinished = false;
                     let cameraFinished = false;
 
-                    recorders.main.ondataavailable = async (event) => {
+                    recorders.combined.ondataavailable = async (event) => {
                         if (event.data.size > 0 && writableStream) {
                             await writableStream.write(event.data);
                         }
@@ -105,7 +105,7 @@ async function getMediaDevices() {
                         }
                     };
 
-                    recorders.main.onstop = async () => {
+                    recorders.combined.onstop = async () => {
                         mainFinished = true;
                         if (writableStream) {
                             await writableStream.close();
@@ -191,12 +191,12 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
-        if (recorders.main || recorders.camera) {
+        if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
         }
     }
-    else if (message.action === 'startRecording' && !recorders.main) {
+    else if (message.action === 'startRecording' && !recorders.combined) {
         try {
             await getMediaDevices();
             await startRecord();
@@ -208,7 +208,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 function stopRecord() {
-    if (recorders.main) recorders.main.stop();
+    if (recorders.combined) recorders.combined.stop();
     if (recorders.camera) recorders.camera.stop();
 }
 
@@ -257,7 +257,7 @@ async function startRecord() {
             stopRecord();
         }, 14400000);
 
-        recorders.main.start(5000);
+        recorders.combined.start(5000);
         recorders.camera.start(5000);
         console.log('Запись начата');
     } catch (error) {
