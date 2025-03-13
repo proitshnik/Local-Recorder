@@ -32,6 +32,8 @@ def start_session():
             return jsonify({"error": "Поля 'group', 'surname', 'name', 'patronymic' обязательны для заполнения"}), 400
 
         session_start = datetime.now(timezone.utc)
+        # Форматирование даты
+        session_start = session_start.strftime("%Y-%m-%d %H:%M:%S")
         id = ObjectId()
 
         session_data = {
