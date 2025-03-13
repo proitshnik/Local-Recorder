@@ -65,7 +65,7 @@ async function getMediaDevices() {
                         previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
                     };
         
-                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
+                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
                     
                     recorder.ondataavailable = async (event) => {
                         if (event.data.size > 0) {
@@ -196,7 +196,7 @@ async function startRecord() {
     }
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
-    fileName = `proctoring_${startRecordTime}.webm`;
+    fileName = `proctoring_${startRecordTime}.mp4`;
     chrome.storage.local.set({'fileName': fileName});
     fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
     writableStream = await fileHandle.createWritable();
