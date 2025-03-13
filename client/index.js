@@ -11,26 +11,34 @@ const inputElements = {
     patronymic: document.querySelector('#patronymic_input')
 };
 
+function saveInputValues() {
+	chrome.storage.local.set({
+		'inputElementsValue': {
+			group: inputElements.group.value,
+			name: inputElements.name.value,
+			surname: inputElements.surname.value,
+			patronymic: inputElements.patronymic.value
+		}
+	});
+}
+
 window.addEventListener('load', async () => {
     let inputValues = await chrome.storage.local.get('inputElementsValue');
-    inputValues = inputValues.inputElementsValue || {};
+	inputValues = inputValues.inputElementsValue || {};
     for (const [key, value] of Object.entries(inputValues)) {
         inputElements[key].value = value;
     }
+
+	Object.values(inputElements).forEach(input => {
+		input.addEventListener('input', saveInputValues);
+	});
 });
 
 async function startRecCallback() {
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
-    chrome.storage.local.set({
-        'inputElementsValue': {
-            group: inputElements.group.value,
-            name: inputElements.name.value,
-            surname: inputElements.surname.value,
-            patronymic: inputElements.patronymic.value
-        }
-    });
-
+    saveInputValues();
+    
     const formData = new FormData();
     formData.append('group', inputElements.group.value);
     formData.append('name', inputElements.name.value);
@@ -69,11 +77,11 @@ async function startRecCallback() {
 }
 
 async function stopRecCallback() {
-    stopRecordButton.setAttribute('disabled', '');
-    startRecordButton.removeAttribute('disabled');
-    await chrome.runtime.sendMessage({
-        action: "stopRecord"
-    });
+	stopRecordButton.setAttribute('disabled', '');
+	startRecordButton.removeAttribute('disabled');
+	await chrome.runtime.sendMessage({
+		action: "stopRecord"
+	});
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
