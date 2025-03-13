@@ -88,6 +88,9 @@ async function getMediaDevices() {
             
                         console.log('Запись завершена и файл сохранён локально.');
 
+                        // Отправляем видео на сервер
+                        await uploadVideo(file);
+
                         stopStreams();
                         previewVideo.srcObject = null;
             
@@ -131,6 +134,33 @@ const beforeUnloadHandler = (event) => {
 
 // Если не делать никаких действий на открытой странице, то нет эффекта.
 window.addEventListener('beforeunload', beforeUnloadHandler);
+
+// Функция для отправки видео на сервер после завершения записи
+async function uploadVideo(videoFile) {
+    chrome.storage.local.get('session_id', async ({ session_id }) => {
+        if (!session_id) {
+            console.error("Session ID не найден в хранилище");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("id", session_id);
+        formData.append("video", videoFile, fileName);
+
+        try {
+            const response = await fetch("http://127.0.0.1:5000/upload_video", {
+                method: "POST",
+                body: formData,
+            });
+            if (!response.ok) {
+                throw new Error(`Ошибка при загрузке видео: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log("Видео успешно отправлено:", result);
+        } catch (error) {
+            console.error("Ошибка при отправке видео на сервер:", error);
+        }
+    });
+}
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
