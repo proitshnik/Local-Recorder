@@ -1,5 +1,6 @@
+import json
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
@@ -95,10 +96,29 @@ def upload_video():
 @app.route('/get_sessions', methods=['GET'])
 def get_sessions():
     try:
-        sessions = list(db.sessions.find({}, {"_id": 0}))
-        return jsonify(sessions)
+        sessions = list(sessions_collection.find({}, {
+            "_id": 1, "group": 1, "surname": 1, "name": 1, "patronymic": 1,
+            "session_start": 1, "session_end": 1, "video_path": 1, "status": 1
+        }))
+
+        if not sessions:
+            return Response(json.dumps({"message": "Нет записей в базе данных."}, ensure_ascii=False, indent=2), mimetype="application/json")
+
+        result = [{
+            "id": str(session["_id"]),
+            "group": session.get("group"),
+            "surname": session.get("surname"),
+            "name": session.get("name"),
+            "patronymic": session.get("patronymic"),
+            "session_start": session.get("session_start"),
+            "session_end": session.get("session_end"),
+            "video_path": session.get("video_path"),
+            "status": session.get("status")
+        } for session in sessions]
+
+        return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return Response(json.dumps({"error": str(e)}, ensure_ascii=False, indent=2), mimetype="application/json")
 
 
 # @app.route('/get/<file_id>', methods=['GET'])
