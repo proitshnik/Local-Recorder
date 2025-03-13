@@ -73,7 +73,8 @@ def upload_video():
         # Форматирование даты
         session_end = session_end.strftime("%Y-%m-%d %H:%M:%S")
         extension = os.path.splitext(video.filename)[1] or ".webm"
-        video_name = f"{id}_{session['session_start'].strftime('%Y%m%dT%H%M%S')}_{session['surname']}{extension}"
+        session_start_datetime = datetime.strptime(session['session_start'], "%Y-%m-%d %H:%M:%S")
+        video_name = f"{id}_{session_start_datetime.strftime('%Y%m%dT%H%M%S')}_{session['surname']}{extension}"
         video_path = os.path.join(UPLOAD_FOLDER, video_name)
         video.save(video_path)
 
