@@ -34,7 +34,7 @@ def start_session():
 
         session_start = datetime.now(timezone.utc)
         # Форматирование даты
-        session_start = session_start.strftime("%Y-%m-%d %H:%M:%S")
+        session_date_start, session_time_start = session_start.strftime("%Y-%m-%d %H:%M:%S").split()
         id = ObjectId()
 
         session_data = {
@@ -43,8 +43,10 @@ def start_session():
             "surname": surname,
             "name": name,
             "patronymic": patronymic,
-            "session_start": session_start,
-            "session_end": None,
+            "session_date_start": session_date_start,
+            "session_time_start": session_time_start,
+            "session_date_end": None,
+            "session_time_end": None,
             "video_path": None,
             "status": None
         }
@@ -72,17 +74,18 @@ def upload_video():
 
         session_end = datetime.now(timezone.utc)
         # Форматирование даты
-        session_end = session_end.strftime("%Y-%m-%d %H:%M:%S")
+        session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
         extension = os.path.splitext(video.filename)[1] or ".webm"
-        session_start_datetime = datetime.strptime(session['session_start'], "%Y-%m-%d %H:%M:%S")
-        video_name = f"{id}_{session_start_datetime.strftime('%Y%m%dT%H%M%S')}_{session['surname']}{extension}"
+
+        video_name = f"{id}_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{extension}"
         video_path = os.path.join(UPLOAD_FOLDER, video_name)
         video.save(video_path)
 
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
             {"$set": {
-                "session_end": session_end,
+                "session_date_end": session_date_end,
+                "session_time_end": session_time_end,
                 "video_path": video_path,
                 "status": "good"
             }}
