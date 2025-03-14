@@ -165,7 +165,7 @@ async function getMediaDevices() {
                         if (combinedFinished && cameraFinished) {
                             // Отправляем видео на сервер
 
-                            await uploadVideo(await combinedFileHandle.getFile(), await combinedFileHandle.getFile());
+                            await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
                             cleanup();
                         }
                     };
