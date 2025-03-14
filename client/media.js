@@ -66,14 +66,10 @@ async function getMediaDevices() {
                             return;
                         } else {
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
-                            stopStreams();
-                            return;
                         }
+                        throw micError;
                     }
 
-                    if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
-                        throw new Error('Не удалось получить аудиопоток с микрофона');
-                    }
 
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -84,14 +80,10 @@ async function getMediaDevices() {
                             return;
                         } else {
                             alert('Ошибка при доступе к камере: ' + camError.message);
-                            stopStreams();
-                            return;
                         }
+                        throw camError;
                     }
 
-                    if (!streams.camera || streams.camera.getVideoTracks().length === 0) {
-                        throw new Error('Не удалось получить видеопоток с камеры');
-                    }
 
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
