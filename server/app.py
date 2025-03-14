@@ -47,7 +47,8 @@ def start_session():
             "session_time_start": session_time_start,
             "session_date_end": None,
             "session_time_end": None,
-            "video_path": None,
+            "screen_video_path": None,
+            "camera_video_path": None,
             "status": None
         }
 
@@ -62,10 +63,11 @@ def start_session():
 def upload_video():
     """Обрабатывает загрузку видео с клиента, сохраняет файл и обновляет данные сеанса."""
     try:
-        if "video" not in request.files or "id" not in request.form:
+        if "screen_video" not in request.files or "camera_video" not in request.files or "id" not in request.form:
             return jsonify({"error": "Отсутствует видеофайл или ID сессии"}), 400
 
-        video = request.files["video"]
+        screen_video = request.files["screen_video"]
+        camera_video = request.files["camera_video"]
         id = request.form["id"]
 
         session = sessions_collection.find_one({"_id": ObjectId(id)})
@@ -75,22 +77,29 @@ def upload_video():
         session_end = datetime.now(timezone.utc)
         # Форматирование даты
         session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
-        extension = os.path.splitext(video.filename)[1] or ".mp4"
-        video_name = f"{id}_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{extension}"
-        video_path = os.path.join(UPLOAD_FOLDER, video_name)
-        video.save(video_path)
+        
+        screen_extension = os.path.splitext(screen_video.filename)[1] or ".mp4"
+        screen_video_name = f"{id}_screen_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{screen_extension}"
+        screen_video_path = os.path.join(UPLOAD_FOLDER, screen_video_name)
+        screen_video.save(screen_video_path)
+        
+        camera_extension = os.path.splitext(camera_video.filename)[1] or ".mp4"
+        camera_video_name = f"{id}_camera_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{camera_extension}"
+        camera_video_path = os.path.join(UPLOAD_FOLDER, camera_video_name)
+        camera_video.save(camera_video_path)
 
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
             {"$set": {
                 "session_date_end": session_date_end,
                 "session_time_end": session_time_end,
-                "video_path": video_path,
+                "screen_video_path": screen_video_path,
+                "camera_video_path": camera_video_path,
                 "status": "good"
             }}
         )
 
-        return jsonify({"message": "Видео успешно загружено", "video_path": video_path}), 200
+        return jsonify({"message": "Видео успешно загружено", "screen_video_path": screen_video_path, "camera_video_path": camera_video_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
