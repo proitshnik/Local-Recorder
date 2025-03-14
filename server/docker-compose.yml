@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Сервис для Flask приложения
   flask-app:
