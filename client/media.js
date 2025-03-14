@@ -64,7 +64,7 @@ async function getMediaDevices() {
                         streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
                     } catch (micError) {
                         if (micError.name === 'NotAllowedError') {
-                            micPermissionDenied = true; 
+                            micPermissionDenied = true;
                         } else {
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
                             stopStreams();
@@ -86,19 +86,27 @@ async function getMediaDevices() {
                         }
                     }
 
-                    if (micPermissionDenied && camPermissionDenied) {
+                    if (micPermissionDenied || camPermissionDenied) {
                         stopStreams();
-                        reject('Пожалуйста, предоставьте доступ к микрофону и камере в настройках браузера.');
-                        return;
-                    } else if (micPermissionDenied) {
-                        stopStreams();
-                        reject('Пожалуйста, предоставьте доступ к микрофону в настройках браузера.');
-                        return;
-                    } else if (camPermissionDenied) {
-                        stopStreams();
-                        reject('Пожалуйста, предоставьте доступ к камере в настройках браузера.');
+                        const extensionId = chrome.runtime.id;
+                        const settingsUrl = `chrome://settings/content/siteDetails?site=chrome-extension://${extensionId}`;
+
+                        alert('Не предоставлен доступ к камере или микрофону.\n' +
+                            'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
+                            'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
+
+                        chrome.tabs.create({ url: settingsUrl });
+
+                        chrome.tabs.getCurrent((tab) => {
+                            if (tab && tab.id) {
+                                chrome.tabs.remove(tab.id);
+                            }
+                        });
+
+                        reject('Доступ к устройствам не предоставлен');
                         return;
                     }
+
 
 
                     streams.combined = new MediaStream([
