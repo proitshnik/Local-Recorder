@@ -57,31 +57,47 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
+                    let micPermissionDenied = false;
+                    let camPermissionDenied = false;
+
                     try {
                         streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
                     } catch (micError) {
                         if (micError.name === 'NotAllowedError') {
-                            alert('Пожалуйста, предоставьте доступ к микрофону в настройках браузера.');
-                            stopStreams();
-                            return;
+                            micPermissionDenied = true; // Отмечаем, что доступ к микрофону отклонен
                         } else {
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
+                            stopStreams();
+                            reject(micError);
+                            return;
                         }
-                        throw micError;
                     }
-
 
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
-                            alert('Пожалуйста, предоставьте доступ к камере в настройках браузера.');
-                            stopStreams();
-                            return;
+                            camPermissionDenied = true;
                         } else {
                             alert('Ошибка при доступе к камере: ' + camError.message);
+                            stopStreams();
+                            reject(camError);
+                            return;
                         }
-                        throw camError;
+                    }
+
+                    if (micPermissionDenied && camPermissionDenied) {
+                        stopStreams();
+                        reject('Пожалуйста, предоставьте доступ к микрофону и камере в настройках браузера.');
+                        return;
+                    } else if (micPermissionDenied) {
+                        stopStreams();
+                        reject('Пожалуйста, предоставьте доступ к микрофону в настройках браузера.');
+                        return;
+                    } else if (camPermissionDenied) {
+                        stopStreams();
+                        reject('Пожалуйста, предоставьте доступ к камере в настройках браузера.');
+                        return;
                     }
 
 
