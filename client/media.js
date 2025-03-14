@@ -64,11 +64,12 @@ async function getMediaDevices() {
                         streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
                     } catch (micError) {
                         if (micError.name === 'NotAllowedError') {
-                            micPermissionDenied = true;
+                            micPermissionDenied = true; 
                         } else {
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
                             stopStreams();
-                            throw micError;
+                            reject(micError);
+                            return;
                         }
                     }
 
@@ -80,7 +81,8 @@ async function getMediaDevices() {
                         } else {
                             alert('Ошибка при доступе к камере: ' + camError.message);
                             stopStreams();
-                            throw camError;
+                            reject(camError);
+                            return;
                         }
                     }
 
