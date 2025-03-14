@@ -19,7 +19,7 @@ services:
 
   # Сервис для MongoDB
   mongo-db:
-    image: mongo:6.0
+    image: mongo:8.0.5
     container_name: mongo-db
     volumes:
       - mongo-data:/data/db
