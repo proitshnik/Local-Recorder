@@ -85,58 +85,58 @@ async function stopRecCallback() {
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
-
 stopRecordButton.addEventListener('click', stopRecCallback);
 
 uploadButton.addEventListener('click', async () => {
-    console.log("Отправка...");
-    const fileName = await chrome.storage.local.get('fileName')['fileName'];
-    if (!fileName) {
-        console.log('Файл не найден!');
-        return;
-    }
-    const fileHandle = await rootDirectory.getFileHandle(fileName, {create: false});
-    const file = await fileHandle.getFile();
-    if (!file) {
-        console.log('Файл не найден!');
-        //uploadInfo.textContent = `Файл не найден!`;
-        //uploadButton.classList.add('upload_button_fail');
-        return;
-    }
-    //uploadInfo.textContent = "";
-    const username = inputElements.name.value;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('username', username);
-    formData.append('start', startRecordTime);
-    formData.append('end', finishRecordTime);
+	console.log("Отправка...");
+	const fileNames = await chrome.storage.local.get('fileNames')['fileNames'];
+	if (!fileNames || !fileNames.screen || !fileNames.camera) {
+		console.log('Один или оба файла не найдены!');
+		return;
+	}
 
-    fetch('http://127.0.0.1:5000/upload', {
-        method: 'POST',
-        mode: 'cors',
-        body: formData,
-    })
-        .then(res => {
-            if (res.ok) {
-                return res.json();
-            }
-            return Promise.reject(`Ошибка при загрузке файла: ${res.status}`);
-        })
-        .then(async () => {
-            //uploadInfo.textContent = `Файл успешно загружен, ID: ${result.file_id}`;
-            //uploadButton.classList.remove('upload_button_fail');
-            //uploadButton.classList.add('upload_button_success');
-            await deleteFilesFromTempList();
-            chrome.alarms.get('dynamicCleanup', (alarm) => {
-                if (alarm) {
-                    chrome.alarms.clear('dynamicCleanup');
-                }
-            });
-        })
-        .catch(err => {
-            console.log(err);
-            //uploadInfo.textContent = err;
-            //uploadButton.classList.remove('upload_button_success');
-            //uploadButton.classList.add('upload_button_fail');
-        });
+	const rootDirectory = await navigator.storage.getDirectory();
+
+	const screenFileHandle = await rootDirectory.getFileHandle(fileNames.screen, { create: false });
+	const cameraFileHandle = await rootDirectory.getFileHandle(fileNames.camera, { create: false });
+
+	const screenFile = await screenFileHandle.getFile();
+	const cameraFile = await cameraFileHandle.getFile();
+
+	if (!screenFile || !cameraFile) {
+		console.log('Один или оба файла не найдены!');
+		return;
+	}
+
+	const username = inputElements.name.value;
+	const formData = new FormData();
+	formData.append('screen_file', screenFile);  // Файл экрана
+	formData.append('camera_file', cameraFile);  // Файл камеры
+	formData.append('username', username);
+	formData.append('start', startRecordTime);
+	formData.append('end', finishRecordTime);
+
+	fetch('http://127.0.0.1:5000/upload', {
+		method: 'POST',
+		mode: 'cors',
+		body: formData,
+	})
+		.then(res => {
+			if (res.ok) {
+				return res.json();
+			}
+			return Promise.reject(`Ошибка при загрузке файлов: ${res.status}`);
+		})
+		.then(async () => {
+			console.log('Файлы успешно загружены');
+			await deleteFilesFromTempList();
+			chrome.alarms.get('dynamicCleanup', (alarm) => {
+				if (alarm) {
+					chrome.alarms.clear('dynamicCleanup');
+				}
+			});
+		})
+		.catch(err => {
+			console.log(err);
+		});
 });

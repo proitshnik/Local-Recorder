@@ -5,14 +5,21 @@ var streams = {
     combined: null
 };
 
-var recorder = null;
-var previewVideo = document.querySelector('.main__preview');
+var recorders = {
+    combined: null,
+    camera: null
+};
 
-// Переменные для записи и сохранения файла
+var combinedPreview = document.querySelector('.combined__preview');
+var cameraPreview = document.querySelector('.camera__preview');
+
 var rootDirectory = null;
-var fileName = null;
-var fileHandle = null;
-var writableStream = null;
+var combinedFileName = null;
+var cameraFileName = null;
+var combinedFileHandle = null;
+var cameraFileHandle = null;
+var combinedWritableStream = null;
+var cameraWritableStream = null;
 var forceTimeout = null;
 
 var startRecordTime = null;
@@ -49,52 +56,118 @@ async function getMediaDevices() {
                     if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
-                    
-                    streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
-                        throw new Error('Не удалось получить аудиопоток с микрофона');
+
+                    let micPermissionDenied = false;
+                    let camPermissionDenied = false;
+
+                    try {
+                        streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    } catch (micError) {
+                        if (micError.name === 'NotAllowedError') {
+                            micPermissionDenied = true;
+                        } else {
+                            alert('Ошибка при доступе к микрофону: ' + micError.message);
+                            stopStreams();
+                            reject(micError);
+                            return;
+                        }
                     }
-        
-                    streams.combined = new MediaStream([streams.screen.getVideoTracks()[0], streams.microphone.getAudioTracks()[0]]);
-                        
-                    previewVideo.srcObject = streams.combined;
-        
-                    previewVideo.onloadedmetadata = function() {
-                        previewVideo.width = previewVideo.videoWidth > 1280 ? 1280 : previewVideo.videoWidth;
-                        previewVideo.height = previewVideo.videoHeight > 720 ? 720 : previewVideo.videoHeight;
-                    };
-        
-                    recorder = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
-                    
-                    recorder.ondataavailable = async (event) => {
-                        if (event.data.size > 0) {
-                            await writableStream.write(event.data);
-                        }
-                    };
-        
-                    recorder.onstop = async () => {
-                        if (forceTimeout) {  
-                            clearTimeout(forceTimeout);
-                        }
-                        await writableStream.close();
-                        finishRecordTime = getCurrentDateString(new Date());
-                        const file = await fileHandle.getFile();
-                        const url = URL.createObjectURL(file);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = fileName;
-                        link.click();
-            
-                        console.log('Запись завершена и файл сохранён локально.');
 
-                        // Отправляем видео на сервер
-                        await uploadVideo(file);
+                    try {
+                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    } catch (camError) {
+                        if (camError.name === 'NotAllowedError') {
+                            camPermissionDenied = true;
+                        } else {
+                            alert('Ошибка при доступе к камере: ' + camError.message);
+                            stopStreams();
+                            reject(camError);
+                            return;
+                        }
+                    }
 
+                    if (micPermissionDenied || camPermissionDenied) {
                         stopStreams();
-                        previewVideo.srcObject = null;
-            
-                        console.log('Все потоки и запись остановлены.');
+                        const extensionId = chrome.runtime.id;
+                        const settingsUrl = `chrome://settings/content/siteDetails?site=chrome-extension://${extensionId}`;
+
+                        alert('Не предоставлен доступ к камере или микрофону.\n' +
+                            'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
+                            'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
+
+                        chrome.tabs.create({ url: settingsUrl });
+
+                        chrome.tabs.getCurrent((tab) => {
+                            if (tab && tab.id) {
+                                chrome.tabs.remove(tab.id);
+                            }
+                        });
+
+                        reject('Доступ к устройствам не предоставлен');
+                        return;
+                    }
+
+
+
+                    streams.combined = new MediaStream([
+                        streams.screen.getVideoTracks()[0],
+                        streams.microphone.getAudioTracks()[0]
+                    ]);
+
+                    combinedPreview.srcObject = streams.combined;
+                    cameraPreview.srcObject = streams.camera;
+
+                    combinedPreview.onloadedmetadata = function() {
+                        combinedPreview.width = combinedPreview.videoWidth > 1280 ? 1280 : combinedPreview.videoWidth;
+                        combinedPreview.height = combinedPreview.videoHeight > 720 ? 720 : combinedPreview.videoHeight;
+                    };
+
+                    cameraPreview.onloadedmetadata = function() {
+                        cameraPreview.width = 320;
+                        cameraPreview.height = 240;
+                    };
+
+                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
+                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
+
+                    let combinedFinished = false;
+                    let cameraFinished = false;
+
+                    recorders.combined.ondataavailable = async (event) => {
+                        if (event.data.size > 0 && combinedWritableStream) {
+                            await combinedWritableStream.write(event.data);
+                        }
+                    };
+
+                    recorders.camera.ondataavailable = async (event) => {
+                        if (event.data.size > 0 && cameraWritableStream) {
+                            await cameraWritableStream.write(event.data);
+                        }
+                    };
+
+                    recorders.combined.onstop = async () => {
+                        combinedFinished = true;
+                        if (combinedWritableStream) {
+                            await combinedWritableStream.close();
+                            await handleFileSave(combinedFileHandle, combinedFileName);
+                        }
+                        if (combinedFinished && cameraFinished) {
+                            cleanup();
+                        }
+                    };
+
+                    recorders.camera.onstop = async () => {
+                        cameraFinished = true;
+                        if (cameraWritableStream) {
+                            await cameraWritableStream.close();
+                            await handleFileSave(cameraFileHandle, cameraFileName);
+                        }
+                        if (combinedFinished && cameraFinished) {
+                            // Отправляем видео на сервер
+
+                            await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
+                            cleanup();
+                        }
                     };
 
                     resolve();
@@ -109,7 +182,32 @@ async function getMediaDevices() {
         }
     });
 }
-  
+
+async function cleanup() {
+    if (forceTimeout) {
+        clearTimeout(forceTimeout);
+    }
+    stopStreams();
+    combinedPreview.srcObject = null;
+    cameraPreview.srcObject = null;
+    finishRecordTime = getCurrentDateString(new Date());
+    console.log('Все потоки и запись остановлены.');
+}
+
+async function handleFileSave(handle, name) {
+    try {
+        const file = await handle.getFile();
+        const url = URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = name;
+        link.click();
+        console.log(`Файл ${name} сохранен`);
+    } catch (error) {
+        console.error(`Ошибка при сохранении файла ${name}:`, error);
+    }
+}
+
 const getCurrentDateString = (date) => {
     return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
@@ -132,11 +230,10 @@ const beforeUnloadHandler = (event) => {
     event.returnValue = true;
 };
 
-// Если не делать никаких действий на открытой странице, то нет эффекта.
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
 // Функция для отправки видео на сервер после завершения записи
-async function uploadVideo(videoFile) {
+async function uploadVideo(combinedFile, cameraFile) {
     chrome.storage.local.get('session_id', async ({ session_id }) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
@@ -144,7 +241,8 @@ async function uploadVideo(videoFile) {
         }
         const formData = new FormData();
         formData.append("id", session_id);
-        formData.append("video", videoFile, fileName);
+        formData.append("screen_video", combinedFile, combinedFileName);
+        formData.append("camera_video", cameraFile, cameraFileName);
 
         try {
             const response = await fetch("http://127.0.0.1:5000/upload_video", {
@@ -164,12 +262,12 @@ async function uploadVideo(videoFile) {
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
-        if (recorder) {
+        if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
         }
     }
-    else if (message.action === 'startRecording' && !recorder) {
+    else if (message.action === 'startRecording' && !recorders.combined) {
         try {
             await getMediaDevices();
             await startRecord();
@@ -181,34 +279,60 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 function stopRecord() {
-    finishRecordTime = getCurrentDateString(new Date());
-    recorder.stop();
+    if (recorders.combined) recorders.combined.stop();
+    if (recorders.camera) recorders.camera.stop();
 }
 
 async function startRecord() {
     if (getAvailableDiskSpace() < 2600000000) {
-      console.log('На диске недостаточно места! Очистите место и попробуйте снова!');
-      return;
+        console.log('На диске недостаточно места!');
+        return;
     }
-    if (!previewVideo.srcObject) {
-      console.log('Выдайте разрешения');
-      return;
+    if (!combinedPreview.srcObject || !cameraPreview.srcObject) {
+        console.log('Выдайте разрешения');
+        return;
     }
+
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
-    fileName = `proctoring_${startRecordTime}.mp4`;
-    chrome.storage.local.set({'fileName': fileName});
-    fileHandle = await rootDirectory.getFileHandle(fileName, { create: true });
-    writableStream = await fileHandle.createWritable();
-    addFileToTempList(fileName);
-    // Через 4 часа
-    await chrome.runtime.sendMessage({ 
-        action: 'scheduleCleanup', 
-        delayMinutes: 245 
-    });
-    forceTimeout = setTimeout(() => {
-        console.log('Запись была принудительно завершена спустя 4 часа!');
-        stopRecord();
-    }, 14400000);
-    recorder.start(5000);
+
+    combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;
+    cameraFileName = `proctoring_camera_${startRecordTime}.mp4`;
+
+    try {
+        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });
+        combinedWritableStream = await combinedFileHandle.createWritable();
+
+        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
+        cameraWritableStream = await cameraFileHandle.createWritable();
+
+        await Promise.all([
+            addFileToTempList(combinedFileName),
+            addFileToTempList(cameraFileName)
+        ]);
+
+        chrome.storage.local.set({
+            'fileNames': {
+                screen: combinedFileName,
+                camera: cameraFileName
+            }
+        });
+
+        await chrome.runtime.sendMessage({
+            action: 'scheduleCleanup',
+            delayMinutes: 245
+        });
+
+        forceTimeout = setTimeout(() => {
+            console.log('Запись принудительно завершена спустя 4 часа!');
+            stopRecord();
+        }, 14400000);
+
+        recorders.combined.start(5000);
+        recorders.camera.start(5000);
+        console.log('Запись начата');
+    } catch (error) {
+        console.error('Ошибка при запуске записи:', error);
+        cleanup();
+    }
 }
