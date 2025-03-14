@@ -75,8 +75,7 @@ def upload_video():
         session_end = datetime.now(timezone.utc)
         # Форматирование даты
         session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
-        extension = os.path.splitext(video.filename)[1] or ".webm"
-
+        extension = os.path.splitext(video.filename)[1] or ".mp4"
         video_name = f"{id}_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{extension}"
         video_path = os.path.join(UPLOAD_FOLDER, video_name)
         video.save(video_path)
@@ -99,25 +98,18 @@ def upload_video():
 @app.route('/get_sessions', methods=['GET'])
 def get_sessions():
     try:
-        sessions = list(sessions_collection.find({}, {
-            "_id": 1, "group": 1, "surname": 1, "name": 1, "patronymic": 1,
-            "session_start": 1, "session_end": 1, "video_path": 1, "status": 1
-        }))
+        sessions = list(sessions_collection.find({}))
 
         if not sessions:
             return Response(json.dumps({"message": "Нет записей в базе данных."}, ensure_ascii=False, indent=2), mimetype="application/json")
 
-        result = [{
-            "id": str(session["_id"]),
-            "group": session.get("group"),
-            "surname": session.get("surname"),
-            "name": session.get("name"),
-            "patronymic": session.get("patronymic"),
-            "session_start": session.get("session_start"),
-            "session_end": session.get("session_end"),
-            "video_path": session.get("video_path"),
-            "status": session.get("status")
-        } for session in sessions]
+        result = [
+            {
+                **{"id": str(session["_id"])},  # Преобразуем _id в id
+                **{key: session.get(key) for key in session if key != "_id"}  # Копируем остальные поля
+            }
+            for session in sessions
+        ]
 
         return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
     except Exception as e:
