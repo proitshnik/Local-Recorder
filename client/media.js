@@ -127,8 +127,8 @@ async function getMediaDevices() {
                         cameraPreview.height = 240;
                     };
 
-                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/webm; codecs=vp9,opus' });
-                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/webm; codecs=vp9' });
+                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
+                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
 
                     let combinedFinished = false;
                     let cameraFinished = false;
@@ -163,6 +163,9 @@ async function getMediaDevices() {
                             await handleFileSave(cameraFileHandle, cameraFileName);
                         }
                         if (combinedFinished && cameraFinished) {
+                            // Отправляем видео на сервер
+
+                            await uploadVideo(await combinedFileHandle.getFile(), await combinedFileHandle.getFile());
                             cleanup();
                         }
                     };
@@ -229,6 +232,34 @@ const beforeUnloadHandler = (event) => {
 
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
+// Функция для отправки видео на сервер после завершения записи
+async function uploadVideo(combinedFile, cameraFile) {
+    chrome.storage.local.get('session_id', async ({ session_id }) => {
+        if (!session_id) {
+            console.error("Session ID не найден в хранилище");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("id", session_id);
+        formData.append("screen_video", combinedFile, combinedFileName);
+        formData.append("camera_video", cameraFile, cameraFileName);
+
+        try {
+            const response = await fetch("http://127.0.0.1:5000/upload_video", {
+                method: "POST",
+                body: formData,
+            });
+            if (!response.ok) {
+                throw new Error(`Ошибка при загрузке видео: ${response.status}`);
+            }
+            const result = await response.json();
+            console.log("Видео успешно отправлено:", result);
+        } catch (error) {
+            console.error("Ошибка при отправке видео на сервер:", error);
+        }
+    });
+}
+
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
         if (recorders.combined || recorders.camera) {
@@ -265,8 +296,8 @@ async function startRecord() {
     rootDirectory = await navigator.storage.getDirectory();
     startRecordTime = getCurrentDateString(new Date());
 
-    combinedFileName = `proctoring_screen_${startRecordTime}.webm`;
-    cameraFileName = `proctoring_camera_${startRecordTime}.webm`;
+    combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;
+    cameraFileName = `proctoring_camera_${startRecordTime}.mp4`;
 
     try {
         combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });

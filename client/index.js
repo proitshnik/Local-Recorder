@@ -1,27 +1,17 @@
-import { deleteFilesFromTempList } from "./common.js";
+import {deleteFilesFromTempList} from "./common.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
 const uploadButton = document.querySelector('.upload_button');
 
 const inputElements = {
-	group: document.querySelector('#group_input'),
-	name: document.querySelector('#name_input'),
-	surname: document.querySelector('#surname_input'),
-	patronymic: document.querySelector('#patronymic_input')
+    group: document.querySelector('#group_input'),
+    name: document.querySelector('#name_input'),
+    surname: document.querySelector('#surname_input'),
+    patronymic: document.querySelector('#patronymic_input')
 };
 
-window.addEventListener('load', async () => {
-	let inputValues = await chrome.storage.local.get('inputElementsValue');
-	inputValues = inputValues.inputElementsValue || {};
-	for (const [key, value] of Object.entries(inputValues)) {
-		inputElements[key].value = value;
-	}
-});
-
-async function startRecCallback() {
-	startRecordButton.setAttribute('disabled', '');
-	stopRecordButton.removeAttribute('disabled');
+function saveInputValues() {
 	chrome.storage.local.set({
 		'inputElementsValue': {
 			group: inputElements.group.value,
@@ -30,10 +20,60 @@ async function startRecCallback() {
 			patronymic: inputElements.patronymic.value
 		}
 	});
+}
 
-	await chrome.runtime.sendMessage({
-		action: "startRecord"
+window.addEventListener('load', async () => {
+    let inputValues = await chrome.storage.local.get('inputElementsValue');
+	inputValues = inputValues.inputElementsValue || {};
+    for (const [key, value] of Object.entries(inputValues)) {
+        inputElements[key].value = value;
+    }
+
+	Object.values(inputElements).forEach(input => {
+		input.addEventListener('input', saveInputValues);
 	});
+});
+
+async function startRecCallback() {
+    startRecordButton.setAttribute('disabled', '');
+    stopRecordButton.removeAttribute('disabled');
+    saveInputValues();
+    
+    const formData = new FormData();
+    formData.append('group', inputElements.group.value);
+    formData.append('name', inputElements.name.value);
+    formData.append('surname', inputElements.surname.value);
+    formData.append('patronymic', inputElements.patronymic.value);
+
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/start_session', {
+            method: 'POST',
+            mode: 'cors',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Сервер вернул ${response.status}');
+        }
+        const result = await response.json();
+        const sessionId = result.id;
+
+        chrome.storage.local.set({'session_id': sessionId}, () => {
+            console.log('session_id успешно сохранён!');
+        });
+
+    } catch (error) {
+        console.error("Ошибка инициализации сессии", error);
+        startRecordButton.removeAttribute('disabled');
+        stopRecordButton.setAttribute('disabled', '');
+        return;
+    }
+
+    // После успешной инициализации сессии отправляем сообщение для начала записи
+    await chrome.runtime.sendMessage({
+        action: "startRecord"
+    });
 }
 
 async function stopRecCallback() {

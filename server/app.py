@@ -1,5 +1,6 @@
+import json
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
@@ -32,6 +33,8 @@ def start_session():
             return jsonify({"error": "Поля 'group', 'surname', 'name', 'patronymic' обязательны для заполнения"}), 400
 
         session_start = datetime.now(timezone.utc)
+        # Форматирование даты
+        session_date_start, session_time_start = session_start.strftime("%Y-%m-%d %H:%M:%S").split()
         id = ObjectId()
 
         session_data = {
@@ -40,8 +43,10 @@ def start_session():
             "surname": surname,
             "name": name,
             "patronymic": patronymic,
-            "session_start": session_start,
-            "session_end": None,
+            "session_date_start": session_date_start,
+            "session_time_start": session_time_start,
+            "session_date_end": None,
+            "session_time_end": None,
             "video_path": None,
             "status": None
         }
@@ -68,15 +73,18 @@ def upload_video():
             return jsonify({"error": "Сессия не найдена"}), 404
 
         session_end = datetime.now(timezone.utc)
-        extension = os.path.splitext(video.filename)[1] or ".webm"
-        video_name = f"{id}_{session['session_start'].strftime('%Y%m%dT%H%M%S')}_{session['surname']}{extension}"
+        # Форматирование даты
+        session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
+        extension = os.path.splitext(video.filename)[1] or ".mp4"
+        video_name = f"{id}_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{extension}"
         video_path = os.path.join(UPLOAD_FOLDER, video_name)
         video.save(video_path)
 
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
             {"$set": {
-                "session_end": session_end,
+                "session_date_end": session_date_end,
+                "session_time_end": session_time_end,
                 "video_path": video_path,
                 "status": "good"
             }}
@@ -90,10 +98,22 @@ def upload_video():
 @app.route('/get_sessions', methods=['GET'])
 def get_sessions():
     try:
-        sessions = list(db.sessions.find({}, {"_id": 0}))
-        return jsonify(sessions)
+        sessions = list(sessions_collection.find({}))
+
+        if not sessions:
+            return Response(json.dumps({"message": "Нет записей в базе данных."}, ensure_ascii=False, indent=2), mimetype="application/json")
+
+        result = [
+            {
+                **{"id": str(session["_id"])},  # Преобразуем _id в id
+                **{key: session.get(key) for key in session if key != "_id"}  # Копируем остальные поля
+            }
+            for session in sessions
+        ]
+
+        return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return Response(json.dumps({"error": str(e)}, ensure_ascii=False, indent=2), mimetype="application/json")
 
 
 # @app.route('/get/<file_id>', methods=['GET'])
