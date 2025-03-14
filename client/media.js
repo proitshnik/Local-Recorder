@@ -57,13 +57,37 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
-                    streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    try {
+                        streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    } catch (micError) {
+                        if (micError.name === 'NotAllowedError') {
+                            alert('Пожалуйста, предоставьте доступ к микрофону в настройках браузера.');
+                            stopStreams();
+                            return;
+                        } else {
+                            alert('Ошибка при доступе к микрофону: ' + micError.message);
+                            stopStreams();
+                            return;
+                        }
+                    }
 
                     if (!streams.microphone || streams.microphone.getAudioTracks().length === 0) {
                         throw new Error('Не удалось получить аудиопоток с микрофона');
                     }
 
-                    streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    try {
+                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    } catch (camError) {
+                        if (camError.name === 'NotAllowedError') {
+                            alert('Пожалуйста, предоставьте доступ к камере в настройках браузера.');
+                            stopStreams();
+                            return;
+                        } else {
+                            alert('Ошибка при доступе к камере: ' + camError.message);
+                            stopStreams();
+                            return;
+                        }
+                    }
 
                     if (!streams.camera || streams.camera.getVideoTracks().length === 0) {
                         throw new Error('Не удалось получить видеопоток с камеры');
