@@ -1,3 +1,5 @@
+import {deleteFilesFromTempList} from "./common.js";
+
 var streams = {
     screen: null,
     microphone: null,
@@ -215,7 +217,7 @@ async function getMediaDevices() {
                             await handleFileSave(cameraFileHandle, cameraFileName);
                         }
                         if (combinedFinished && cameraFinished) {
-                            setMetadatasRecordOff();
+                            await setMetadatasRecordOff();
                             // Отправляем видео на сервер
                             await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
                             cleanup();
@@ -240,7 +242,6 @@ async function cleanup() {
     stopStreams();
     combinedPreview.srcObject = null;
     cameraPreview.srcObject = null;
-    finishRecordTime = getCurrentDateString(new Date());
     console.log('Все потоки и запись остановлены.');
 }
 
@@ -295,19 +296,28 @@ async function uploadVideo(combinedFile, cameraFile) {
         formData.append("camera_video", cameraFile, cameraFileName);
         formData.append("metadata", JSON.stringify(metadata));
 
-        try {
-            const response = await fetch("http://127.0.0.1:5000/upload_video", {
-                method: "POST",
-                body: formData,
+        fetch('http://127.0.0.1:5000/upload_video', {
+            method: "POST",
+            body: formData,
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(`Ошибка при загрузке видео: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log("Видео успешно отправлено:", result);
+            })
+            .then(async () => {
+                await deleteFilesFromTempList();
+                chrome.alarms.get('dynamicCleanup', (alarm) => {
+                    if (alarm) {
+                        chrome.alarms.clear('dynamicCleanup');
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("Ошибка при отправке видео на сервер:", error);
             });
-            if (!response.ok) {
-                throw new Error(`Ошибка при загрузке видео: ${response.status}`);
-            }
-            const result = await response.json();
-            console.log("Видео успешно отправлено:", result);
-        } catch (error) {
-            console.error("Ошибка при отправке видео на сервер:", error);
-        }
     });
 }
 
