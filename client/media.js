@@ -21,9 +21,27 @@ var cameraFileHandle = null;
 var combinedWritableStream = null;
 var cameraWritableStream = null;
 var forceTimeout = null;
+var startTime = undefined;
+var endTime = undefined;
 
-var startRecordTime = null;
-var finishRecordTime = null;
+var metadata = {
+    screen: {
+        session_client_start: undefined,
+        session_client_end: undefined,
+        session_client_duration: undefined,
+        session_client_mime: undefined,
+        session_client_resolution: undefined,
+        session_client_size: undefined // MB
+    },
+    camera: {
+        session_client_start: undefined,
+        session_client_end: undefined,
+        session_client_duration: undefined,
+        session_client_mime: undefined,
+        session_client_resolution: undefined,
+        session_client_size: undefined // MB
+    }
+};
 
 const stopStreams = () => {
     Object.entries(streams).forEach(([stream, value]) => {
@@ -32,6 +50,42 @@ const stopStreams = () => {
             streams[stream] = null;
         }
     });
+};
+
+const getFormatDate = (date) => {
+    return date.toISOString().replace(/\.[^.]*$/, '');
+};
+
+const getDifferenceInTime = (date1, date2) => {
+    const diff = Math.abs(date2.getTime() - date1.getTime()); // ms
+    const seconds = Math.round(diff / 1000);
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.round(minutes / 60);
+    return `${hours}:${minutes}:${seconds}`;
+};
+
+const setMetadatasRecordOn = () => {
+    metadata.screen.session_client_start = getFormatDate(startTime);
+    metadata.screen.session_client_mime = recorders.combined.mimeType;
+    const [screenVideoTrack] = streams.screen.getVideoTracks();
+    const screenSettings = screenVideoTrack.getSettings();
+    metadata.screen.session_client_resolution = `${screenSettings.width}×${screenSettings.height}`;
+    metadata.camera.session_client_start = getFormatDate(startTime);
+    metadata.camera.session_client_mime = recorders.camera.mimeType;
+    const [cameraVideoTrack] = streams.camera.getVideoTracks();
+    const cameraSettings = cameraVideoTrack.getSettings();
+    metadata.camera.session_client_resolution = `${cameraSettings.width}×${cameraSettings.height}`;
+};
+
+const setMetadatasRecordOff = async () => {
+    metadata.screen.session_client_end = getFormatDate(endTime);
+    metadata.screen.session_client_duration = getDifferenceInTime(endTime, startTime);
+    metadata.camera.session_client_end = getFormatDate(endTime);
+    metadata.camera.session_client_duration = getDifferenceInTime(endTime, startTime);
+    const screenFile = await combinedFileHandle.getFile();
+    metadata.screen.session_client_size = screenFile.size / 1000000;
+    const cameraFile = await cameraFileHandle.getFile();
+    metadata.camera.session_client_size = cameraFile.size / 1000000;
 };
 
 async function getMediaDevices() {
@@ -107,8 +161,6 @@ async function getMediaDevices() {
                         return;
                     }
 
-
-
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
                         streams.microphone.getAudioTracks()[0]
@@ -163,8 +215,8 @@ async function getMediaDevices() {
                             await handleFileSave(cameraFileHandle, cameraFileName);
                         }
                         if (combinedFinished && cameraFinished) {
+                            setMetadatasRecordOff();
                             // Отправляем видео на сервер
-
                             await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
                             cleanup();
                         }
@@ -184,9 +236,7 @@ async function getMediaDevices() {
 }
 
 async function cleanup() {
-    if (forceTimeout) {
-        clearTimeout(forceTimeout);
-    }
+    if (forceTimeout) clearTimeout(forceTimeout);
     stopStreams();
     combinedPreview.srcObject = null;
     cameraPreview.srcObject = null;
@@ -243,6 +293,7 @@ async function uploadVideo(combinedFile, cameraFile) {
         formData.append("id", session_id);
         formData.append("screen_video", combinedFile, combinedFileName);
         formData.append("camera_video", cameraFile, cameraFileName);
+        formData.append("metadata", JSON.stringify(metadata));
 
         try {
             const response = await fetch("http://127.0.0.1:5000/upload_video", {
@@ -279,6 +330,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 function stopRecord() {
+    setMetadatasRecordOn();
+    endTime = new Date();
     if (recorders.combined) recorders.combined.stop();
     if (recorders.camera) recorders.camera.stop();
 }
@@ -294,7 +347,8 @@ async function startRecord() {
     }
 
     rootDirectory = await navigator.storage.getDirectory();
-    startRecordTime = getCurrentDateString(new Date());
+    startTime = new Date();
+    let startRecordTime = getCurrentDateString(startTime);
 
     combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;
     cameraFileName = `proctoring_camera_${startRecordTime}.mp4`;
@@ -327,7 +381,8 @@ async function startRecord() {
             console.log('Запись принудительно завершена спустя 4 часа!');
             stopRecord();
         }, 14400000);
-
+        
+        startTime = new Date();
         recorders.combined.start(5000);
         recorders.camera.start(5000);
         console.log('Запись начата');
