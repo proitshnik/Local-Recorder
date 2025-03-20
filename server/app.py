@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Flask, request, jsonify, Response, render_template
+from flask import Flask, request, jsonify, render_template
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
