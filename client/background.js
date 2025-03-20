@@ -23,7 +23,7 @@ function sendStartMessage() {
 
 async function checkTabState() {
 	const tabs = await chrome.tabs.query({url: chrome.runtime.getURL('media.html')});
-	if (tabs && tabs.length > 0) {
+	if (tabs && tabs.length === 1) {
 		if (tabs[0].active) {
 			return [true, tabs[0].id];
 		} else {
@@ -32,6 +32,17 @@ async function checkTabState() {
 	}
 	return undefined;
 }
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+	const extensionUrl = chrome.runtime.getURL('media.html');
+	if (changeInfo.url === extensionUrl) {
+		const tabs = await chrome.tabs.query({url: extensionUrl});
+		if (tabs && tabs.length > 1) {
+			await chrome.tabs.remove(tab.id);
+			await chrome.tabs.update(tabs[0].id, {active: true});
+		}
+	}
+});
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 	if (message.action === 'startRecord') {
@@ -51,15 +62,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				};
 				chrome.tabs.onUpdated.addListener(listener);
 			});
-			sendStartMessage();
 		} else {
-			if (result[0]) {
-				sendStartMessage();
-			} else {
+			if (!result[0]) {
 				await chrome.tabs.update(result[1], {active: true});
-				sendStartMessage();
 			}
 		}
+		sendStartMessage();
 	} else if (message.action === 'stopRecord') {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
