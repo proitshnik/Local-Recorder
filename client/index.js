@@ -1,5 +1,5 @@
 import { deleteFilesFromTempList } from "./common.js";
-import { log_client_action, clear_logs } from "./logger.js";
+import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
@@ -13,7 +13,7 @@ const inputElements = {
 };
 
 let inactivityTimeout;
-const INACTIVITY_THRESHOLD = 300000; // 5 минут
+const INACTIVITY_THRESHOLD = 300000;
 
 function saveInputValues() {
 	chrome.storage.local.set({
@@ -116,73 +116,55 @@ startRecordButton.addEventListener('click', startRecCallback);
 stopRecordButton.addEventListener('click', stopRecCallback);
 
 uploadButton.addEventListener('click', async () => {
-	log_client_action('Upload initiated');
 	console.log("Отправка...");
 	const fileNames = await chrome.storage.local.get('fileNames')['fileNames'];
 	if (!fileNames || !fileNames.screen || !fileNames.camera) {
 		console.log('Один или оба файла не найдены!');
-		log_client_action('Upload failed: Files not found');
 		return;
 	}
 
 	const rootDirectory = await navigator.storage.getDirectory();
 
-	try {
-		const screenFileHandle = await rootDirectory.getFileHandle(fileNames.screen, { create: false });
-		const cameraFileHandle = await rootDirectory.getFileHandle(fileNames.camera, { create: false });
+	const screenFileHandle = await rootDirectory.getFileHandle(fileNames.screen, { create: false });
+	const cameraFileHandle = await rootDirectory.getFileHandle(fileNames.camera, { create: false });
 
-		const screenFile = await screenFileHandle.getFile();
-		const cameraFile = await cameraFileHandle.getFile();
+	const screenFile = await screenFileHandle.getFile();
+	const cameraFile = await cameraFileHandle.getFile();
 
-		if (!screenFile || !cameraFile) {
-			console.log('Один или оба файла не найдены!');
-			log_client_action('Upload failed: File handles not retrieved');
-			return;
-		}
-
-		const username = inputElements.name.value;
-		const formData = new FormData();
-		formData.append('screen_file', screenFile);
-		formData.append('camera_file', cameraFile);
-		formData.append('username', username);
-		formData.append('start', startRecordTime);
-		formData.append('end', finishRecordTime);
-
-		const logsResult = await new Promise((resolve) => {
-			chrome.storage.local.get(['extension_logs'], (result) => {
-				resolve(result.extension_logs);
-			});
-		});
-		if (logsResult) {
-			formData.append('logs', logsResult);
-		}
-
-		const response = await fetch('http://127.0.0.1:5000/upload', {
-			method: 'POST',
-			mode: 'cors',
-			body: formData,
-		});
-
-		if (!response.ok) {
-			throw new Error(`Ошибка при загрузке файлов: ${response.status}`);
-		}
-
-		const result = await response.json();
-		console.log('Файлы успешно загружены');
-		log_client_action('Upload successful');
-
-		await deleteFilesFromTempList();
-		chrome.alarms.get('dynamicCleanup', (alarm) => {
-			if (alarm) {
-				chrome.alarms.clear('dynamicCleanup');
-			}
-		});
-
-		clear_logs();
-		log_client_action('Logs cleared after upload');
-
-	} catch (err) {
-		console.log(err);
-		log_client_action(`Upload failed: ${err.message}`);
+	if (!screenFile || !cameraFile) {
+		console.log('Один или оба файла не найдены!');
+		return;
 	}
+
+	const username = inputElements.name.value;
+	const formData = new FormData();
+	formData.append('screen_file', screenFile);  // Файл экрана
+	formData.append('camera_file', cameraFile);  // Файл камеры
+	formData.append('username', username);
+	formData.append('start', startRecordTime);
+	formData.append('end', finishRecordTime);
+
+	fetch('http://127.0.0.1:5000/upload', {
+		method: 'POST',
+		mode: 'cors',
+		body: formData,
+	})
+		.then(res => {
+			if (res.ok) {
+				return res.json();
+			}
+			return Promise.reject(`Ошибка при загрузке файлов: ${res.status}`);
+		})
+		.then(async () => {
+			console.log('Файлы успешно загружены');
+			await deleteFilesFromTempList();
+			chrome.alarms.get('dynamicCleanup', (alarm) => {
+				if (alarm) {
+					chrome.alarms.clear('dynamicCleanup');
+				}
+			});
+		})
+		.catch(err => {
+			console.log(err);
+		});
 });
