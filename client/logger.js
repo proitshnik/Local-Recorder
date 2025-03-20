@@ -10,11 +10,3 @@ export function log_client_action(action) {
         });
     });
 }
-
-export function clear_logs() {
-    chrome.storage.local.remove('extension_logs', () => {
-        if (chrome.runtime.lastError) {
-            console.error('Ошибка при очистке логов:', chrome.runtime.lastError);
-        }
-    });
-}
