@@ -1,4 +1,5 @@
-import {deleteFilesFromTempList} from "./common.js";
+import { deleteFilesFromTempList } from "./common.js";
+import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
@@ -20,9 +21,11 @@ function saveInputValues() {
 			patronymic: inputElements.patronymic.value
 		}
 	});
+	log_client_action('Input values saved');
 }
 
 window.addEventListener('load', async () => {
+	log_client_action('Popup opened')
     let inputValues = await chrome.storage.local.get('inputElementsValue');
 	inputValues = inputValues.inputElementsValue || {};
     for (const [key, value] of Object.entries(inputValues)) {
@@ -38,6 +41,12 @@ async function startRecCallback() {
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
     saveInputValues();
+
+	const browserFingerprint = {
+		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
+		timestamp: new Date().toISOString()
+	};
+	log_client_action(`Start recording initiated - Browser fingerprint: ${JSON.stringify(browserFingerprint)}`);
     
     const formData = new FormData();
     formData.append('group', inputElements.group.value);
