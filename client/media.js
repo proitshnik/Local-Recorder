@@ -54,13 +54,9 @@ const stopStreams = () => {
     });
 };
 
-const getFormatDate = (date) => {
-    return date.toISOString().replace(/\.[^.]*$/, '');
-};
-
 const getDifferenceInTime = (date1, date2) => {
-    const diff = Math.abs(date2.getTime() - date1.getTime()); // ms
-    const totalSeconds = Math.floor(diff / 1000);
+    const diff = Math.abs(Math.floor(date2.getTime() / 1000) - Math.floor(date1.getTime() / 1000)); // ms
+    const totalSeconds = Math.floor(diff);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -71,16 +67,15 @@ const getDifferenceInTime = (date1, date2) => {
     const formattedSeconds = String(seconds).padStart(2, '0');
 
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
-    return `${hours}:${minutes}:${seconds}`;
 };
 
 const setMetadatasRecordOn = () => {
-    metadata.screen.session_client_start = getFormatDate(startTime);
+    metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
     const screenSettings = screenVideoTrack.getSettings();
     metadata.screen.session_client_resolution = `${screenSettings.width}×${screenSettings.height}`;
-    metadata.camera.session_client_start = getFormatDate(startTime);
+    metadata.camera.session_client_start = getCurrentDateString(startTime);
     metadata.camera.session_client_mime = recorders.camera.mimeType;
     const [cameraVideoTrack] = streams.camera.getVideoTracks();
     const cameraSettings = cameraVideoTrack.getSettings();
@@ -88,14 +83,15 @@ const setMetadatasRecordOn = () => {
 };
 
 const setMetadatasRecordOff = async () => {
-    metadata.screen.session_client_end = getFormatDate(endTime);
+    metadata.screen.session_client_end = getCurrentDateString(endTime);
     metadata.screen.session_client_duration = getDifferenceInTime(endTime, startTime);
-    metadata.camera.session_client_end = getFormatDate(endTime);
+    metadata.camera.session_client_end = getCurrentDateString(endTime);
     metadata.camera.session_client_duration = getDifferenceInTime(endTime, startTime);
     const screenFile = await combinedFileHandle.getFile();
-    metadata.screen.session_client_size = screenFile.size / 1000000;
+    metadata.screen.session_client_size = (screenFile.size / 1000000).toFixed(3);
     const cameraFile = await cameraFileHandle.getFile();
-    metadata.camera.session_client_size = cameraFile.size / 1000000;
+    metadata.camera.session_client_size = (cameraFile.size / 1000000).toFixed(3);
+    console.log(metadata);
 };
 
 async function getMediaDevices() {
