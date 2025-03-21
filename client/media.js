@@ -107,8 +107,6 @@ async function getMediaDevices() {
                         return;
                     }
 
-
-
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
                         streams.microphone.getAudioTracks()[0]
@@ -190,6 +188,8 @@ async function cleanup() {
     stopStreams();
     combinedPreview.srcObject = null;
     cameraPreview.srcObject = null;
+    recorders.combined = null;
+    recorders.camera = null;
     finishRecordTime = getCurrentDateString(new Date());
     console.log('Все потоки и запись остановлены.');
 }
