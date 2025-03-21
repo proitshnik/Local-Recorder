@@ -91,7 +91,6 @@ const setMetadatasRecordOff = async () => {
     metadata.screen.session_client_size = (screenFile.size / 1000000).toFixed(3);
     const cameraFile = await cameraFileHandle.getFile();
     metadata.camera.session_client_size = (cameraFile.size / 1000000).toFixed(3);
-    console.log(metadata);
 };
 
 async function getMediaDevices() {
@@ -220,7 +219,6 @@ async function cleanup() {
     cameraPreview.srcObject = null;
     recorders.combined = null;
     recorders.camera = null;
-    finishRecordTime = getCurrentDateString(new Date());
     console.log('Все потоки и запись остановлены.');
 }
 
@@ -274,6 +272,7 @@ async function uploadVideo(combinedFile, cameraFile) {
         formData.append("id", session_id);
         formData.append("screen_video", combinedFile, combinedFileName);
         formData.append("camera_video", cameraFile, cameraFileName);
+        await setMetadatasRecordOff();
         formData.append("metadata", JSON.stringify(metadata));
 
         fetch('http://127.0.0.1:5000/upload_video', {
