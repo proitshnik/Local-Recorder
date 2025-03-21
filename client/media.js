@@ -128,9 +128,6 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
 
-                    let combinedFinished = false;
-                    let cameraFinished = false;
-
                     recorders.combined.ondataavailable = async (event) => {
                         if (event.data.size > 0 && combinedWritableStream) {
                             await combinedWritableStream.write(event.data);
@@ -140,31 +137,6 @@ async function getMediaDevices() {
                     recorders.camera.ondataavailable = async (event) => {
                         if (event.data.size > 0 && cameraWritableStream) {
                             await cameraWritableStream.write(event.data);
-                        }
-                    };
-
-                    recorders.combined.onstop = async () => {
-                        combinedFinished = true;
-                        if (combinedWritableStream) {
-                            await combinedWritableStream.close();
-                            await handleFileSave(combinedFileHandle, combinedFileName);
-                        }
-                        if (combinedFinished && cameraFinished) {
-                            cleanup();
-                        }
-                    };
-
-                    recorders.camera.onstop = async () => {
-                        cameraFinished = true;
-                        if (cameraWritableStream) {
-                            await cameraWritableStream.close();
-                            await handleFileSave(cameraFileHandle, cameraFileName);
-                        }
-                        if (combinedFinished && cameraFinished) {
-                            // Отправляем видео на сервер
-
-                            await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
-                            cleanup();
                         }
                     };
 
@@ -279,8 +251,42 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 function stopRecord() {
-    if (recorders.combined) recorders.combined.stop();
-    if (recorders.camera) recorders.camera.stop();
+    const stopPromises = [];
+
+    if (recorders.combined) {
+        stopPromises.push(new Promise((resolve) => {
+            recorders.combined.onstop = async () => {
+                if (combinedWritableStream) {
+                    await combinedWritableStream.close();
+                    await handleFileSave(combinedFileHandle, combinedFileName);
+                }
+                resolve();
+            };
+            recorders.combined.stop();
+        }));
+    }
+
+    if (recorders.camera) {
+        stopPromises.push(new Promise((resolve) => {
+            recorders.camera.onstop = async () => {
+                if (cameraWritableStream) {
+                    await cameraWritableStream.close();
+                    await handleFileSave(cameraFileHandle, cameraFileName);
+                }
+                resolve();
+            };
+            recorders.camera.stop();
+        }));
+    }
+
+    // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
+    Promise.all(stopPromises).then(async () => {
+        await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
+        cleanup();
+    }).catch(error => {
+        console.error("Ошибка при остановке записи:", error);
+        cleanup();
+    });
 }
 
 async function startRecord() {
