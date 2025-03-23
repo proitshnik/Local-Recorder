@@ -290,7 +290,6 @@ async function uploadVideo(combinedFile, cameraFile) {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            log_client_action(`Logs saved locally: ${logsFileName}`);
         }
         //TODO log_client_action('upload_successful'); не попадает в logs
 
@@ -311,7 +310,16 @@ async function uploadVideo(combinedFile, cameraFile) {
             console.error("Ошибка при отправке видео на сервер:", error);
             log_client_action(`upload_error: ${error.message}`);
         } finally {
-            chrome.runtime.sendMessage({ action: "clearLogs" });
+            await new Promise((resolve) => {
+                chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
+                    if (response.success) {
+                        console.log("Логи очищены перед завершением");
+                    } else {
+                        console.error("Ошибка очистки логов:", response.error);
+                    }
+                    resolve();
+                });
+            });
         }
     });
 }
