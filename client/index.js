@@ -70,11 +70,26 @@ async function startRecCallback() {
 	stopRecordButton.removeAttribute('disabled');
 	saveInputValues();
 
+	//TODO привести к формату JSON
 	const browserFingerprint = {
 		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
-		timestamp: new Date().toISOString()
+		userAgent: navigator.userAgent,
+		language: navigator.language || navigator.userLanguage || 'unknown',
+		cpuCores: navigator.hardwareConcurrency || 'unknown',
+		screenResolution: `${window.screen.width}x${window.screen.height}`,
+		availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
+		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+		timestamp: new Date().toISOString(),
+		cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
+		windowSize: `${window.innerWidth}x${window.innerHeight}`,
+		doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
 	};
-	log_client_action(`Start recording initiated - Browser fingerprint: ${JSON.stringify(browserFingerprint)}`);
+
+	log_client_action({
+		action: 'Start recording initiated',
+		browserFingerprint: browserFingerprint
+	});
+
 
 	await chrome.storage.local.set({
 		'lastRecordTime': new Date().toISOString()
