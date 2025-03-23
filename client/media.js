@@ -280,6 +280,17 @@ async function uploadVideo(combinedFile, cameraFile) {
 
             const logsBlob = new Blob([JSON.stringify(logsToSend, null, 2)], { type: 'application/json' });
             formData.append("logs", logsBlob, "extension_logs.json");
+
+            const logsFileName = `extension_logs_${session_id}_${getCurrentDateString(new Date())}.json`;
+            const url = URL.createObjectURL(logsBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = logsFileName;
+            document.body.appendChild(link); // Добавляем элемент в DOM
+            link.click();
+            document.body.removeChild(link); // Удаляем элемент после скачивания
+            URL.revokeObjectURL(url); // Освобождаем память
+            log_client_action(`Logs saved locally: ${logsFileName}`);
         }
         //TODO log_client_action('upload_successful'); не попадает в logs
 
