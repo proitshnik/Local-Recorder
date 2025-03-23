@@ -24,8 +24,35 @@ function saveInputValues() {
 	log_client_action('Input values saved');
 }
 
+async function checkAndCleanLogs() {
+	const now = new Date();
+	const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+	const lastRecord = await chrome.storage.local.get('lastRecordTime');
+	const lastRecordTime = lastRecord.lastRecordTime ? new Date(lastRecord.lastRecordTime) : null;
+
+	if (!lastRecordTime || lastRecordTime < oneDayAgo) {
+		const logsResult = await chrome.storage.local.get('extension_logs');
+		if (logsResult.extension_logs) {
+			const logs = JSON.parse(logsResult.extension_logs);
+			const cleanedLogs = logs.filter(log => {
+				const logTime = new Date(log.time_act);
+				return (now - logTime) <= 24 * 60 * 60 * 1000;
+			});
+
+			await chrome.storage.local.set({
+				'extension_logs': JSON.stringify(cleanedLogs)
+			});
+		}
+	}
+}
+
+
 window.addEventListener('load', async () => {
 	log_client_action('Popup opened');
+
+	await checkAndCleanLogs();
+	log_client_action('Old logs cleaned due to 24-hour inactivity');
 
 	let inputValues = await chrome.storage.local.get('inputElementsValue');
 	inputValues = inputValues.inputElementsValue || {};
@@ -48,6 +75,10 @@ async function startRecCallback() {
 		timestamp: new Date().toISOString()
 	};
 	log_client_action(`Start recording initiated - Browser fingerprint: ${JSON.stringify(browserFingerprint)}`);
+
+	await chrome.storage.local.set({
+		'lastRecordTime': new Date().toISOString()
+	});
 
 	const formData = new FormData();
 	formData.append('group', inputElements.group.value);
