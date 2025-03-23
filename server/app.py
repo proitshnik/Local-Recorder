@@ -49,7 +49,8 @@ def start_session():
             "session_time_end": None,
             "screen_video_path": None,
             "camera_video_path": None,
-            "status": None
+            "status": None,
+            "logs_path": None
         }
 
         sessions_collection.insert_one(session_data)
