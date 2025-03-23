@@ -286,10 +286,10 @@ async function uploadVideo(combinedFile, cameraFile) {
             const link = document.createElement('a');
             link.href = url;
             link.download = logsFileName;
-            document.body.appendChild(link); // Добавляем элемент в DOM
+            document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link); // Удаляем элемент после скачивания
-            URL.revokeObjectURL(url); // Освобождаем память
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
             log_client_action(`Logs saved locally: ${logsFileName}`);
         }
         //TODO log_client_action('upload_successful'); не попадает в logs
