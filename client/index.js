@@ -12,9 +12,6 @@ const inputElements = {
 	patronymic: document.querySelector('#patronymic_input')
 };
 
-let inactivityTimeout;
-const INACTIVITY_THRESHOLD = 300000;
-
 function saveInputValues() {
 	chrome.storage.local.set({
 		'inputElementsValue': {
@@ -39,18 +36,7 @@ window.addEventListener('load', async () => {
 	Object.values(inputElements).forEach(input => {
 		input.addEventListener('input', saveInputValues);
 	});
-
-	document.addEventListener('mousemove', resetInactivityTimer);
-	document.addEventListener('keydown', resetInactivityTimer);
-	resetInactivityTimer();
 });
-
-function resetInactivityTimer() {
-	clearTimeout(inactivityTimeout);
-	inactivityTimeout = setTimeout(() => {
-		log_client_action('Inactivity timeout reached');
-	}, INACTIVITY_THRESHOLD);
-}
 
 async function startRecCallback() {
 	startRecordButton.setAttribute('disabled', '');
