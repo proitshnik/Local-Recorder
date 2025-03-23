@@ -75,7 +75,6 @@ def upload_video():
             return jsonify({"error": "Сессия не найдена"}), 404
 
         session_end = datetime.now(timezone.utc)
-        # Форматирование даты
         session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
         
         screen_extension = os.path.splitext(screen_video.filename)[1] or ".mp4"
@@ -88,6 +87,15 @@ def upload_video():
         camera_video_path = os.path.join(UPLOAD_FOLDER, camera_video_name)
         camera_video.save(camera_video_path)
 
+        logs_file = request.files.get("logs")
+        if logs_file:
+            logs_extension = os.path.splitext(logs_file.filename)[1] or ".json"
+            logs_file_name = f"{id}_logs_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{logs_extension}"
+            logs_file_path = os.path.join(UPLOAD_FOLDER, logs_file_name)
+            logs_file.save(logs_file_path)
+        else:
+            logs_file_path = None
+
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
             {"$set": {
@@ -95,11 +103,12 @@ def upload_video():
                 "session_time_end": session_time_end,
                 "screen_video_path": screen_video_path,
                 "camera_video_path": camera_video_path,
+                "logs_path": logs_file_path,
                 "status": "good"
             }}
         )
 
-        return jsonify({"message": "Видео успешно загружено", "screen_video_path": screen_video_path, "camera_video_path": camera_video_path}), 200
+        return jsonify({"message": "Видео и логи успешно загружены", "screen_video_path": screen_video_path, "camera_video_path": camera_video_path, "logs_path": logs_file_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
