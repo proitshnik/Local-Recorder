@@ -70,7 +70,6 @@ async function startRecCallback() {
 	stopRecordButton.removeAttribute('disabled');
 	saveInputValues();
 
-	//TODO привести к формату JSON
 	const browserFingerprint = {
 		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
 		userAgent: navigator.userAgent,
