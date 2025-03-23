@@ -266,7 +266,19 @@ async function uploadVideo(combinedFile, cameraFile) {
         formData.append("camera_video", cameraFile, cameraFileName);
 
         if (extension_logs) {
-            const logsBlob = new Blob([JSON.stringify(extension_logs)], { type: 'application/json' });
+            let logsToSend;
+            if (typeof extension_logs === "string") {
+                try {
+                    logsToSend = JSON.parse(extension_logs);
+                } catch (e) {
+                    console.error("Ошибка парсинга логов:", e);
+                    logsToSend = [{ error: "Invalid logs", raw_data: extension_logs }];
+                }
+            } else {
+                logsToSend = extension_logs;
+            }
+
+            const logsBlob = new Blob([JSON.stringify(logsToSend, null, 2)], { type: 'application/json' });
             formData.append("logs", logsBlob, "extension_logs.json");
         }
         //TODO log_client_action('upload_successful'); не попадает в logs
@@ -284,7 +296,6 @@ async function uploadVideo(combinedFile, cameraFile) {
             const result = await response.json();
             console.log("Видео успешно отправлено:", result);
             log_client_action('upload_successful');
-
         } catch (error) {
             console.error("Ошибка при отправке видео на сервер:", error);
             log_client_action(`upload_error: ${error.message}`);
