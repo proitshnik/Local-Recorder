@@ -34,6 +34,7 @@ const stopStreams = () => {
             streams[stream] = null;
         }
     });
+    log_client_action('All streams stopped')
 };
 
 async function getMediaDevices() {
@@ -139,19 +140,23 @@ async function getMediaDevices() {
                     };
 
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
+                    log_client_action('Combined recorder initialized');
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
+                    log_client_action('Camera recorder initialized');
 
                     let combinedFinished = false;
                     let cameraFinished = false;
 
                     recorders.combined.ondataavailable = async (event) => {
                         if (event.data.size > 0 && combinedWritableStream) {
+                            log_client_action(`Combined data available: ${event.data.size} bytes`);
                             await combinedWritableStream.write(event.data);
                         }
                     };
 
                     recorders.camera.ondataavailable = async (event) => {
                         if (event.data.size > 0 && cameraWritableStream) {
+                            log_client_action(`Camera data available: ${event.data.size} bytes`);
                             await cameraWritableStream.write(event.data);
                         }
                     };
@@ -264,6 +269,7 @@ async function uploadVideo(combinedFile, cameraFile) {
             const logsBlob = new Blob([JSON.stringify(extension_logs)], { type: 'application/json' });
             formData.append("logs", logsBlob, "extension_logs.json");
         }
+        //TODO log_client_action('upload_successful'); не попадает в logs
 
         try {
             const response = await fetch("http://127.0.0.1:5000/upload_video", {
@@ -327,6 +333,7 @@ async function startRecord() {
     }
 
     rootDirectory = await navigator.storage.getDirectory();
+    log_client_action('Root directory accessed');
     startRecordTime = getCurrentDateString(new Date());
 
     combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;
@@ -335,14 +342,17 @@ async function startRecord() {
     try {
         combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });
         combinedWritableStream = await combinedFileHandle.createWritable();
+        log_client_action(`Combined file handle created: ${combinedFileName}`);
 
         cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
         cameraWritableStream = await cameraFileHandle.createWritable();
+        log_client_action(`Camera file handle created: ${cameraFileName}`);
 
         await Promise.all([
             addFileToTempList(combinedFileName),
             addFileToTempList(cameraFileName)
         ]);
+        log_client_action('Files added to temp list');
 
         chrome.storage.local.set({
             'fileNames': {
@@ -355,6 +365,7 @@ async function startRecord() {
             action: 'scheduleCleanup',
             delayMinutes: 245
         });
+        log_client_action('File names saved to storage');
 
         forceTimeout = setTimeout(() => {
             console.log('Запись принудительно завершена спустя 4 часа!');
