@@ -80,13 +80,22 @@ function saveInputValues() {
     });
 }
 
-noPatronymicCheckbox.addEventListener('change', () => {
+function savePatronymic() {
+    chrome.storage.local.set({
+        'savedPatronymic': inputElements.patronymic.value
+    });
+}
+
+noPatronymicCheckbox.addEventListener('change', async () => {
     if (noPatronymicCheckbox.checked) {
+        savePatronymic();
         inputElements.patronymic.value = '';
         inputElements.patronymic.disabled = true;
         inputElements.patronymic.nextElementSibling.textContent = "";
         inputElements.patronymic.style.backgroundColor = "#DCDCDC";
     } else {
+        let storedData = await chrome.storage.local.get('savedPatronymic');
+        inputElements.patronymic.value = storedData.savedPatronymic || "";
         inputElements.patronymic.disabled = false;
         inputElements.patronymic.style.backgroundColor = "";
         validateInput(inputElements.patronymic);
