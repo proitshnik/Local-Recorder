@@ -340,7 +340,7 @@ async function uploadVideo(combinedFile, cameraFile) {
                     if (alarm) {
                         chrome.alarms.clear('dynamicCleanup');
                     }
-                    log_client_action('delete_temp_files_successful');
+                    log_client_action('Delete tempfiles successful');
                 });
             })
             .catch(error => {
