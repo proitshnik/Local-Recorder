@@ -1,7 +1,5 @@
 .page {
-    width: 500px;
-    height: 440px;
-    padding: 10px;
+    width: 550px;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
     display: flex;
@@ -24,7 +22,7 @@ label{
 
 .user-inputs {
     margin-bottom: 10px;
-    width: 45%;
+    width: 65%;
 }
 
 .user-inputs--fio {
@@ -93,7 +91,6 @@ label{
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 20px;
 }
 
 .user-inputs input {
