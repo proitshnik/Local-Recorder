@@ -132,6 +132,7 @@ window.addEventListener('load', async () => {
 
     Object.values(inputElements).forEach(input => {
         input.addEventListener('input', () => {
+            input.value = input.value.trim()
             validateInput(input);
             saveInputValues();
         });
