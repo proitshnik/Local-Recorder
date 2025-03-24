@@ -85,10 +85,17 @@ noPatronymicCheckbox.addEventListener('change', () => {
         inputElements.patronymic.value = '';
         inputElements.patronymic.disabled = true;
         inputElements.patronymic.nextElementSibling.textContent = "";
+        inputElements.patronymic.style.backgroundColor = "#DCDCDC";
     } else {
         inputElements.patronymic.disabled = false;
+        inputElements.patronymic.style.backgroundColor = "";
+        validateInput(inputElements.patronymic);
     }
     saveInputValues();
+});
+
+document.querySelectorAll('input').forEach(input => {
+    input.setAttribute('autocomplete', 'off');
 });
 
 window.addEventListener('load', async () => {
@@ -101,6 +108,7 @@ window.addEventListener('load', async () => {
                 inputElements.patronymic.value = "";
                 inputElements.patronymic.setAttribute('disabled', '');
                 inputElements.patronymic.nextElementSibling.textContent = "";
+                inputElements.patronymic.style.backgroundColor = "#DCDCDC";
             }
         } else {
             const input = inputElements[key];
