@@ -8,9 +8,17 @@
         <h1>Локальный прокторинг</h1>
         <div class="user-inputs">
             <input type="text" name="group" id="group_input" class="user-inputs__input" placeholder="Введите группу" required minlength="2" maxlength="20">
+            <span class="message"></span>
             <input type="text" name="surname" id="surname_input" class="user-inputs__input" placeholder="Введите фамилию" required minlength="2" maxlength="40">
+            <span class="message"></span>
             <input type="text" name="name" id="name_input" class="user-inputs__input" placeholder="Введите имя" required minlength="2" maxlength="40">
+            <span class="message"></span>
             <input type="text" name="patronymic" id="patronymic_input" class="user-inputs__input" placeholder="Введите отчество" required minlength="2" maxlength="40">
+            <span class="message"></span>
+            <div class="no-patronymic-container">
+                <input type="checkbox" id="no_patronymic_checkbox" class="no-patronymic-checkbox">
+                <span class="no-patronymic-text">Нет отчества</span>
+            </div>
         </div>
         <div class="record-section">
             <button class="permissions_button">Разрешения</button>

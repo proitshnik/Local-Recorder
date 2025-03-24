@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, render_template
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
@@ -50,6 +50,7 @@ def start_session():
             "screen_video_path": None,
             "camera_video_path": None,
             "status": None,
+            "metadata": None,
             "logs_path": None
         }
 
@@ -70,6 +71,7 @@ def upload_video():
         screen_video = request.files["screen_video"]
         camera_video = request.files["camera_video"]
         id = request.form["id"]
+        metadata = json.loads(request.form["metadata"])
 
         session = sessions_collection.find_one({"_id": ObjectId(id)})
         if not session:
@@ -105,7 +107,8 @@ def upload_video():
                 "screen_video_path": screen_video_path,
                 "camera_video_path": camera_video_path,
                 "logs_path": logs_file_path,
-                "status": "good"
+                "status": "good",
+                "metadata": metadata
             }}
         )
 
@@ -114,13 +117,43 @@ def upload_video():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/get_sessions', methods=['GET'])
+@app.route("/")
+def search_page():
+    """Отображает страницу поиска."""
+    return render_template("filter.html")
+
+@app.route("/results")
+def results_page():
+    """Отображает страницу результатов."""
+    return render_template("filter_result.html")
+
+
+@app.route("/get_sessions", methods=["GET"])
 def get_sessions():
+    """Получение сессий с фильтрацией."""
     try:
-        sessions = list(sessions_collection.find({}))
+        query = {}
+        group = request.args.get("group")
+        surname = request.args.get("surname")
+        name = request.args.get("name")
+        patronymic = request.args.get("patronymic")
+        session_date_start = request.args.get("date")
+
+        if group:
+            query["group"] = group
+        if surname:
+            query["surname"] = surname
+        if name:
+            query["name"] = name
+        if patronymic:
+            query["patronymic"] = patronymic
+        if session_date_start:
+            query["session_date_start"] = session_date_start
+
+        sessions = list(sessions_collection.find(query))
 
         if not sessions:
-            return Response(json.dumps({"message": "Нет записей в базе данных."}, ensure_ascii=False, indent=2), mimetype="application/json")
+            return jsonify([])
 
         result = [
             {
@@ -130,9 +163,10 @@ def get_sessions():
             for session in sessions
         ]
 
-        return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
+        return jsonify(result)
+
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}, ensure_ascii=False, indent=2), mimetype="application/json")
+        return jsonify({"error": str(e)}), 500
 
 
 # @app.route('/get/<file_id>', methods=['GET'])

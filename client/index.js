@@ -4,6 +4,7 @@ import { log_client_action } from "./logger.js";
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
 const uploadButton = document.querySelector('.upload_button');
+const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 
 const inputElements = {
 	group: document.querySelector('#group_input'),
@@ -12,15 +13,72 @@ const inputElements = {
 	patronymic: document.querySelector('#patronymic_input')
 };
 
+const validationRules = {
+    group: {
+        regex: /^\d{4}$/, 
+        message: "Группа должна содержать ровно 4 цифры. Пример: '1234'"
+    },
+    name: {
+        regex: /^[А-ЯЁ][а-яё]+$/, 
+        message: "Имя должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иван'"
+    },
+    surname: {
+        regex: /^[А-ЯЁ][а-яё]+$/, 
+        message: "Фамилия должна начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванов'"
+    },
+    patronymic: {
+        regex: /^[А-ЯЁ][а-яё]+$/, 
+        message: "Отчество должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванович'"
+    }
+};
+
+function validateInput(input) {
+    const rule = validationRules[input.id.replace('_input', '')];
+    const messageElement = input.nextElementSibling;
+
+    if (!input.value.trim()) {
+        messageElement.textContent = rule.message;
+        return;
+    }
+    
+    if (!rule.regex.test(input.value)) {
+        messageElement.textContent = `Неверно! ${rule.message}`;
+    } else {
+        messageElement.textContent = "Верно!";
+    }
+}
+
+function handleFocus(event) {
+    const input = event.target;
+    const rule = validationRules[input.id.replace('_input', '')];
+    const messageElement = input.nextElementSibling;
+    
+    if (!input.value.trim()) {
+        messageElement.textContent = rule.message;
+    }
+}
+
+function handleBlur(event) {
+    const input = event.target;
+    const messageElement = input.nextElementSibling;
+    
+    if (!input.value.trim()) {
+        messageElement.textContent = "";
+    } else {
+        validateInput(input);
+    }
+}
+
 function saveInputValues() {
-	chrome.storage.local.set({
-		'inputElementsValue': {
-			group: inputElements.group.value,
-			name: inputElements.name.value,
-			surname: inputElements.surname.value,
-			patronymic: inputElements.patronymic.value
-		}
-	});
+    chrome.storage.local.set({
+        'inputElementsValue': {
+            group: inputElements.group.value,
+            name: inputElements.name.value,
+            surname: inputElements.surname.value,
+            patronymic: inputElements.patronymic.value,
+            noPatronymicChecked: noPatronymicCheckbox.checked
+        }
+    });
 	log_client_action('Input values saved');
 }
 
@@ -48,27 +106,90 @@ async function checkAndCleanLogs() {
 }
 
 
+function savePatronymic() {
+    chrome.storage.local.set({
+        'savedPatronymic': inputElements.patronymic.value
+    });
+}
+
+noPatronymicCheckbox.addEventListener('change', async () => {
+    if (noPatronymicCheckbox.checked) {
+        savePatronymic();
+        inputElements.patronymic.value = '';
+        inputElements.patronymic.disabled = true;
+        inputElements.patronymic.nextElementSibling.textContent = "";
+        inputElements.patronymic.style.backgroundColor = "#DCDCDC";
+    } else {
+        let storedData = await chrome.storage.local.get('savedPatronymic');
+        inputElements.patronymic.value = storedData.savedPatronymic || "";
+        inputElements.patronymic.disabled = false;
+        inputElements.patronymic.style.backgroundColor = "";
+        validateInput(inputElements.patronymic);
+    }
+    saveInputValues();
+});
+
+document.querySelectorAll('input').forEach(input => {
+    input.setAttribute('autocomplete', 'off');
+});
+
 window.addEventListener('load', async () => {
 	log_client_action('Popup opened');
 
 	await checkAndCleanLogs();
 	log_client_action('Old logs cleaned due to 24-hour inactivity');
 
-	let inputValues = await chrome.storage.local.get('inputElementsValue');
-	inputValues = inputValues.inputElementsValue || {};
-	for (const [key, value] of Object.entries(inputValues)) {
-		inputElements[key].value = value;
-	}
+    let inputValues = await chrome.storage.local.get('inputElementsValue');
+    inputValues = inputValues.inputElementsValue || {};    
+    for (const [key, value] of Object.entries(inputValues)) {
+        if (key === 'noPatronymicChecked') {
+            noPatronymicCheckbox.checked = value;
+            if (value) {
+                inputElements.patronymic.value = "";
+                inputElements.patronymic.setAttribute('disabled', '');
+                inputElements.patronymic.nextElementSibling.textContent = "";
+                inputElements.patronymic.style.backgroundColor = "#DCDCDC";
+            }
+        } else {
+            const input = inputElements[key];
+            input.value = value;
+            if (value.trim()) { 
+                validateInput(input);
+            } else {
+                input.nextElementSibling.textContent = "";
+            }
+        }
+    }
 
-	Object.values(inputElements).forEach(input => {
-		input.addEventListener('input', saveInputValues);
-	});
+    Object.values(inputElements).forEach(input => {
+        input.addEventListener('input', () => {
+            input.value = input.value.trim()
+            validateInput(input);
+            saveInputValues();
+        });
+        input.addEventListener('focus', handleFocus);
+        input.addEventListener('blur', handleBlur);
+    });
 });
 
 async function startRecCallback() {
-	startRecordButton.setAttribute('disabled', '');
-	stopRecordButton.removeAttribute('disabled');
-	saveInputValues();
+    let allValid = true;
+    Object.values(inputElements).forEach(input => {
+        if (input !== inputElements.patronymic || !noPatronymicCheckbox.checked) {
+            validateInput(input);
+            if (!input.value.trim() || input.nextElementSibling.textContent.startsWith("Неверно!")) {
+                allValid = false;
+            }
+        }
+    });
+    if (!allValid) {
+        console.warn("Невозможно начать запись: есть ошибки или незаполненные поля.");
+        return;
+    }
+
+    startRecordButton.setAttribute('disabled', '');
+    stopRecordButton.removeAttribute('disabled');
+    saveInputValues();
 
 	const browserFingerprint = {
 		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
@@ -93,12 +214,12 @@ async function startRecCallback() {
 	await chrome.storage.local.set({
 		'lastRecordTime': new Date().toISOString()
 	});
-
-	const formData = new FormData();
-	formData.append('group', inputElements.group.value);
-	formData.append('name', inputElements.name.value);
-	formData.append('surname', inputElements.surname.value);
-	formData.append('patronymic', inputElements.patronymic.value);
+    
+    const formData = new FormData();
+    formData.append('group', inputElements.group.value);
+    formData.append('name', inputElements.name.value);
+    formData.append('surname', inputElements.surname.value);
+    formData.append('patronymic', noPatronymicCheckbox.checked ? "Без_отчества" : inputElements.patronymic.value.trim());
 
 	try {
 		const response = await fetch('http://127.0.0.1:5000/start_session', {
