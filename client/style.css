@@ -101,3 +101,34 @@ label{
     margin: 0;
 }
 
+.no-patronymic-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.no-patronymic-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    appearance: none;
+    border: 1px solid #333;
+    border-radius: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.no-patronymic-checkbox:checked::before {
+    content: '✔';
+    font-size: 12px;
+    color: black;
+    position: absolute;
+}
+
+.no-patronymic-text {
+    font-size: 14px;
+    user-select: none;
+    cursor: default;
+}
