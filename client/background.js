@@ -1,4 +1,4 @@
-import { deleteFilesFromTempList } from "./common.js";
+import {deleteFilesFromTempList, showGlobalVisualCue} from "./common.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.action === 'scheduleCleanup') {
@@ -72,5 +72,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
+		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 	}
 });

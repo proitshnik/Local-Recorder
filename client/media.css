@@ -22,3 +22,48 @@
     height: 240px;
     border: 1px solid #ccc;
 }
+
+#custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Затемненный фон для overlay */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+#custom-modal {
+    background: #ffffff; /* Белый фон модального окна */
+    color: #000000; /* Чёрный цвет текста */
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#custom-modal h2 {
+    margin-top: 0;
+}
+
+#custom-modal p {
+    margin: 10px 0;
+}
+
+#modal-close-btn {
+    margin-top: 15px;
+    background: #007BFF; /* Синий фон для кнопки */
+    color: #ffffff !important; /* Белый текст */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#modal-close-btn:hover {
+    background: #0056b3;
+}

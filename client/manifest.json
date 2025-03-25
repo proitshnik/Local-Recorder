@@ -9,6 +9,13 @@
 		"tabs",
 		"desktopCapture"
 	],
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"js": ["content.js"],
+			"css": ["media.css"]
+		}
+	],
 	"action": {
 		"default_popup": "index.html"
 	},

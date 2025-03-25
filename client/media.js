@@ -1,3 +1,5 @@
+import { showVisualCue } from './common.js';
+
 var streams = {
     screen: null,
     microphone: null,
@@ -61,7 +63,7 @@ async function getMediaDevices() {
                     let camPermissionDenied = false;
 
                     try {
-                        streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        streams.microphone = await navigator.mediaDevices.getUserMedia({audio: true});
                     } catch (micError) {
                         if (micError.name === 'NotAllowedError') {
                             micPermissionDenied = true;
@@ -74,7 +76,7 @@ async function getMediaDevices() {
                     }
 
                     try {
-                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        streams.camera = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
                             camPermissionDenied = true;
@@ -95,7 +97,7 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
 
-                        chrome.tabs.create({ url: settingsUrl });
+                        chrome.tabs.create({url: settingsUrl});
 
                         chrome.tabs.getCurrent((tab) => {
                             if (tab && tab.id) {
@@ -115,18 +117,18 @@ async function getMediaDevices() {
                     combinedPreview.srcObject = streams.combined;
                     cameraPreview.srcObject = streams.camera;
 
-                    combinedPreview.onloadedmetadata = function() {
+                    combinedPreview.onloadedmetadata = function () {
                         combinedPreview.width = combinedPreview.videoWidth > 1280 ? 1280 : combinedPreview.videoWidth;
                         combinedPreview.height = combinedPreview.videoHeight > 720 ? 720 : combinedPreview.videoHeight;
                     };
 
-                    cameraPreview.onloadedmetadata = function() {
+                    cameraPreview.onloadedmetadata = function () {
                         cameraPreview.width = 320;
                         cameraPreview.height = 240;
                     };
 
-                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
-                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
+                    recorders.combined = new MediaRecorder(streams.combined, {mimeType: 'video/mp4; codecs="avc1.64001E, opus"'});
+                    recorders.camera = new MediaRecorder(streams.camera, {mimeType: 'video/mp4; codecs="avc1.64001E"'});
 
                     recorders.combined.ondataavailable = async (event) => {
                         if (event.data.size > 0 && combinedWritableStream) {
@@ -181,7 +183,7 @@ async function handleFileSave(handle, name) {
 }
 
 const getCurrentDateString = (date) => {
-    return `${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
+    return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}T${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
 }
 
 const getAvailableDiskSpace = async () => {
@@ -206,7 +208,7 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 // Функция для отправки видео на сервер после завершения записи
 async function uploadVideo(combinedFile, cameraFile) {
-    chrome.storage.local.get('session_id', async ({ session_id }) => {
+    chrome.storage.local.get('session_id', async ({session_id}) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
             return;
@@ -279,8 +281,6 @@ function stopRecord() {
         }));
     }
 
-    visual_cues(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
-
 
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
@@ -290,6 +290,7 @@ function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
+    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 }
 
 async function startRecord() {
@@ -309,10 +310,10 @@ async function startRecord() {
     cameraFileName = `proctoring_camera_${startRecordTime}.mp4`;
 
     try {
-        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });
+        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, {create: true});
         combinedWritableStream = await combinedFileHandle.createWritable();
 
-        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
+        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, {create: true});
         cameraWritableStream = await cameraFileHandle.createWritable();
 
         await Promise.all([
@@ -344,59 +345,5 @@ async function startRecord() {
         console.error('Ошибка при запуске записи:', error);
         cleanup();
     }
-    visual_cues(["Запись началась. Пожалуйста, убедитесь, что ваше устройство работает корректно."], "Начало записи");
-}
-
-function visual_cues(messages, title = "Уведомление") {
-    let overlay = document.createElement("div");
-    overlay.style.position = "fixed";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100vw";
-    overlay.style.height = "100vh";
-    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-    overlay.style.display = "flex";
-    overlay.style.justifyContent = "center";
-    overlay.style.alignItems = "center";
-    overlay.style.zIndex = "1000";
-
-    let modal = document.createElement("div");
-    modal.style.backgroundColor = "white";
-    modal.style.padding = "20px";
-    modal.style.borderRadius = "10px";
-    modal.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-    modal.style.textAlign = "center";
-    modal.style.minWidth = "300px";
-
-    let header = document.createElement("h2");
-    header.textContent = title;
-    modal.appendChild(header);
-
-    let messageContainer = document.createElement("div");
-    if (!Array.isArray(messages)) {
-        messages = [messages];
-    }
-    messages.forEach(msg => {
-        let p = document.createElement("p");
-        p.textContent = msg;
-        messageContainer.appendChild(p);
-    });
-    modal.appendChild(messageContainer);
-
-    let button = document.createElement("button");
-    button.textContent = "Хорошо. Я прочитал(а).";
-    button.style.marginTop = "15px";
-    button.style.padding = "10px 20px";
-    button.style.border = "none";
-    button.style.backgroundColor = "#007BFF";
-    button.style.color = "white";
-    button.style.borderRadius = "5px";
-    button.style.cursor = "pointer";
-    button.onclick = function() {
-        document.body.removeChild(overlay);
-    };
-    modal.appendChild(button);
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+    showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
 }
