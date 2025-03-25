@@ -1,14 +1,19 @@
 .page {
-    width: 600px;
-    height: 450px;
-    padding: 10px;
+    width: 550px;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
-    overflow: hidden;
     display: flex;
+    overflow: hidden;
     flex-direction: column;
+    align-items: center;
+    border: thick double #000000;
 }
 
+label{
+    margin-top: 5px;
+    margin-bottom: -10px;
+    font-size: 15px;
+}
 .page__title {
     margin: 0 0 10px;
     font-size: 20px;
@@ -17,6 +22,7 @@
 
 .user-inputs {
     margin-bottom: 10px;
+    width: 65%;
 }
 
 .user-inputs--fio {
@@ -34,7 +40,7 @@
     padding: 8px;
     font-size: 14px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 10px;
     box-sizing: border-box;
 }
 
@@ -60,10 +66,11 @@
 
 .record-section__button {
     padding: 8px 16px;
-    font-size: 12px;
+    font-size: 16px;
     border: none;
-    border-radius: 4px;
+    border-radius: 10px;
     cursor: pointer;
+    width: 180px;
 }
 
 .record-section__button:disabled {
@@ -84,10 +91,41 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 20px;
 }
 
 .user-inputs input {
     padding: 8px;
     margin: 0;
+}
+
+.no-patronymic-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.no-patronymic-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    appearance: none;
+    border: 1px solid #333;
+    border-radius: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.no-patronymic-checkbox:checked::before {
+    content: '✔';
+    font-size: 12px;
+    color: black;
+    position: absolute;
+}
+
+.no-patronymic-text {
+    font-size: 14px;
+    user-select: none;
+    cursor: default;
 }
