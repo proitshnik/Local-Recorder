@@ -84,18 +84,19 @@ function saveInputValues() {
 
 async function checkAndCleanLogs() {
 	const now = new Date();
-	const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+	const delTime = 24 * 60 * 60 * 1000;
+	const timeAgo = new Date(now.getTime() - delTime);
 
 	const lastRecord = await chrome.storage.local.get('lastRecordTime');
 	const lastRecordTime = lastRecord.lastRecordTime ? new Date(lastRecord.lastRecordTime) : null;
 
-	if (!lastRecordTime || lastRecordTime < oneDayAgo) {
+	if (!lastRecordTime || lastRecordTime < timeAgo) {
 		const logsResult = await chrome.storage.local.get('extension_logs');
 		if (logsResult.extension_logs) {
 			const logs = JSON.parse(logsResult.extension_logs);
 			const cleanedLogs = logs.filter(log => {
 				const logTime = new Date(log.time_act);
-				return (now - logTime) <= 24 * 60 * 60 * 1000;
+				return (now - logTime) <= delTime;
 			});
 
 			await chrome.storage.local.set({
