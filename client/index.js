@@ -1,4 +1,5 @@
-import {deleteFilesFromTempList} from "./common.js";
+import { deleteFilesFromTempList } from "./common.js";
+import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
@@ -6,10 +7,10 @@ const uploadButton = document.querySelector('.upload_button');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 
 const inputElements = {
-    group: document.querySelector('#group_input'),
-    name: document.querySelector('#name_input'),
-    surname: document.querySelector('#surname_input'),
-    patronymic: document.querySelector('#patronymic_input')
+	group: document.querySelector('#group_input'),
+	name: document.querySelector('#name_input'),
+	surname: document.querySelector('#surname_input'),
+	patronymic: document.querySelector('#patronymic_input')
 };
 
 const validationRules = {
@@ -78,7 +79,33 @@ function saveInputValues() {
             noPatronymicChecked: noPatronymicCheckbox.checked
         }
     });
+	log_client_action('Input values saved');
 }
+
+async function checkAndCleanLogs() {
+	const now = new Date();
+	const delTime = 24 * 60 * 60 * 1000;
+	const timeAgo = new Date(now.getTime() - delTime);
+
+	const lastRecord = await chrome.storage.local.get('lastRecordTime');
+	const lastRecordTime = lastRecord.lastRecordTime ? new Date(lastRecord.lastRecordTime) : null;
+
+	if (!lastRecordTime || lastRecordTime < timeAgo) {
+		const logsResult = await chrome.storage.local.get('extension_logs');
+		if (logsResult.extension_logs) {
+			const logs = JSON.parse(logsResult.extension_logs);
+			const cleanedLogs = logs.filter(log => {
+				const logTime = new Date(log.time_act);
+				return (now - logTime) <= delTime;
+			});
+
+			await chrome.storage.local.set({
+				'extension_logs': JSON.stringify(cleanedLogs)
+			});
+		}
+	}
+}
+
 
 function savePatronymic() {
     chrome.storage.local.set({
@@ -108,6 +135,11 @@ document.querySelectorAll('input').forEach(input => {
 });
 
 window.addEventListener('load', async () => {
+	log_client_action('Popup opened');
+
+	await checkAndCleanLogs();
+	log_client_action('Old logs cleaned due to 24-hour inactivity');
+
     let inputValues = await chrome.storage.local.get('inputElementsValue');
     inputValues = inputValues.inputElementsValue || {};    
     for (const [key, value] of Object.entries(inputValues)) {
@@ -159,6 +191,30 @@ async function startRecCallback() {
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
     saveInputValues();
+
+	const browserFingerprint = {
+		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
+		userAgent: navigator.userAgent,
+		language: navigator.language || navigator.userLanguage || 'unknown',
+		cpuCores: navigator.hardwareConcurrency || 'unknown',
+		screenResolution: `${window.screen.width}x${window.screen.height}`,
+		availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
+		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+		timestamp: new Date().toISOString(),
+		cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
+		windowSize: `${window.innerWidth}x${window.innerHeight}`,
+		doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
+	};
+
+	log_client_action({
+		action: 'Start recording initiated',
+		browserFingerprint: browserFingerprint
+	});
+
+
+	await chrome.storage.local.set({
+		'lastRecordTime': new Date().toISOString()
+	});
     
     const formData = new FormData();
     formData.append('group', inputElements.group.value);
@@ -166,42 +222,47 @@ async function startRecCallback() {
     formData.append('surname', inputElements.surname.value);
     formData.append('patronymic', noPatronymicCheckbox.checked ? "Без_отчества" : inputElements.patronymic.value.trim());
 
-    try {
-        const response = await fetch('http://127.0.0.1:5000/start_session', {
-            method: 'POST',
-            mode: 'cors',
-            body: formData
-        });
+	try {
+		const response = await fetch('http://127.0.0.1:5000/start_session', {
+			method: 'POST',
+			mode: 'cors',
+			body: formData
+		});
 
-        if (!response.ok) {
-            throw new Error('Сервер вернул ${response.status}');
-        }
-        const result = await response.json();
-        const sessionId = result.id;
+		if (!response.ok) {
+			throw new Error(`Сервер вернул ${response.status}`);
+		}
+		const result = await response.json();
+		const sessionId = result.id;
 
-        chrome.storage.local.set({'session_id': sessionId}, () => {
-            console.log('session_id успешно сохранён!');
-        });
+		chrome.storage.local.set({'session_id': sessionId}, () => {
+			console.log('session_id успешно сохранён!');
+			log_client_action(`Session initialized with ID: ${sessionId}`);
+		});
 
-    } catch (error) {
-        console.error("Ошибка инициализации сессии", error);
-        startRecordButton.removeAttribute('disabled');
-        stopRecordButton.setAttribute('disabled', '');
-        return;
-    }
+	} catch (error) {
+		console.error("Ошибка инициализации сессии", error);
+		log_client_action(`Session initialization failed: ${error.message}`);
+		startRecordButton.removeAttribute('disabled');
+		stopRecordButton.setAttribute('disabled', '');
+		return;
+	}
 
-    // После успешной инициализации сессии отправляем сообщение для начала записи
-    await chrome.runtime.sendMessage({
-        action: "startRecord"
-    });
+	// После успешной инициализации сессии отправляем сообщение для начала записи
+	await chrome.runtime.sendMessage({
+		action: "startRecord"
+	});
+	log_client_action('Start recording message sent');
 }
 
 async function stopRecCallback() {
 	stopRecordButton.setAttribute('disabled', '');
 	startRecordButton.removeAttribute('disabled');
+	log_client_action('Stop recording initiated');
 	await chrome.runtime.sendMessage({
 		action: "stopRecord"
 	});
+	log_client_action('Stop recording message sent');
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
