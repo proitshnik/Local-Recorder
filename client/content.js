@@ -1,15 +1,4 @@
-export async function deleteFilesFromTempList() {
-    const tempFiles = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
-    if (tempFiles.length > 0) {
-        const root = await navigator.storage.getDirectory();
-        for (const file of tempFiles) {
-            await root.removeEntry(file).catch((e) => {console.log(e)});
-        }
-        chrome.storage.local.remove('tempFiles');
-    }
-}
-
-export function showVisualCue(messages, title = "Уведомление") {
+function showVisualCue(messages, title = "Уведомление") {
 
     const existingOverlay = document.getElementById('custom-modal-overlay');
     if (existingOverlay) existingOverlay.remove();
@@ -43,18 +32,9 @@ export function showVisualCue(messages, title = "Уведомление") {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 }
-
-export function showGlobalVisualCue(messages, title) {
-    chrome.tabs.query({
-        active: true,
-        currentWindow: true
-    }, (tabs) => {
-        tabs.forEach((tab) => {
-            chrome.tabs.sendMessage(tab.id, {
-                action: 'showModal',
-                title: title,
-                message: messages
-            });
-        });
-    });
-}
+// Приём сообщений от фонового скрипта
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'showModal') {
+        showVisualCue(message.message, message.title);
+    }
+});

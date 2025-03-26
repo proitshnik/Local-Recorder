@@ -1,3 +1,4 @@
+import { showVisualCue } from './common.js';
 import {deleteFilesFromTempList} from "./common.js";
 import { log_client_action } from './logger.js';
 
@@ -164,7 +165,7 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
 
-                        chrome.tabs.create({ url: settingsUrl });
+                        chrome.tabs.create({url: settingsUrl});
 
                         chrome.tabs.getCurrent((tab) => {
                             if (tab && tab.id) {
@@ -184,12 +185,12 @@ async function getMediaDevices() {
                     combinedPreview.srcObject = streams.combined;
                     cameraPreview.srcObject = streams.camera;
 
-                    combinedPreview.onloadedmetadata = function() {
+                    combinedPreview.onloadedmetadata = function () {
                         combinedPreview.width = combinedPreview.videoWidth > 1280 ? 1280 : combinedPreview.videoWidth;
                         combinedPreview.height = combinedPreview.videoHeight > 720 ? 720 : combinedPreview.videoHeight;
                     };
 
-                    cameraPreview.onloadedmetadata = function() {
+                    cameraPreview.onloadedmetadata = function () {
                         cameraPreview.width = 320;
                         cameraPreview.height = 240;
                     };
@@ -413,6 +414,7 @@ function stopRecord() {
         }));
     }
 
+
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
         await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
@@ -421,6 +423,7 @@ function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
+    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     log_client_action('Recording stopping');
 }
 
@@ -445,11 +448,11 @@ async function startRecord() {
     cameraFileName = `proctoring_camera_${startRecordTime}.mp4`;
 
     try {
-        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, { create: true });
+        combinedFileHandle = await rootDirectory.getFileHandle(combinedFileName, {create: true});
         combinedWritableStream = await combinedFileHandle.createWritable();
         log_client_action(`Combined file handle created: ${combinedFileName}`);
 
-        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, { create: true });
+        cameraFileHandle = await rootDirectory.getFileHandle(cameraFileName, {create: true});
         cameraWritableStream = await cameraFileHandle.createWritable();
         log_client_action(`Camera file handle created: ${cameraFileName}`);
 
@@ -488,4 +491,5 @@ async function startRecord() {
         log_client_action('recording_stopped');
         cleanup();
     }
+    showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
 }
