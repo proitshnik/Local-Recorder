@@ -40,30 +40,56 @@ https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.0.0
 ## Issue итерации:
 
 Saving #7 PR #17
+
 Background activity #8 PR #25
+
 Popup view #9 PR #19
+
 Initialization with client #10 PR #31
+
 Expanding fields #11 PR #18
+
 First server usage scenario #12 PR #49
+
 Database template #13 PR #30
+
 Docker #14 PR #45
+
 SElinux Docker support #20 PR #21
+
 Data exchange client #23 PR #44
+
 Data exchange server #24 PR #32
+
 Initialization with server #27 PR #42
+
 Support rewind #28 PR #50
+
 Add webcam to proctoring #29 PR #40
+
 Reopening tab #34 PR #57
+
 Permanent microphone access #35 PR #39
+
 Saving fields #36 PR #41
+
 Update library versions #37 PR #38
+
 Logging #43 PR #58
+
 Date format #46 PR #47
+
 Visual cues #48 PR #64
+
 Metadata #51 PR #55
+
 Server gui #52 PR #60
+
 Visual popup improvements #53 PR #56
+
 Reliability recording stop #59 PR #61
+
 Form check #63 PR #65
+
 README update #62 PR #66
 
