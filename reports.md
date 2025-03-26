@@ -39,57 +39,57 @@ https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.0.0
 
 ## Issue итерации:
 
-Saving #7 PR #17
+Saving https://github.com/moevm/mse1h2025-prctr/issues/7 PR https://github.com/moevm/mse1h2025-prctr/pull/17
 
-Background activity #8 PR #25
+Background activity https://github.com/moevm/mse1h2025-prctr/issues/8 PR https://github.com/moevm/mse1h2025-prctr/pull/25
 
-Popup view #9 PR #19
+Popup view https://github.com/moevm/mse1h2025-prctr/issues/9 PR https://github.com/moevm/mse1h2025-prctr/pull/19
 
-Initialization with client #10 PR #31
+Initialization with client https://github.com/moevm/mse1h2025-prctr/issues/10 PR https://github.com/moevm/mse1h2025-prctr/pull/31
 
-Expanding fields #11 PR #18
+Expanding fields https://github.com/moevm/mse1h2025-prctr/issues/11 PR https://github.com/moevm/mse1h2025-prctr/pull/18
 
-First server usage scenario #12 PR #49
+First server usage scenario https://github.com/moevm/mse1h2025-prctr/issues/12 PR https://github.com/moevm/mse1h2025-prctr/pull/49
 
-Database template #13 PR #30
+Database template https://github.com/moevm/mse1h2025-prctr/issues/13 PR https://github.com/moevm/mse1h2025-prctr/pull/30
 
-Docker #14 PR #45
+Docker https://github.com/moevm/mse1h2025-prctr/issues/14 PR https://github.com/moevm/mse1h2025-prctr/pull/45
 
-SElinux Docker support #20 PR #21
+SElinux Docker support https://github.com/moevm/mse1h2025-prctr/issues/20 PR https://github.com/moevm/mse1h2025-prctr/pull/21
 
-Data exchange client #23 PR #44
+Data exchange client https://github.com/moevm/mse1h2025-prctr/issues/23 PR https://github.com/moevm/mse1h2025-prctr/pull/44
 
-Data exchange server #24 PR #32
+Data exchange server https://github.com/moevm/mse1h2025-prctr/issues/24 PR https://github.com/moevm/mse1h2025-prctr/pull/32
 
-Initialization with server #27 PR #42
+Initialization with server https://github.com/moevm/mse1h2025-prctr/issues/27 PR https://github.com/moevm/mse1h2025-prctr/pull/42
 
-Support rewind #28 PR #50
+Support rewind https://github.com/moevm/mse1h2025-prctr/issues/28 PR https://github.com/moevm/mse1h2025-prctr/pull/50
 
-Add webcam to proctoring #29 PR #40
+Add webcam to proctoring https://github.com/moevm/mse1h2025-prctr/issues/29 PR https://github.com/moevm/mse1h2025-prctr/pull/40
 
-Reopening tab #34 PR #57
+Reopening tab https://github.com/moevm/mse1h2025-prctr/issues/34 PR https://github.com/moevm/mse1h2025-prctr/pull/57
 
-Permanent microphone access #35 PR #39
+Permanent microphone access https://github.com/moevm/mse1h2025-prctr/issues/35 PR https://github.com/moevm/mse1h2025-prctr/pull/39
 
-Saving fields #36 PR #41
+Saving fields https://github.com/moevm/mse1h2025-prctr/issues/36 PR https://github.com/moevm/mse1h2025-prctr/pull/41
 
-Update library versions #37 PR #38
+Update library versions https://github.com/moevm/mse1h2025-prctr/issues/37 PR https://github.com/moevm/mse1h2025-prctr/pull/38
 
-Logging #43 PR #58
+Logging https://github.com/moevm/mse1h2025-prctr/issues/43 PR https://github.com/moevm/mse1h2025-prctr/pull/58
 
-Date format #46 PR #47
+Date format https://github.com/moevm/mse1h2025-prctr/issues/46 PR https://github.com/moevm/mse1h2025-prctr/pull/47
 
-Visual cues #48 PR #64
+Visual cues https://github.com/moevm/mse1h2025-prctr/issues/48 PR https://github.com/moevm/mse1h2025-prctr/pull/64
 
-Metadata #51 PR #55
+Metadata https://github.com/moevm/mse1h2025-prctr/issues/51 PR https://github.com/moevm/mse1h2025-prctr/pull/55
 
-Server gui #52 PR #60
+Server gui https://github.com/moevm/mse1h2025-prctr/issues/52 PR https://github.com/moevm/mse1h2025-prctr/pull/60
 
-Visual popup improvements #53 PR #56
+Visual popup improvements https://github.com/moevm/mse1h2025-prctr/issues/53 PR https://github.com/moevm/mse1h2025-prctr/pull/56
 
-Reliability recording stop #59 PR #61
+Reliability recording stop https://github.com/moevm/mse1h2025-prctr/issues/59 PR https://github.com/moevm/mse1h2025-prctr/pull/61
 
-Form check #63 PR #65
+Form check https://github.com/moevm/mse1h2025-prctr/issues/63 PR https://github.com/moevm/mse1h2025-prctr/pull/65
 
-README update #62 PR #66
+README update https://github.com/moevm/mse1h2025-prctr/issues/62 PR https://github.com/moevm/mse1h2025-prctr/pull/66
 
