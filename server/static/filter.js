@@ -59,7 +59,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const row = document.createElement("tr");
             columns.forEach(column => {
                 const td = document.createElement("td");
-                td.textContent = (session[column] === null || session[column] === undefined) ? "" : JSON.stringify(session[column]);
+                if (typeof session[column] === "string") {
+                    td.textContent = session[column];
+                } else if (session[column] === null || session[column] === undefined) {
+                    td.textContent = "";
+                } else {
+                    td.textContent = JSON.stringify(session[column]);
+                }
                 row.appendChild(td);
             });
             table.appendChild(row);
