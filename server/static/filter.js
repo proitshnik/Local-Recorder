@@ -28,6 +28,9 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
         const table = document.createElement("table");
 
+        // Оптимизация полей с путями до файлов до преобразования в один столбец
+        const fields2column = "screen_video_path\ncamera_video_path\nlogs_path";
+
         const columns = [
             "id",
             "group",
@@ -38,11 +41,9 @@ document.addEventListener("DOMContentLoaded", function () {
             "session_time_start",
             "session_date_end",
             "session_time_end",
-            "screen_video_path",
-            "camera_video_path",
+            `${fields2column}`,
             "status",
-            "metadata",
-            "logs_path"
+            "metadata"
         ];
 
         // Создаем заголовок таблицы
@@ -56,6 +57,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Заполняем таблицу данными
         searchResults.forEach(session => {
+            // Сбор данных для оптимизированного столбца с полями с путями до файлов
+            session[fields2column] = fields2column.split("\n").map(key => key.trim())
+            .map(key => session[key])
+            .join("\n");
+
             const row = document.createElement("tr");
             columns.forEach(column => {
                 const td = document.createElement("td");
