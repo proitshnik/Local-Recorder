@@ -40,7 +40,9 @@ document.addEventListener("DOMContentLoaded", function () {
             "session_time_end",
             "screen_video_path",
             "camera_video_path",
-            "status"
+            "status",
+            "metadata",
+            "logs_path"
         ];
 
         // Создаем заголовок таблицы
