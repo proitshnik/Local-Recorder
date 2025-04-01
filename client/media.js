@@ -376,7 +376,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         try {
             await getMediaDevices();
             await startRecord();
+            localStorage.setItem("permissionsGranted", "true");
         } catch (error) {
+            localStorage.setItem("permissionsGranted", "false");
             alert(error);
             console.log(error);
         }

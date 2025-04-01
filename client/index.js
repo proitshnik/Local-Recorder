@@ -215,7 +215,20 @@ async function startRecCallback() {
 	await chrome.storage.local.set({
 		'lastRecordTime': new Date().toISOString()
 	});
-    
+
+    await chrome.runtime.sendMessage({
+        action: "startRecord"
+    });
+    log_client_action('Start recording message sent');
+
+    const permissionsGranted = localStorage.getItem("permissionsGranted") === "true";
+    if (!permissionsGranted) {
+        log_client_action('Session initialization canceled: Not all permissions are granted');
+        startRecordButton.removeAttribute('disabled');
+        stopRecordButton.setAttribute('disabled', '');
+        return;
+    }
+
     const formData = new FormData();
     formData.append('group', inputElements.group.value);
     formData.append('name', inputElements.name.value);
@@ -247,12 +260,6 @@ async function startRecCallback() {
 		stopRecordButton.setAttribute('disabled', '');
 		return;
 	}
-
-	// После успешной инициализации сессии отправляем сообщение для начала записи
-	await chrome.runtime.sendMessage({
-		action: "startRecord"
-	});
-	log_client_action('Start recording message sent');
 }
 
 async function stopRecCallback() {
