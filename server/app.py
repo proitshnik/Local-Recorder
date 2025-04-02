@@ -28,9 +28,10 @@ def start_session():
         surname = data.get("surname")
         name = data.get("name")
         patronymic = data.get("patronymic")
+        link = data.get("link")
 
-        if not (group and surname and name and patronymic):
-            return jsonify({"error": "Поля 'group', 'surname', 'name', 'patronymic' обязательны для заполнения"}), 400
+        if not (group and surname and name and patronymic and link):
+            return jsonify({"error": "Поля 'group', 'surname', 'name', 'patronymic', 'link' обязательны для заполнения"}), 400
 
         session_start = datetime.now(timezone.utc)
         # Форматирование даты
@@ -43,6 +44,7 @@ def start_session():
             "surname": surname,
             "name": name,
             "patronymic": patronymic,
+            "link": link,
             "session_date_start": session_date_start,
             "session_time_start": session_time_start,
             "session_date_end": None,

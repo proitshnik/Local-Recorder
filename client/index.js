@@ -10,7 +10,8 @@ const inputElements = {
 	group: document.querySelector('#group_input'),
 	name: document.querySelector('#name_input'),
 	surname: document.querySelector('#surname_input'),
-	patronymic: document.querySelector('#patronymic_input')
+	patronymic: document.querySelector('#patronymic_input'),
+	link: document.querySelector('#link_input')
 };
 
 const validationRules = {
@@ -29,6 +30,10 @@ const validationRules = {
     patronymic: {
         regex: /^[А-ЯЁ][а-яё]+$/, 
         message: "Отчество должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванович'"
+    },
+    link: {
+        regex: /.+/,
+        message: "Ссылка на комнату не должна быть пустой."
     }
 };
 
@@ -76,7 +81,8 @@ function saveInputValues() {
             name: inputElements.name.value,
             surname: inputElements.surname.value,
             patronymic: inputElements.patronymic.value,
-            noPatronymicChecked: noPatronymicCheckbox.checked
+            noPatronymicChecked: noPatronymicCheckbox.checked,
+            link: inputElements.link.value
         }
     });
 	log_client_action('Input values saved');
@@ -105,7 +111,6 @@ async function checkAndCleanLogs() {
 		}
 	}
 }
-
 
 function savePatronymic() {
     chrome.storage.local.set({
@@ -221,6 +226,7 @@ async function startRecCallback() {
     formData.append('name', inputElements.name.value);
     formData.append('surname', inputElements.surname.value);
     formData.append('patronymic', noPatronymicCheckbox.checked ? "Без_отчества" : inputElements.patronymic.value.trim());
+    formData.append('link', inputElements.link.value);
 
 	try {
 		const response = await fetch('http://127.0.0.1:5000/start_session', {
