@@ -73,13 +73,33 @@ label{
     width: 180px;
 }
 
-.record-section__button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.record-section__button_inactive {
+    background-color: #696564;
 }
 
-.record-section__upload-info {
-    font-size: 12px;
+.record-section__button_inprogress {
+    background-color: #e3d45f;
+}
+
+.record-section__button_active_permissions {
+    background-color: #2cbdde;
+}
+
+.record-section__button_active_start {
+    background-color: #42db5b;
+}
+
+.record-section__button_active_stop {
+    background-color: #bf2e2e;
+}
+
+.record-section__button_active_upload {
+    background-color: #c636d9;
+}
+
+.record-section__button:disabled {
+    color: #000;
+    cursor: not-allowed;
 }
 
 .output-video {

@@ -1,9 +1,10 @@
-import { deleteFilesFromTempList } from "./common.js";
+import { buttonsStatesSave, deleteFilesFromTempList } from "./common.js";
 import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
-const uploadButton = document.querySelector('.upload_button');
+const uploadButton = document.querySelector('.record-section__button_upload');
+const permissionsButton = document.querySelector('.record-section__button_permissions');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 
 const inputElements = {
@@ -12,6 +13,54 @@ const inputElements = {
 	surname: document.querySelector('#surname_input'),
 	patronymic: document.querySelector('#patronymic_input')
 };
+
+const buttonElements = {
+	permissions: document.querySelector('.record-section__button_permissions'),
+	start: document.querySelector('.record-section__button_record-start'),
+	stop: document.querySelector('.record-section__button_record-stop'),
+	upload: document.querySelector('.record-section__button_upload')
+};
+
+// Inactive: 0, Active: 1, Inprogress: 2
+const buttonsStates = {
+	permissions: 1,
+	start: 0,
+	stop: 0,
+	upload: 0
+};
+
+const bStates = {
+	'needPermissions': {
+		permissions: 1,
+		start: 0,
+		stop: 0,
+		upload: 0
+	},
+	'readyToRecord': {
+		permissions: 0,
+		start: 1,
+		stop: 0,
+		upload: 0
+	},
+	'recording': {
+		permissions: 0,
+		start: 2,
+		stop: 1,
+		upload: 0
+	},
+	'readyToUpload': {
+		permissions: 1,
+		start: 0,
+		stop: 0,
+		upload: 1
+	},
+	'failedUpload': {
+		permissions: 1,
+		start: 0,
+		stop: 0,
+		upload: 1
+	}
+}
 
 const validationRules = {
     group: {
@@ -106,7 +155,6 @@ async function checkAndCleanLogs() {
 	}
 }
 
-
 function savePatronymic() {
     chrome.storage.local.set({
         'savedPatronymic': inputElements.patronymic.value
@@ -171,6 +219,41 @@ window.addEventListener('load', async () => {
         input.addEventListener('focus', handleFocus);
         input.addEventListener('blur', handleBlur);
     });
+
+	let bState = (await chrome.storage.local.get('bState'))['bState'];
+	if (!bState) {
+		bState = 'needPermissions';
+	}
+	console.log(bState);
+	Object.entries(bStates[bState]).forEach(function([key, state]) {
+		if (state === 0) {
+			buttonElements[key].classList.add('record-section__button_inactive');
+			buttonElements[key].setAttribute('disabled', true);
+		}
+		else if (state === 1) {
+			buttonElements[key].classList.add(`record-section__button_active_${key}`);
+			buttonElements[key].removeAttribute('disabled');
+		}
+		else if (state === 2) {
+			buttonElements[key].classList.add(`record-section__button_inprogress`);
+			buttonElements[key].setAttribute('disabled', true);
+		}
+	});
+});
+
+buttonElements.permissions.addEventListener('click', () => {
+	chrome.runtime.sendMessage({action: 'getPermissions'});
+});
+
+buttonElements.upload.addEventListener('click', async () => {
+	console.log("Upload button click");
+	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
+	if (!files) {
+		console.log("Files not found!");
+		buttonsStatesSave('needPermissions');
+		location.reload();
+	}
+	chrome.runtime.sendMessage({action: 'uploadVideoMedia'});
 });
 
 async function startRecCallback() {
@@ -268,56 +351,8 @@ async function stopRecCallback() {
 startRecordButton.addEventListener('click', startRecCallback);
 stopRecordButton.addEventListener('click', stopRecCallback);
 
-uploadButton.addEventListener('click', async () => {
-	console.log("Отправка...");
-	const fileNames = await chrome.storage.local.get('fileNames')['fileNames'];
-	if (!fileNames || !fileNames.screen || !fileNames.camera) {
-		console.log('Один или оба файла не найдены!');
-		return;
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+    if (message.action === 'reloadExtensionPopup') {
+		location.reload();
 	}
-
-	const rootDirectory = await navigator.storage.getDirectory();
-
-	const screenFileHandle = await rootDirectory.getFileHandle(fileNames.screen, { create: false });
-	const cameraFileHandle = await rootDirectory.getFileHandle(fileNames.camera, { create: false });
-
-	const screenFile = await screenFileHandle.getFile();
-	const cameraFile = await cameraFileHandle.getFile();
-
-	if (!screenFile || !cameraFile) {
-		console.log('Один или оба файла не найдены!');
-		return;
-	}
-
-	const username = inputElements.name.value;
-	const formData = new FormData();
-	formData.append('screen_file', screenFile);  // Файл экрана
-	formData.append('camera_file', cameraFile);  // Файл камеры
-	formData.append('username', username);
-	formData.append('start', startRecordTime);
-	formData.append('end', finishRecordTime);
-
-	fetch('http://127.0.0.1:5000/upload', {
-		method: 'POST',
-		mode: 'cors',
-		body: formData,
-	})
-		.then(res => {
-			if (res.ok) {
-				return res.json();
-			}
-			return Promise.reject(`Ошибка при загрузке файлов: ${res.status}`);
-		})
-		.then(async () => {
-			console.log('Файлы успешно загружены');
-			await deleteFilesFromTempList();
-			chrome.alarms.get('dynamicCleanup', (alarm) => {
-				if (alarm) {
-					chrome.alarms.clear('dynamicCleanup');
-				}
-			});
-		})
-		.catch(err => {
-			console.log(err);
-		});
 });

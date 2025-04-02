@@ -1,5 +1,5 @@
 import { showVisualCue } from './common.js';
-import {deleteFilesFromTempList} from "./common.js";
+import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { log_client_action } from './logger.js';
 
 var streams = {
@@ -73,6 +73,7 @@ const getDifferenceInTime = (date1, date2) => {
 };
 
 const setMetadatasRecordOn = () => {
+    console.log(startTime);
     metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
@@ -255,6 +256,8 @@ async function handleFileSave(handle, name) {
 }
 
 const getCurrentDateString = (date) => {
+    console.log(date);
+    console.log(date.getFullYear());
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T` + 
     `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
@@ -278,6 +281,19 @@ const beforeUnloadHandler = (event) => {
 };
 
 window.addEventListener('beforeunload', beforeUnloadHandler);
+
+window.addEventListener('unload', () => {
+    buttonsStatesSave('needPermissions');
+})
+
+window.addEventListener('load', () => {
+    Object.values(streams).some(stream => {
+        if (stream === null) {
+            buttonsStatesSave('needPermissions');
+            return true;
+        }
+    });
+});
 
 // Функция для отправки видео на сервер после завершения записи
 async function uploadVideo(combinedFile, cameraFile) {
@@ -346,6 +362,7 @@ async function uploadVideo(combinedFile, cameraFile) {
             })
             .catch(error => {
                 console.error("Ошибка при отправке видео на сервер:", error);
+                buttonsStatesSave('failedUpload');
                 log_client_action(`upload_error: ${error.message}`);
             })
             .finally(async () => {
@@ -369,17 +386,39 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
+            chrome.runtime.sendMessage({action: 'reloadExtensionPopup'})
         }
     }
-    else if (message.action === 'startRecording' && !recorders.combined) {
+    else if (message.action === 'getPermissionsMedia') {
+        getMediaDevices()
+        .then(() => {
+            buttonsStatesSave('readyToRecord');
+        })
+        .catch(() => {
+            buttonsStatesSave('needPermissions');
+        });
+        
+    }
+    else if (message.action === 'startRecordMedia') {
         log_client_action('Start recording command received');
-        try {
-            await getMediaDevices();
-            await startRecord();
-        } catch (error) {
+        startRecord()
+        .then(() => {
+            buttonsStatesSave('recording');
+        })
+        .catch(error => {
+            buttonsStatesSave('needPermissions');
             alert(error);
-            console.log(error);
-        }
+        });
+    }
+    else if (message.action === 'uploadVideoMedia') {
+        log_client_action('Start uploading command received');
+        uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
+        .then(() => {
+            buttonsStatesSave('needPermissions');
+        })
+        .catch(() => {
+            buttonsStatesSave('failedUpload');
+        });
     }
 });
 
@@ -414,12 +453,13 @@ function stopRecord() {
         }));
     }
 
-
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
+        buttonsStatesSave('readyToUpload');
+        //await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
         cleanup();
     }).catch(error => {
+        // TODO. Что делать при ошибке???
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
