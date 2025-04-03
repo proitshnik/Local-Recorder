@@ -58,3 +58,7 @@ export function showGlobalVisualCue(messages, title) {
         });
     });
 }
+
+export function buttonsStatesSave(state) {
+	chrome.storage.local.set({'bState': state});
+}

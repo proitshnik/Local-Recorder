@@ -46,7 +46,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-	if (message.action === 'startRecord') {
+	if (message.action === 'startRecord' || message.action === 'getPermissions') {
 		const result = await checkTabState();
 		if (result === undefined) {
 			const tab = await chrome.tabs.create({

@@ -23,11 +23,13 @@
                 <input type="checkbox" id="no_patronymic_checkbox" class="no-patronymic-checkbox">
                 <span class="no-patronymic-text">Нет отчества</span>
             </div>
+            <label for="link_input" class="user-inputs__label">Ссылка</label>
+            <input type="text" name="link" id="link_input" class="user-inputs__input" placeholder="Введите ссылку" required minlength="2" maxlength="2048">
+            <span class="message"></span>
         </div>
         <div class="record-section">
-            <button class="permissions_button">Разрешения</button>
-            <button class="upload_button">Отправить</button>
-            <span class="upload_info"></span>
+            <button class="record-section__button record-section__button_permissions">Разрешения</button>
+            <button class="record-section__button record-section__button_upload">Отправить</button>
         </div>
         <div class="record-section">
             <button class="record-section__button record-section__button_record-start">Начать запись</button>

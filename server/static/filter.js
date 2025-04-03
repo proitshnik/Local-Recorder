@@ -43,7 +43,8 @@ document.addEventListener("DOMContentLoaded", function () {
             "session_time_end",
             `${fields2column}`,
             "status",
-            "metadata"
+            "metadata",
+            "link"
         ];
 
         // Создаем заголовок таблицы
