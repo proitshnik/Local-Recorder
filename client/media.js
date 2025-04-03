@@ -420,7 +420,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             })
             .catch(async (error) => {
                 await sendButtonsStates('needPermissions');
-
+            });
+            
             const formData = new FormData();
             formData.append('group', message.formData.group || '');
             formData.append('name', message.formData.name || '');
@@ -432,7 +433,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         } catch (error) {
             chrome.runtime.sendMessage({ action: "disableButtons" });
             alert(error);
-        });
+        };
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
@@ -492,7 +493,7 @@ async function initSession(formData) {
         console.error("Ошибка инициализации сессии", error);
         log_client_action(`Session initialization failed: ${error.message}`);
         startRecordButton.removeAttribute('disabled');
-		    stopRecordButton.setAttribute('disabled', '');
+		stopRecordButton.setAttribute('disabled', '');
         throw error;
     }
 }
