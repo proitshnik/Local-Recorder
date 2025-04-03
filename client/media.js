@@ -376,14 +376,70 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         try {
             await getMediaDevices();
             await startRecord();
-            localStorage.setItem("permissionsGranted", "true");
+
+            const formData = new FormData();
+            formData.append('group', message.formData.group || '');
+            formData.append('name', message.formData.name || '');
+            formData.append('surname', message.formData.surname || '');
+            formData.append('patronymic', message.formData.patronymic || '');
+
+            await initSession(formData);
         } catch (error) {
-            localStorage.setItem("permissionsGranted", "false");
+            chrome.runtime.sendMessage({ action: "disableButtons" });
             alert(error);
             console.log(error);
         }
     }
 });
+
+async function initSession(formData) {
+    const browserFingerprint = {
+        browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
+        userAgent: navigator.userAgent,
+        language: navigator.language || navigator.userLanguage || 'unknown',
+        cpuCores: navigator.hardwareConcurrency || 'unknown',
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+        timestamp: new Date().toISOString(),
+        cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
+        windowSize: `${window.innerWidth}x${window.innerHeight}`,
+        doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
+    };
+
+    log_client_action({
+        action: 'Start recording initiated',
+        browserFingerprint: browserFingerprint
+    });
+
+    await chrome.storage.local.set({
+        'lastRecordTime': new Date().toISOString()
+    });
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/start_session', {
+            method: 'POST',
+            mode: 'cors',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Сервер вернул ${response.status}`);
+        }
+
+        const result = await response.json();
+        const sessionId = result.id;
+
+        await chrome.storage.local.set({ 'session_id': sessionId });
+
+        console.log('session_id успешно сохранён!');
+        log_client_action(`Session initialized with ID: ${sessionId}`);
+    } catch (error) {
+        console.error("Ошибка инициализации сессии", error);
+        log_client_action(`Session initialization failed: ${error.message}`);
+        throw error;
+    }
+}
 
 function stopRecord() {
     setMetadatasRecordOn();
