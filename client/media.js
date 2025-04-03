@@ -408,30 +408,28 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .catch(async () => {
             await sendButtonsStates('needPermissions');
         });
-        
     }
-    else if (message.action === 'startRecordMedia') {
+    else if (message.action === 'startRecording') {
         log_client_action('Start recording command received');
         try {
-            await getMediaDevices();
             await startRecord()
-            .then(async () => {
-              await sendButtonsStates('recording');
-            })
-            .catch(async (error) => {
-                await sendButtonsStates('needPermissions');
-            });
-            
-            const formData = new FormData();
-            formData.append('group', message.formData.group || '');
-            formData.append('name', message.formData.name || '');
-            formData.append('surname', message.formData.surname || '');
-            formData.append('patronymic', message.formData.patronymic || '');
-            formData.append('link', message.formData.link.value);
+        .then(async () => {
+            await sendButtonsStates('recording');
+        })
+        .catch(async (error) => {
+            await sendButtonsStates('needPermissions');
+        });
+        
+        const formData = new FormData();
+        formData.append('group', message.formData.group || '');
+        formData.append('name', message.formData.name || '');
+        formData.append('surname', message.formData.surname || '');
+        formData.append('patronymic', message.formData.patronymic || '');
+        formData.append('link', message.formData.link || '');
 
-            await initSession(formData);
+        await initSession(formData);
         } catch (error) {
-            chrome.runtime.sendMessage({ action: "disableButtons" });
+            // chrome.runtime.sendMessage({ action: "disableButtons" });
             alert(error);
         };
     }

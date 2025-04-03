@@ -68,7 +68,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				await chrome.tabs.update(result[1], {active: true});
 			}
 		}
-		sendStartMessage(message.formData);
+		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
