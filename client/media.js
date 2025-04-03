@@ -97,6 +97,19 @@ const setMetadatasRecordOff = async () => {
     metadata.camera.session_client_size = (cameraFile.size / 1000000).toFixed(3);
 };
 
+async function checkOpenedPopup() {
+    let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
+    if (a.length > 0) {
+        return true;
+    }
+    return false;
+}
+
+async function sendButtonsStates(state) {
+    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
+    else buttonsStatesSave(state);
+}
+
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         try {
@@ -256,8 +269,6 @@ async function handleFileSave(handle, name) {
 }
 
 const getCurrentDateString = (date) => {
-    console.log(date);
-    console.log(date.getFullYear());
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T` + 
     `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
@@ -287,9 +298,9 @@ window.addEventListener('unload', () => {
 })
 
 window.addEventListener('load', () => {
-    Object.values(streams).some(stream => {
+    Object.values(streams).some(async (stream) => {
         if (stream === null) {
-            buttonsStatesSave('needPermissions');
+            await sendButtonsStates('needPermissions');
             return true;
         }
     });
@@ -360,9 +371,9 @@ async function uploadVideo(combinedFile, cameraFile) {
                     log_client_action('Delete tempfiles successful');
                 });
             })
-            .catch(error => {
+            .catch(async (error) => {
                 console.error("Ошибка при отправке видео на сервер:", error);
-                buttonsStatesSave('failedUpload');
+                await sendButtonsStates('failedUpload');
                 log_client_action(`upload_error: ${error.message}`);
             })
             .finally(async () => {
@@ -386,38 +397,38 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
-            chrome.runtime.sendMessage({action: 'reloadExtensionPopup'})
+            await sendButtonsStates('readyToUpload');
         }
     }
     else if (message.action === 'getPermissionsMedia') {
         getMediaDevices()
-        .then(() => {
-            buttonsStatesSave('readyToRecord');
+        .then(async () => {
+            await sendButtonsStates('readyToRecord');
         })
-        .catch(() => {
-            buttonsStatesSave('needPermissions');
+        .catch(async () => {
+            await sendButtonsStates('needPermissions');
         });
         
     }
     else if (message.action === 'startRecordMedia') {
         log_client_action('Start recording command received');
         startRecord()
-        .then(() => {
-            buttonsStatesSave('recording');
+        .then(async () => {
+            await sendButtonsStates('recording');
         })
-        .catch(error => {
-            buttonsStatesSave('needPermissions');
+        .catch(async (error) => {
+            await sendButtonsStates('needPermissions');
             alert(error);
         });
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
         uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
-        .then(() => {
-            buttonsStatesSave('needPermissions');
+        .then(async () => {
+            await sendButtonsStates('needPermissions');
         })
-        .catch(() => {
-            buttonsStatesSave('failedUpload');
+        .catch(async () => {
+            await sendButtonsStates('failedUpload');
         });
     }
 });
@@ -455,8 +466,7 @@ function stopRecord() {
 
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        buttonsStatesSave('readyToUpload');
-        //await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
+        await sendButtonsStates('readyToUpload');
         cleanup();
     }).catch(error => {
         // TODO. Что делать при ошибке???

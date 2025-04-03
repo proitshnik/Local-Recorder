@@ -44,12 +44,12 @@ const bStates = {
 	},
 	'recording': {
 		permissions: 0,
-		start: 2,
+		start: 0,
 		stop: 1,
 		upload: 0
 	},
 	'readyToUpload': {
-		permissions: 1,
+		permissions: 0,
 		start: 0,
 		stop: 0,
 		upload: 1
@@ -182,6 +182,33 @@ document.querySelectorAll('input').forEach(input => {
     input.setAttribute('autocomplete', 'off');
 });
 
+async function updateButtonsStates() {
+	let bState = (await chrome.storage.local.get('bState'))['bState'];
+	if (!bState) {
+		bState = 'needPermissions';
+	}
+	Object.entries(bStates[bState]).forEach(function([key, state]) {
+		if (state === 0) {
+			buttonElements[key].classList.add('record-section__button_inactive');
+			buttonElements[key].setAttribute('disabled', true);
+			buttonElements[key].classList.remove(`record-section__button_inprogress`);
+			buttonElements[key].classList.remove(`record-section__button_active_${key}`);
+		}
+		else if (state === 1) {
+			buttonElements[key].classList.add(`record-section__button_active_${key}`);
+			buttonElements[key].removeAttribute('disabled');
+			buttonElements[key].classList.remove('record-section__button_inactive');
+			buttonElements[key].classList.remove('record-section__button_inprogress');
+		}
+		else if (state === 2) {
+			buttonElements[key].classList.add(`record-section__button_inprogress`);
+			buttonElements[key].classList.remove(`record-section__button_active_${key}`);
+			buttonElements[key].classList.remove('record-section__button_inactive');
+			buttonElements[key].setAttribute('disabled', true);
+		}
+	});
+}
+
 window.addEventListener('load', async () => {
 	log_client_action('Popup opened');
 
@@ -220,25 +247,7 @@ window.addEventListener('load', async () => {
         input.addEventListener('blur', handleBlur);
     });
 
-	let bState = (await chrome.storage.local.get('bState'))['bState'];
-	if (!bState) {
-		bState = 'needPermissions';
-	}
-	console.log(bState);
-	Object.entries(bStates[bState]).forEach(function([key, state]) {
-		if (state === 0) {
-			buttonElements[key].classList.add('record-section__button_inactive');
-			buttonElements[key].setAttribute('disabled', true);
-		}
-		else if (state === 1) {
-			buttonElements[key].classList.add(`record-section__button_active_${key}`);
-			buttonElements[key].removeAttribute('disabled');
-		}
-		else if (state === 2) {
-			buttonElements[key].classList.add(`record-section__button_inprogress`);
-			buttonElements[key].setAttribute('disabled', true);
-		}
-	});
+	updateButtonsStates();
 });
 
 buttonElements.permissions.addEventListener('click', () => {
@@ -246,12 +255,10 @@ buttonElements.permissions.addEventListener('click', () => {
 });
 
 buttonElements.upload.addEventListener('click', async () => {
-	console.log("Upload button click");
 	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
 	if (!files) {
-		console.log("Files not found!");
 		buttonsStatesSave('needPermissions');
-		location.reload();
+		updateButtonsStates();
 	}
 	chrome.runtime.sendMessage({action: 'uploadVideoMedia'});
 });
@@ -352,7 +359,8 @@ startRecordButton.addEventListener('click', startRecCallback);
 stopRecordButton.addEventListener('click', stopRecCallback);
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    if (message.action === 'reloadExtensionPopup') {
-		location.reload();
+	if (message.action === 'updateButtonStates') {
+		chrome.storage.local.set({'bState': message.state});
+		updateButtonsStates();
 	}
 });
