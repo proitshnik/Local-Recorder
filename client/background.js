@@ -45,7 +45,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-	if (message.action === 'startRecord') {
+	if (message.action === 'startRecord' || message.action === 'getPermissions') {
 		const result = await checkTabState();
 		if (result === undefined) {
 			const tab = await chrome.tabs.create({
@@ -67,7 +67,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				await chrome.tabs.update(result[1], {active: true});
 			}
 		}
-		sendStartMessage();
+		console.log(message.action + 'Media');
+		chrome.runtime.sendMessage({action: message.action + 'Media'})
 	} else if (message.action === 'stopRecord') {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'

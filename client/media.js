@@ -1,5 +1,5 @@
 import { showVisualCue } from './common.js';
-import {deleteFilesFromTempList} from "./common.js";
+import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { log_client_action } from './logger.js';
 
 var streams = {
@@ -73,6 +73,7 @@ const getDifferenceInTime = (date1, date2) => {
 };
 
 const setMetadatasRecordOn = () => {
+    console.log(startTime);
     metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
@@ -95,6 +96,19 @@ const setMetadatasRecordOff = async () => {
     const cameraFile = await cameraFileHandle.getFile();
     metadata.camera.session_client_size = (cameraFile.size / 1000000).toFixed(3);
 };
+
+async function checkOpenedPopup() {
+    let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
+    if (a.length > 0) {
+        return true;
+    }
+    return false;
+}
+
+async function sendButtonsStates(state) {
+    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
+    else buttonsStatesSave(state);
+}
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
@@ -279,6 +293,19 @@ const beforeUnloadHandler = (event) => {
 
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
+window.addEventListener('unload', () => {
+    buttonsStatesSave('needPermissions');
+})
+
+window.addEventListener('load', () => {
+    Object.values(streams).some(async (stream) => {
+        if (stream === null) {
+            await sendButtonsStates('needPermissions');
+            return true;
+        }
+    });
+});
+
 // Функция для отправки видео на сервер после завершения записи
 async function uploadVideo(combinedFile, cameraFile) {
     chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
@@ -344,8 +371,9 @@ async function uploadVideo(combinedFile, cameraFile) {
                     log_client_action('Delete tempfiles successful');
                 });
             })
-            .catch(error => {
+            .catch(async (error) => {
                 console.error("Ошибка при отправке видео на сервер:", error);
+                await sendButtonsStates('failedUpload');
                 log_client_action(`upload_error: ${error.message}`);
             })
             .finally(async () => {
@@ -369,17 +397,39 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
+            await sendButtonsStates('readyToUpload');
         }
     }
-    else if (message.action === 'startRecording' && !recorders.combined) {
+    else if (message.action === 'getPermissionsMedia') {
+        getMediaDevices()
+        .then(async () => {
+            await sendButtonsStates('readyToRecord');
+        })
+        .catch(async () => {
+            await sendButtonsStates('needPermissions');
+        });
+        
+    }
+    else if (message.action === 'startRecordMedia') {
         log_client_action('Start recording command received');
-        try {
-            await getMediaDevices();
-            await startRecord();
-        } catch (error) {
+        startRecord()
+        .then(async () => {
+            await sendButtonsStates('recording');
+        })
+        .catch(async (error) => {
+            await sendButtonsStates('needPermissions');
             alert(error);
-            console.log(error);
-        }
+        });
+    }
+    else if (message.action === 'uploadVideoMedia') {
+        log_client_action('Start uploading command received');
+        uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
+        .then(async () => {
+            await sendButtonsStates('needPermissions');
+        })
+        .catch(async () => {
+            await sendButtonsStates('failedUpload');
+        });
     }
 });
 
@@ -414,12 +464,12 @@ function stopRecord() {
         }));
     }
 
-
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        await uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile());
+        await sendButtonsStates('readyToUpload');
         cleanup();
     }).catch(error => {
+        // TODO. Что делать при ошибке???
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
