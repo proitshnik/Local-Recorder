@@ -491,9 +491,10 @@ async function initSession(formData) {
         log_client_action(`Session initialized with ID: ${sessionId}`);
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
+        showVisualCue(["Ошибка инициализации сессии", error], "Ошибка")
         log_client_action(`Session initialization failed: ${error.message}`);
-        startRecordButton.removeAttribute('disabled');
-		stopRecordButton.setAttribute('disabled', '');
+        // startRecordButton.removeAttribute('disabled');
+		// stopRecordButton.setAttribute('disabled', '');
         throw error;
     }
 }
