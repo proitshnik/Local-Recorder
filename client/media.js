@@ -146,9 +146,11 @@ async function getMediaDevices() {
                         if (micError.name === 'NotAllowedError') {
                             micPermissionDenied = true;
                             log_client_action('Microphone permission denied: NotAllowedError');
+                            showVisualCue("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
                         } else {
                             log_client_action('Microphone permission denied');
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
+                            showVisualCue('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
                             stopStreams();
                             reject(micError);
                             return;
@@ -161,10 +163,12 @@ async function getMediaDevices() {
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
                             log_client_action('Camera permission denied: NotAllowedError');
+                            showVisualCue("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
                             camPermissionDenied = true;
                         } else {
                             log_client_action('Camera permission denied');
                             alert('Ошибка при доступе к камере: ' + camError.message);
+                            showVisualCue('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
                             stopStreams();
                             reject(camError);
                             return;
@@ -179,6 +183,9 @@ async function getMediaDevices() {
                         alert('Не предоставлен доступ к камере или микрофону.\n' +
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
+                        showVisualCue(['Не предоставлен доступ к камере или микрофону.',
+                            'Сейчас откроется вкладка с настройками доступа для этого расширения.',
+                            'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
 
                         chrome.tabs.create({url: settingsUrl});
 
