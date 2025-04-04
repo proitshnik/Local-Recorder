@@ -179,9 +179,27 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
 
-                        chrome.tabs.getCurrent((tab) => {
-                            if (tab && tab.id) {
-                                chrome.tabs.remove(tab.id);
+                        // TODO Привязать к кнопке визуального уведомления, как в нем будет новая логика
+
+                        const mediaExtensionUrl = chrome.runtime.getURL("media.html");
+
+                        // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
+                        chrome.tabs.query({ url: mediaExtensionUrl }, (tabs) => {
+                            if (tabs && tabs.length > 0) {
+                                // Стоит обработчик, сохраняющий одну вкладку media.html
+                                chrome.tabs.remove(tabs[0].id, () => {
+                                    if (chrome.runtime.lastError) {
+                                        // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
+                                        // Tabs cannot be edited right now (user may be dragging a tab).
+                                        // Не обрабатывается до внедрения нового уведомления 
+                                        log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
+                                        showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
+                                    } else {
+                                        log_client_action("Successfully close tab media.html before redirect");
+                                    }
+                                });
+                            } else {
+                                log_client_action("media.html not found before redirect");
                             }
                         });
 
