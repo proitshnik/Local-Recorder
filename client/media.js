@@ -118,6 +118,7 @@ async function getMediaDevices() {
                     log_client_action('User canceled screen selection');
                     console.error('Пользователь отменил выбор экрана');
                     reject('Пользователь отменил выбор экрана');
+                    showVisualCue(["Пользователь отменил выбор экрана!"], "Ошибка");
                     return;
                 }
                 try {
