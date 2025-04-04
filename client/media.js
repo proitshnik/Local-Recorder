@@ -179,13 +179,20 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
 
-                        chrome.tabs.create({url: settingsUrl});
-
                         chrome.tabs.getCurrent((tab) => {
                             if (tab && tab.id) {
                                 chrome.tabs.remove(tab.id);
                             }
                         });
+
+                        chrome.tabs.query({ url: settingsUrl }, (tabs) => {
+                            if (tabs && tabs.length > 0) {
+                                chrome.tabs.update(tabs[0].id, { active: true });
+                            } else {
+                                chrome.tabs.create({ url: settingsUrl });
+                            }
+                        });
+
                         log_client_action('Redirecting to permission settings');
                         reject('Доступ к устройствам не предоставлен');
                         return;
