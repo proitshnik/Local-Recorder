@@ -424,12 +424,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
         try {
             await startRecord()
-        .then(async () => {
-            await sendButtonsStates('recording');
-        })
-        .catch(async (error) => {
-            await sendButtonsStates('needPermissions');
-        });
+            .then(async () => {
+                await sendButtonsStates('recording');
+            })
+            .catch(async (error) => {
+                await sendButtonsStates('needPermissions');
+            });
         } catch (error) {
             // chrome.runtime.sendMessage({ action: "disableButtons" });
             alert(error);
@@ -602,10 +602,11 @@ async function startRecord() {
         recorders.camera.start(5000);
         console.log('Запись начата');
         log_client_action('recording_started');
+        showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error);
         log_client_action('recording_stopped');
+        showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
         cleanup();
     }
-    showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
 }
