@@ -412,14 +412,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     else if (message.action === 'startRecording') {
         log_client_action('Start recording command received');
-        try {
-            await startRecord()
-        .then(async () => {
-            await sendButtonsStates('recording');
-        })
-        .catch(async (error) => {
-            await sendButtonsStates('needPermissions');
-        });
         
         const formData = new FormData();
         formData.append('group', message.formData.group || '');
@@ -429,6 +421,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('link', message.formData.link || '');
 
         await initSession(formData);
+
+        try {
+            await startRecord()
+        .then(async () => {
+            await sendButtonsStates('recording');
+        })
+        .catch(async (error) => {
+            await sendButtonsStates('needPermissions');
+        });
         } catch (error) {
             // chrome.runtime.sendMessage({ action: "disableButtons" });
             alert(error);
