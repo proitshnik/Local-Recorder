@@ -126,7 +126,13 @@ async function getMediaDevices() {
                         video: {
                             mandatory: {
                                 chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: streamId
+                                chromeMediaSourceId: streamId,
+                                minWidth: 1280,
+                                maxWidth: 1280,
+                                minHeight: 720,
+                                maxHeight: 720,
+                                minFrameRate: 15,
+                                maxFrameRate: 15
                             }
                         },
                     });
@@ -158,7 +164,14 @@ async function getMediaDevices() {
                     }
 
                     try {
-                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        streams.camera = await navigator.mediaDevices.getUserMedia({ 
+                            video: {
+                                width: 160,
+                                height: 120,
+                                frameRate: 7,
+                            }, 
+                            audio: false 
+                        });
                         log_client_action('Camera access granted');
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
@@ -242,9 +255,18 @@ async function getMediaDevices() {
                         cameraPreview.height = 240;
                     };
 
-                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
+                    recorders.combined = new MediaRecorder(streams.combined, {
+                        mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
+                        audioBitsPerSecond: 1_000_000,
+                        videoBitsPerSecond: 10000,
+                        // bitsPerSecond: 1000000
+                    });
                     log_client_action('Combined recorder initialized');
-                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
+                    
+                    recorders.camera = new MediaRecorder(streams.camera, { 
+                        mimeType: 'video/mp4; codecs="avc1.64001E"',
+                        videoBitsPerSecond: 700000
+                    });
                     log_client_action('Camera recorder initialized');
 
                     recorders.combined.ondataavailable = async (event) => {
