@@ -15,10 +15,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 	}
 });
 
-function sendStartMessage() {
-	chrome.runtime.sendMessage({
-		action: 'startRecording'
-	});
+function sendStartMessage(formData) {
+    chrome.runtime.sendMessage({
+        action: 'startRecording',
+        formData: formData
+    });
 }
 
 async function checkTabState() {
@@ -67,8 +68,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				await chrome.tabs.update(result[1], {active: true});
 			}
 		}
-		console.log(message.action + 'Media');
-		chrome.runtime.sendMessage({action: message.action + 'Media'})
+		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'

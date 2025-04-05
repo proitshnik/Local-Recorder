@@ -288,69 +288,27 @@ async function startRecCallback() {
     stopRecordButton.removeAttribute('disabled');
     saveInputValues();
 
-	const browserFingerprint = {
-		browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
-		userAgent: navigator.userAgent,
-		language: navigator.language || navigator.userLanguage || 'unknown',
-		cpuCores: navigator.hardwareConcurrency || 'unknown',
-		screenResolution: `${window.screen.width}x${window.screen.height}`,
-		availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
-		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-		timestamp: new Date().toISOString(),
-		cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
-		windowSize: `${window.innerWidth}x${window.innerHeight}`,
-		doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
-	};
+    const formData = {
+        group: inputElements.group.value,
+        name: inputElements.name.value,
+        surname: inputElements.surname.value,
+        patronymic: noPatronymicCheckbox.checked ? "Без_отчества" : inputElements.patronymic.value.trim(),
+        link: inputElements.link.value
+    };
 
-	log_client_action({
-		action: 'Start recording initiated',
-		browserFingerprint: browserFingerprint
-	});
-
-
-	await chrome.storage.local.set({
-		'lastRecordTime': new Date().toISOString()
-	});
-    
-    const formData = new FormData();
-    formData.append('group', inputElements.group.value);
-    formData.append('name', inputElements.name.value);
-    formData.append('surname', inputElements.surname.value);
-    formData.append('patronymic', noPatronymicCheckbox.checked ? "Без_отчества" : inputElements.patronymic.value.trim());
-    formData.append('link', inputElements.link.value);
-
-	try {
-		const response = await fetch('http://127.0.0.1:5000/start_session', {
-			method: 'POST',
-			mode: 'cors',
-			body: formData
-		});
-
-		if (!response.ok) {
-			throw new Error(`Сервер вернул ${response.status}`);
-		}
-		const result = await response.json();
-		const sessionId = result.id;
-
-		chrome.storage.local.set({'session_id': sessionId}, () => {
-			console.log('session_id успешно сохранён!');
-			log_client_action(`Session initialized with ID: ${sessionId}`);
-		});
-
-	} catch (error) {
-		console.error("Ошибка инициализации сессии", error);
-		log_client_action(`Session initialization failed: ${error.message}`);
-		startRecordButton.removeAttribute('disabled');
-		stopRecordButton.setAttribute('disabled', '');
-		return;
-	}
-
-	// После успешной инициализации сессии отправляем сообщение для начала записи
-	await chrome.runtime.sendMessage({
-		action: "startRecord"
-	});
-	log_client_action('Start recording message sent');
+    chrome.runtime.sendMessage({
+        action: "startRecord",
+        formData: formData
+    });
+    log_client_action('Start recording message sent');
 }
+
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === "disableButtons") {
+        startRecordButton.removeAttribute('disabled');
+        stopRecordButton.setAttribute('disabled', '');
+    }
+});
 
 async function stopRecCallback() {
 	stopRecordButton.setAttribute('disabled', '');

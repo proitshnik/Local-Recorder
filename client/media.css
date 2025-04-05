@@ -31,7 +31,7 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.5); /* Затемненный фон для overlay */
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 1000;
 }
