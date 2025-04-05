@@ -187,13 +187,38 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
 
-                        chrome.tabs.create({url: settingsUrl});
+                        // TODO Привязать к кнопке визуального уведомления, как в нем будет новая логика
 
-                        chrome.tabs.getCurrent((tab) => {
-                            if (tab && tab.id) {
-                                chrome.tabs.remove(tab.id);
+                        const mediaExtensionUrl = chrome.runtime.getURL("media.html");
+
+                        // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
+                        chrome.tabs.query({ url: mediaExtensionUrl }, (tabs) => {
+                            if (tabs && tabs.length > 0) {
+                                // Стоит обработчик, сохраняющий одну вкладку media.html
+                                chrome.tabs.remove(tabs[0].id, () => {
+                                    if (chrome.runtime.lastError) {
+                                        // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
+                                        // Tabs cannot be edited right now (user may be dragging a tab).
+                                        // Не обрабатывается до внедрения нового уведомления 
+                                        log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
+                                        showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
+                                    } else {
+                                        log_client_action("Successfully close tab media.html before redirect");
+                                    }
+                                });
+                            } else {
+                                log_client_action("media.html not found before redirect");
                             }
                         });
+
+                        chrome.tabs.query({ url: settingsUrl }, (tabs) => {
+                            if (tabs && tabs.length > 0) {
+                                chrome.tabs.update(tabs[0].id, { active: true });
+                            } else {
+                                chrome.tabs.create({ url: settingsUrl });
+                            }
+                        });
+
                         log_client_action('Redirecting to permission settings');
                         reject('Доступ к устройствам не предоставлен');
                         return;
