@@ -246,6 +246,11 @@ async function getMediaDevices() {
                         cameraPreview.height = 240;
                     };
 
+                    cameraPreview.style.display = 'block';
+                    combinedPreview.style.display = 'block';
+
+                    combinedPreview.muted = false;
+
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
                     log_client_action('Combined recorder initialized');
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
@@ -283,17 +288,11 @@ function hideMutePreviews() {
     combinedPreview.style.display = 'none';
 
     combinedPreview.muted = true;
-    cameraPreview.muted = true;
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    hideMutePreviews();
-});
 
 previewButton.addEventListener('click', () => {
     if (!isRecording) return;
 
-    cameraPreview.muted = true;
     combinedPreview.muted = true;
 
     isPreviewEnabled = !isPreviewEnabled;
