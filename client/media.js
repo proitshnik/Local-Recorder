@@ -76,7 +76,7 @@ function generateObjectId() {
       .join('');
 }
 
-function getBroweserFingerprint() {
+function getBrowserFingerprint() {
     return {
         browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
         userAgent: navigator.userAgent,
@@ -500,7 +500,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         else {
             log_client_action({
                 action: 'Start recording initiated',
-                browserFingerprint: getBroweserFingerprint()
+                browserFingerprint: getBrowserFingerprint()
             });
 
             await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
@@ -534,7 +534,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 async function initSession(formData) {
     log_client_action({
         action: 'Start recording initiated',
-        browserFingerprint: getBroweserFingerprint()
+        browserFingerprint: getBrowserFingerprint()
     });
 
     await chrome.storage.local.set({
