@@ -9,9 +9,13 @@
 <body>
 <section class="main">
     <h1 class="main__header">Не закрывайте эту вкладку!</h1>
+    <div class="preview-toggle-block">
+        <label for="preview-toggle-btn" class="preview-label">Предпросмотр записи: </label>
+        <button id="preview-toggle-btn" disabled>Включить</button>
+    </div>
     <div class="preview-container">
         <video class="combined__preview" controls autoplay></video>
-        <video class="camera__preview" autoplay></video>
+        <video class="camera__preview" autoplay muted></video>
     </div>
 </section>
 <script type="module" src="media.js"></script>

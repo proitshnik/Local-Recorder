@@ -17,6 +17,10 @@ var recorders = {
 var combinedPreview = document.querySelector('.combined__preview');
 var cameraPreview = document.querySelector('.camera__preview');
 
+var previewButton = document.getElementById('preview-toggle-btn');
+var isRecording = false;
+var isPreviewEnabled = false;
+
 var rootDirectory = null;
 var combinedFileName = null;
 var cameraFileName = null;
@@ -272,6 +276,49 @@ async function getMediaDevices() {
             reject(error);
         }
     });
+}
+
+function hideMutePreviews() {
+    cameraPreview.style.display = 'none';
+    combinedPreview.style.display = 'none';
+
+    combinedPreview.muted = true;
+    cameraPreview.muted = true;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    hideMutePreviews();
+});
+
+previewButton.addEventListener('click', () => {
+    if (!isRecording) return;
+
+    cameraPreview.muted = true;
+    combinedPreview.muted = true;
+
+    isPreviewEnabled = !isPreviewEnabled;
+
+    const displayValue = isPreviewEnabled ? 'block' : 'none';
+    cameraPreview.style.display = displayValue;
+    combinedPreview.style.display = displayValue;
+
+    log_client_action(isPreviewEnabled ? 'Preview mode enabled' : 'Preview mode disabled');
+
+    updatePreviewButton();
+});
+
+function updatePreviewButton() {
+    if (!isRecording) {
+        previewButton.disabled = true;
+        previewButton.textContent = 'Включить';
+        previewButton.classList.remove('enabled', 'disabled');
+        return;
+    }
+
+    previewButton.disabled = false;
+    previewButton.textContent = isPreviewEnabled ? 'Выключить' : 'Включить';
+    previewButton.classList.toggle('enabled', !isPreviewEnabled);
+    previewButton.classList.toggle('disabled', isPreviewEnabled);
 }
 
 async function cleanup() {
@@ -532,6 +579,11 @@ async function initSession(formData) {
 }
 
 function stopRecord() {
+    isRecording = false;
+    isPreviewEnabled = false;
+    hideMutePreviews();
+    updatePreviewButton();
+
     setMetadatasRecordOn();
     endTime = new Date();
     const stopPromises = [];
@@ -632,6 +684,12 @@ async function startRecord() {
         startTime = new Date();
         recorders.combined.start(5000);
         recorders.camera.start(5000);
+
+        isRecording = true;
+        isPreviewEnabled = false;
+        hideMutePreviews();
+        updatePreviewButton();
+
         console.log('Запись начата');
         log_client_action('recording_started');
         showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
