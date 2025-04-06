@@ -509,14 +509,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             await chrome.storage.local.set({ 'session_id': sessionId });
             log_client_action(`Session initialized with ID: ${sessionId}`);
         }
-
+        
         startRecord()
         .then(async () => {
             await sendButtonsStates('recording');
         })
         .catch(async (error) => {
+            // В startRecord есть свой обработчик ошибок
+            showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
             await sendButtonsStates('needPermissions');
-            alert(error);
         });
     }
     else if (message.action === 'uploadVideoMedia') {
@@ -673,9 +674,12 @@ async function startRecord() {
         log_client_action('recording_started');
         showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
-        console.error('Ошибка при запуске записи:', error);
-        log_client_action('recording_stopped');
-        showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        console.error('Ошибка при запуске записи:', error.message);
+        log_client_action('recording_stopped ' + error);
         cleanup();
+        // Есть внешний обработчик ошибок
+        // showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        // await sendButtonsStates('needPermissions');
+        throw error;
     }
 }
