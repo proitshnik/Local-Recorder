@@ -319,7 +319,9 @@ async function addFileToTempList(fileName) {
     chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
+// системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
 const beforeUnloadHandler = (event) => {
+    showVisualCue(["При закрытии или обновлении страницы запись будет прервана"], "Не закрывайте вкладку");
     event.preventDefault();
     event.returnValue = true;
 };
