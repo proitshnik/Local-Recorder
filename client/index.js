@@ -1,12 +1,13 @@
-import { buttonsStatesSave, deleteFilesFromTempList } from "./common.js";
+import { buttonsStatesSave } from "./common.js";
 import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
-const uploadButton = document.querySelector('.record-section__button_upload');
-const permissionsButton = document.querySelector('.record-section__button_permissions');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 const permissionsStatus = document.querySelector('#permissions-status');
+
+let server_connection = true;
+chrome.storage.local.set({'server_connection': server_connection});
 
 const inputElements = {
 	group: document.querySelector('#group_input'),
@@ -23,13 +24,10 @@ const buttonElements = {
 	upload: document.querySelector('.record-section__button_upload')
 };
 
-// Inactive: 0, Active: 1, Inprogress: 2
-const buttonsStates = {
-	permissions: 1,
-	start: 0,
-	stop: 0,
-	upload: 0
-};
+if (!server_connection) {
+    buttonElements.upload.style.display = 'None';
+    buttonElements.permissions.style.width = '368px';
+}
 
 const bStates = {
 	'needPermissions': {
@@ -220,6 +218,7 @@ async function updateButtonsStates() {
 	if (!bState) {
 		bState = 'needPermissions';
 	}
+    console.log(bState);
 	Object.entries(bStates[bState]).forEach(function([key, state]) {
 		if (state === 0) {
 			buttonElements[key].classList.add('record-section__button_inactive');
@@ -291,6 +290,7 @@ buttonElements.permissions.addEventListener('click', () => {
 });
 
 buttonElements.upload.addEventListener('click', async () => {
+    if (!server_connection) return;
 	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
 	if (!files) {
 		buttonsStatesSave('needPermissions');
