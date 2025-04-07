@@ -67,3 +67,46 @@
 #modal-close-btn:hover {
     background: #0056b3;
 }
+
+.preview-label {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.preview-toggle-block {
+    margin-bottom: 20px;
+}
+
+#preview-toggle-btn {
+    width: 140px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#preview-toggle-btn.enabled {
+    background-color: #28a745;
+    color: white;
+}
+
+#preview-toggle-btn.enabled:hover {
+    background-color: #218838;
+}
+
+#preview-toggle-btn.disabled {
+    background-color: #dc3545;
+    color: white;
+}
+
+#preview-toggle-btn.disabled:hover {
+    background-color: #c82333;
+}
+
+#preview-toggle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
