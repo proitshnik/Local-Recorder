@@ -127,12 +127,12 @@ async function getMediaDevices() {
                             mandatory: {
                                 chromeMediaSource: 'desktop',
                                 chromeMediaSourceId: streamId,
-                                minWidth: 1280,
-                                maxWidth: 1280,
-                                minHeight: 720,
-                                maxHeight: 720,
-                                minFrameRate: 15,
-                                maxFrameRate: 15
+                                minWidth: 1440,
+                                maxWidth: 1920,
+                                minHeight: 810,
+                                maxHeight: 1080,
+                                minFrameRate: 20,
+                                maxFrameRate: 20
                             }
                         },
                     });
@@ -166,9 +166,9 @@ async function getMediaDevices() {
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ 
                             video: {
-                                width: 160,
-                                height: 120,
-                                frameRate: 7,
+                                width: 240,
+                                height: 180,
+                                frameRate: 25,
                             }, 
                             audio: false 
                         });
@@ -258,7 +258,7 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 1_000_000,
-                        videoBitsPerSecond: 10000,
+                        videoBitsPerSecond: 100_000,
                         // bitsPerSecond: 1000000
                     });
                     log_client_action('Combined recorder initialized');
