@@ -31,8 +31,8 @@
 		}
 	],
 	"icons": {
-		"16": "asserts/icon.png",
-		"48": "asserts/icon.png",
-		"128": "asserts/icon.png"
+		"16": "assets/icon.png",
+		"48": "assets/icon.png",
+		"128": "assets/icon.png"
 	}
 }
