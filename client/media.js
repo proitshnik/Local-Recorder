@@ -136,12 +136,18 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
-                    // Обработчик закрытия доступа к экрану
+                    // Обработчик потери доступа к экрану
                     streams.screen.getVideoTracks().forEach(track => {
                         track.onended = () => {
-                            log_client_action('Screen access revoked');
-                            console.log('Доступ к экрану был отозван пользователем или системой');
-                            showVisualCue(["Доступ к экрану был закрыт!"], "Предупреждение");
+                            log_client_action('Screen access revoked during recording');
+                            console.log('Доступ к экрану был отозван во время записи');
+                            if (recorders.combined && recorders.combined.state === 'recording') {
+                                pauseRecording(); // Приостанавливаем запись
+                                showVisualCue(
+                                    ["Доступ к экрану был закрыт. Предоставьте разрешения заново, чтобы продолжить запись."],
+                                    "Предупреждение"
+                                );
+                            }
                         };
                     });
 
@@ -281,6 +287,81 @@ async function getMediaDevices() {
             reject(error);
         }
     });
+}
+
+function pauseRecording() {
+    if (recorders.combined && recorders.combined.state === 'recording') {
+        recorders.combined.pause();
+        log_client_action('Combined recording paused');
+        console.log('Комбинированная запись приостановлена');
+    }
+    if (recorders.camera && recorders.camera.state === 'recording') {
+        recorders.camera.pause();
+        log_client_action('Camera recording paused');
+        console.log('Запись с камеры приостановлена');
+    }
+    sendButtonsStates('needPermissions');
+}
+
+async function resumeRecording() {
+    try {
+        const newScreenStream = await new Promise((resolve, reject) => {
+            chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
+                if (!streamId) {
+                    reject('Пользователь отменил выбор экрана');
+                    return;
+                }
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: streamId
+                        }
+                    },
+                });
+                resolve(stream);
+            });
+        });
+
+        streams.screen = newScreenStream;
+        streams.screen.getVideoTracks().forEach(track => {
+            track.onended = () => {
+                log_client_action('Screen access revoked during recording');
+                pauseRecording();
+                showVisualCue(
+                    ["Доступ к экрану был закрыт. Предоставьте разрешения заново, чтобы продолжить запись."],
+                    "Предупреждение"
+                );
+            };
+        });
+
+        streams.combined = new MediaStream([
+            streams.screen.getVideoTracks()[0],
+            streams.microphone.getAudioTracks()[0]
+        ]);
+
+        combinedPreview.srcObject = streams.combined;
+
+        recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
+        recorders.combined.ondataavailable = async (event) => {
+            if (event.data.size > 0 && combinedWritableStream) {
+                log_client_action(`Combined data available: ${event.data.size} bytes`);
+                await combinedWritableStream.write(event.data);
+            }
+        };
+
+        recorders.combined.start(5000); // Продолжаем писать в тот же файл
+        recorders.camera.resume(); // Камера продолжает с того же MediaRecorder
+        log_client_action('Recording resumed');
+        console.log('Запись возобновлена');
+        showVisualCue(["Запись успешно возобновлена!"], "Успех");
+        await sendButtonsStates('recording');
+    } catch (error) {
+        console.error('Ошибка при возобновлении записи:', error);
+        log_client_action(`resume_error: ${error.message}`);
+        showVisualCue(["Ошибка при возобновлении записи: " + error.message], "Ошибка");
+        await sendButtonsStates('paused');
+    }
 }
 
 async function cleanup() {
@@ -651,3 +732,4 @@ async function startRecord() {
         cleanup();
     }
 }
+
