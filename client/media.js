@@ -136,6 +136,15 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
+                    // Обработчик закрытия доступа к экрану
+                    streams.screen.getVideoTracks().forEach(track => {
+                        track.onended = () => {
+                            log_client_action('Screen access revoked');
+                            console.log('Доступ к экрану был отозван пользователем или системой');
+                            showVisualCue(["Доступ к экрану был закрыт!"], "Предупреждение");
+                        };
+                    });
+
                     let micPermissionDenied = false;
                     let camPermissionDenied = false;
 
