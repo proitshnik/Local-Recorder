@@ -27,6 +27,7 @@ var cameraWritableStream = null;
 var forceTimeout = null;
 var startTime = undefined;
 var endTime = undefined;
+var server_connection = undefined;
 
 var metadata = {
     screen: {
@@ -56,6 +57,53 @@ const stopStreams = () => {
     });
     log_client_action('All streams stopped')
 };
+
+function generateObjectId() {
+    const bytes = new Uint8Array(12);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, timestamp, false);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes.subarray(4));
+    } else {
+      for (let i = 4; i < 12; i++) {
+        bytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+
+    return Array.from(bytes)
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+}
+
+function getBrowserFingerprint() {
+    return {
+        browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
+        userAgent: navigator.userAgent,
+        language: navigator.language || navigator.userLanguage || 'unknown',
+        cpuCores: navigator.hardwareConcurrency || 'unknown',
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+        timestamp: new Date().toISOString(),
+        cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
+        windowSize: `${window.innerWidth}x${window.innerHeight}`,
+        doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
+    };
+}
+
+async function clearLogs() {
+    await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
+            if (response.success) {
+                console.log("Логи очищены перед завершением");
+            } else {
+                console.error("Ошибка очистки логов:", response.error);
+            }
+            resolve();
+        });
+    });
+}
 
 const getDifferenceInTime = (date1, date2) => {
     const diff = Math.abs(Math.floor(date2.getTime() / 1000) - Math.floor(date1.getTime() / 1000)); // ms
@@ -106,6 +154,9 @@ async function checkOpenedPopup() {
 }
 
 async function sendButtonsStates(state) {
+    if (state === 'readyToUpload' && !server_connection) {
+        state = 'needPermissions';
+    }
     if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
     else buttonsStatesSave(state);
 }
@@ -415,16 +466,7 @@ async function uploadVideo(combinedFile, cameraFile) {
                 log_client_action(`upload_error: ${error.message}`);
             })
             .finally(async () => {
-                await new Promise((resolve) => {
-                    chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
-                        if (response.success) {
-                            console.log("Логи очищены перед завершением");
-                        } else {
-                            console.error("Ошибка очистки логов:", response.error);
-                        }
-                        resolve();
-                    });
-                });
+                await clearLogs();
             });
     });
 }
@@ -435,10 +477,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
+            if (!server_connection) await clearLogs();
             await sendButtonsStates('readyToUpload');
         }
     }
     else if (message.action === 'getPermissionsMedia') {
+        server_connection = (await chrome.storage.local.get('server_connection'))['server_connection'];
         getMediaDevices()
         .then(async () => {
             await sendButtonsStates('readyToRecord');
@@ -457,20 +501,29 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('patronymic', message.formData.patronymic || '');
         formData.append('link', message.formData.link || '');
 
-        await initSession(formData);
-
-        try {
-            await startRecord()
-            .then(async () => {
-                await sendButtonsStates('recording');
-            })
-            .catch(async (error) => {
-                await sendButtonsStates('needPermissions');
+        if (server_connection) await initSession(formData);
+        else {
+            log_client_action({
+                action: 'Start recording initiated',
+                browserFingerprint: getBrowserFingerprint()
             });
-        } catch (error) {
-            // chrome.runtime.sendMessage({ action: "disableButtons" });
-            alert(error);
-        };
+
+            await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
+
+            const sessionId = generateObjectId();
+            await chrome.storage.local.set({ 'session_id': sessionId });
+            log_client_action(`Session initialized with ID: ${sessionId}`);
+        }
+        
+        startRecord()
+        .then(async () => {
+            await sendButtonsStates('recording');
+        })
+        .catch(async (error) => {
+            // В startRecord есть свой обработчик ошибок
+            showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+            await sendButtonsStates('needPermissions');
+        });
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
@@ -485,23 +538,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 async function initSession(formData) {
-    const browserFingerprint = {
-        browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
-        userAgent: navigator.userAgent,
-        language: navigator.language || navigator.userLanguage || 'unknown',
-        cpuCores: navigator.hardwareConcurrency || 'unknown',
-        screenResolution: `${window.screen.width}x${window.screen.height}`,
-        availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-        timestamp: new Date().toISOString(),
-        cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
-        windowSize: `${window.innerWidth}x${window.innerHeight}`,
-        doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
-    };
-
     log_client_action({
         action: 'Start recording initiated',
-        browserFingerprint: browserFingerprint
+        browserFingerprint: getBrowserFingerprint()
     });
 
     await chrome.storage.local.set({
@@ -572,7 +611,6 @@ function stopRecord() {
         await sendButtonsStates('readyToUpload');
         cleanup();
     }).catch(error => {
-        // TODO. Что делать при ошибке???
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
@@ -641,9 +679,12 @@ async function startRecord() {
         log_client_action('recording_started');
         showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
-        console.error('Ошибка при запуске записи:', error);
-        log_client_action('recording_stopped');
-        showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        console.error('Ошибка при запуске записи:', error.message);
+        log_client_action('recording_stopped ' + error);
         cleanup();
+        // Есть внешний обработчик ошибок
+        // showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        // await sendButtonsStates('needPermissions');
+        throw error;
     }
 }
