@@ -67,16 +67,16 @@ const validationRules = {
         message: "Группа должна содержать ровно 4 цифры. Пример: '1234'"
     },
     name: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Имя должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иван'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Имя должно начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иван'"
     },
     surname: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Фамилия должна начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванов'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Фамилия должна начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иванов'"
     },
     patronymic: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Отчество должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванович'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Отчество должно начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иванович'"
     },
     link: {
         regex: /.+/,
@@ -88,15 +88,22 @@ function validateInput(input) {
     const rule = validationRules[input.id.replace('_input', '')];
     const messageElement = input.nextElementSibling;
 
+    input.classList.remove('input-valid', 'input-invalid');
+    messageElement.classList.remove('message-error');
+    input.dataset.emptyChecked = '';
+
     if (!input.value.trim()) {
         messageElement.textContent = rule.message;
         return;
     }
-    
+
     if (!rule.regex.test(input.value)) {
-        messageElement.textContent = `Неверно! ${rule.message}`;
+        messageElement.textContent = rule.message;
+        input.classList.add('input-invalid');
+        messageElement.classList.add('message-error');
     } else {
-        messageElement.textContent = "Верно!";
+        messageElement.textContent = "";
+        input.classList.add('input-valid');
     }
 }
 
@@ -107,6 +114,9 @@ function handleFocus(event) {
     
     if (!input.value.trim()) {
         messageElement.textContent = rule.message;
+        input.classList.remove('input-valid', 'input-invalid');
+        messageElement.classList.remove('message-error');
+        input.dataset.emptyChecked = '';
     }
 }
 
@@ -274,7 +284,21 @@ async function startRecCallback() {
     Object.values(inputElements).forEach(input => {
         if (input !== inputElements.patronymic || !noPatronymicCheckbox.checked) {
             validateInput(input);
-            if (!input.value.trim() || input.nextElementSibling.textContent.startsWith("Неверно!")) {
+            const valueIsEmpty = !input.value.trim();
+            const hasInvalidClass = input.classList.contains('input-invalid');
+
+            if (valueIsEmpty) {
+                allValid = false;
+
+                // Если еще не была проверка на пустоту — пометить
+                if (!input.dataset.emptyChecked) {
+                    input.classList.add('input-invalid');
+                    const rule = validationRules[input.id.replace('_input', '')];
+                    input.nextElementSibling.textContent = rule.message;
+                    input.nextElementSibling.classList.add('message-error');
+                    input.dataset.emptyChecked = 'true';
+                }
+            } else if (hasInvalidClass) {
                 allValid = false;
             }
         }
