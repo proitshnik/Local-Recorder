@@ -244,7 +244,7 @@ async function getMediaDevices() {
 
                         // TODO Привязать к кнопке визуального уведомления, как в нем будет новая логика
 
-                        const mediaExtensionUrl = chrome.runtime.getURL("media.html");
+                        const mediaExtensionUrl = chrome.runtime.getURL("pages/media.html");
 
                         // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
                         chrome.tabs.query({ url: mediaExtensionUrl }, (tabs) => {

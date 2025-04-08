@@ -23,7 +23,7 @@ function sendStartMessage(formData) {
 }
 
 async function checkTabState() {
-	const tabs = await chrome.tabs.query({url: chrome.runtime.getURL('media.html')});
+	const tabs = await chrome.tabs.query({url: chrome.runtime.getURL('pages/media.html')});
 	if (tabs && tabs.length === 1) {
 		if (tabs[0].active) {
 			return [true, tabs[0].id];
@@ -35,7 +35,7 @@ async function checkTabState() {
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-	const extensionUrl = chrome.runtime.getURL('media.html');
+	const extensionUrl = chrome.runtime.getURL('pages/media.html');
 	if (changeInfo.url === extensionUrl) {
 		const tabs = await chrome.tabs.query({url: extensionUrl});
 		if (tabs && tabs.length > 1) {
@@ -50,7 +50,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		const result = await checkTabState();
 		if (result === undefined) {
 			const tab = await chrome.tabs.create({
-				url: chrome.runtime.getURL('media.html'),
+				url: chrome.runtime.getURL('pages/media.html'),
 				index: 0, // Устанавливаем вкладку в начало списка
 				pinned: true // Закрепляем вкладку
 			});
