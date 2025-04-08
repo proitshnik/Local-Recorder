@@ -1,10 +1,18 @@
 import fs from 'fs';
-import { marked } from 'marked';
 import path from 'path';
+import vm from 'vm';
 
 // Пути
-const inputPath = path.resolve('README.md');
-const outputPath = path.resolve('client/assets/help/readme.html');
+const inputPath = path.resolve('../README.md');
+const outputPath = path.resolve('../client/assets/help/readme.html');
+const markedPath = path.resolve('./libraries/marked.min.js');
+
+// Загружаем marked.min.js как строку и выполняем в sandbox
+const sandbox = {};
+const markedCode = fs.readFileSync(markedPath, 'utf-8');
+vm.createContext(sandbox);
+vm.runInContext(markedCode, sandbox);
+const marked = sandbox.marked; // теперь можно использовать marked()
 
 // Чтение README.md
 fs.readFile(inputPath, 'utf-8', (err, data) => {
@@ -14,7 +22,7 @@ fs.readFile(inputPath, 'utf-8', (err, data) => {
     }
 
     // Конвертация Markdown в HTML
-    const html = marked(data);
+    const html = marked.parse(data);
 
     // Обёртка для читаемого вида
     const fullHtml = `
