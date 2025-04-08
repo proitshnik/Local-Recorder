@@ -6,6 +6,18 @@
     </head>
     <body class="page">
         <h1>Локальный прокторинг</h1>
+        <style>
+            .help-button {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+            }
+        </style>
+        <button class="help-button" title="Справка" id="help-button">❓</button>
         <div class="user-inputs">
             <label for="group_input" class="user-inputs__label">Группа</label>
             <input type="text" name="group" id="group_input" class="user-inputs__input" placeholder="Введите группу" required minlength="2" maxlength="20">

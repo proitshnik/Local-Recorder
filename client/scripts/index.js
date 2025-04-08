@@ -84,6 +84,19 @@ const validationRules = {
     }
 };
 
+document.querySelector('#help-button').addEventListener('click', () => {
+    const url = chrome.runtime.getURL('pages/help.html');
+
+    chrome.tabs.query({}, (tabs) => {
+        const existingTab = tabs.find(tab => tab.url === url);
+        if (existingTab) {
+            chrome.tabs.update(existingTab.id, { active: true });
+        } else {
+            chrome.tabs.create({ url });
+        }
+    });
+});
+
 function validateInput(input) {
     const rule = validationRules[input.id.replace('_input', '')];
     const messageElement = input.nextElementSibling;
