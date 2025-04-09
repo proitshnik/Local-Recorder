@@ -1,5 +1,5 @@
 import { buttonsStatesSave } from "./common.js";
-import { log_client_action } from "./logger.js";
+import { logClientAction } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
@@ -142,7 +142,7 @@ function saveInputValues() {
             link: inputElements.link.value
         }
     });
-	log_client_action('Input values saved');
+	logClientAction('Input values saved');
 }
 
 async function checkAndCleanLogs() {
@@ -225,10 +225,10 @@ async function updateButtonsStates() {
 }
 
 window.addEventListener('load', async () => {
-	log_client_action('Popup opened');
+	logClientAction('Popup opened');
 
 	await checkAndCleanLogs();
-	log_client_action('Old logs cleaned due to 24-hour inactivity');
+	logClientAction('Old logs cleaned due to 24-hour inactivity');
 
     let inputValues = await chrome.storage.local.get('inputElementsValue');
     inputValues = inputValues.inputElementsValue || {};    
@@ -324,7 +324,7 @@ async function startRecCallback() {
         action: "startRecord",
         formData: formData
     });
-    log_client_action('Start recording message sent');
+    logClientAction('Start recording message sent');
 }
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -337,11 +337,11 @@ chrome.runtime.onMessage.addListener((message) => {
 async function stopRecCallback() {
 	stopRecordButton.setAttribute('disabled', '');
 	startRecordButton.removeAttribute('disabled');
-	log_client_action('Stop recording initiated');
+	logClientAction('Stop recording initiated');
 	await chrome.runtime.sendMessage({
 		action: "stopRecord"
 	});
-	log_client_action('Stop recording message sent');
+	logClientAction('Stop recording message sent');
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
