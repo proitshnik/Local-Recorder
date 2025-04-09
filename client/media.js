@@ -59,7 +59,7 @@ const stopStreams = () => {
             streams[stream] = null;
         }
     });
-    logClientAction('All streams stopped')
+    logClientAction({ action: "Stop streams" });
 };
 
 function generateObjectId() {
@@ -74,6 +74,7 @@ function generateObjectId() {
         bytes[i] = Math.floor(Math.random() * 256);
       }
     }
+    logClientAction({ action: "Generate ObjectId" });
 
     return Array.from(bytes)
       .map(byte => byte.toString(16).padStart(2, '0'))
@@ -81,6 +82,7 @@ function generateObjectId() {
 }
 
 function getBrowserFingerprint() {
+    logClientAction({ action: "Get browser fingerprint" });
     return {
         browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
         userAgent: navigator.userAgent,
@@ -100,8 +102,10 @@ async function clearLogs() {
     await new Promise((resolve) => {
         chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
             if (response.success) {
+                logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
             } else {
+                logClientAction({ action: "Error while clearing logs", error: response.error });
                 console.error("Ошибка очистки логов:", response.error);
             }
             resolve();
@@ -121,6 +125,7 @@ const getDifferenceInTime = (date1, date2) => {
     const formattedMinutes = String(minutes).padStart(2, '0');
     const formattedSeconds = String(seconds).padStart(2, '0');
 
+    logClientAction({ action: "Calculate difference in time" });
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
 };
 
@@ -136,6 +141,7 @@ const setMetadatasRecordOn = () => {
     const [cameraVideoTrack] = streams.camera.getVideoTracks();
     const cameraSettings = cameraVideoTrack.getSettings();
     metadata.camera.session_client_resolution = `${cameraSettings.width}×${cameraSettings.height}`;
+    logClientAction({ action: "Set metadata record on" });
 };
 
 const setMetadatasRecordOff = async () => {
@@ -147,36 +153,47 @@ const setMetadatasRecordOff = async () => {
     metadata.screen.session_client_size = (screenFile.size / 1000000).toFixed(3);
     const cameraFile = await cameraFileHandle.getFile();
     metadata.camera.session_client_size = (cameraFile.size / 1000000).toFixed(3);
+    logClientAction({ action: "Set metadata record off" });
 };
 
 async function checkOpenedPopup() {
     let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
-    if (a.length > 0) {
-        return true;
-    }
-    return false;
+    const isPopupOpen = a.length > 0;
+    logClientAction({ action: "Check if popup is open", popupOpen: isPopupOpen.toString() });
+    return isPopupOpen;
 }
 
 async function sendButtonsStates(state) {
     if (state === 'readyToUpload' && !server_connection) {
         state = 'needPermissions';
+        logClientAction({ action: "Update buttons states due to missing server connection" });
     }
-    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
-    else buttonsStatesSave(state);
+    if (await checkOpenedPopup()) {
+        chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
+        logClientAction({ action: "Send message", messageType: "updateButtonStates" });
+    }
+    else {
+        buttonsStatesSave(state);
+        logClientAction({ action: "Save buttons states locally" });
+    }
 }
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         try {
+            logClientAction({ action: "Request screen media" });
+
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
-                    logClientAction('User canceled screen selection');
+                    logClientAction({ action: "User cancels screen selection" });
                     console.error('Пользователь отменил выбор экрана');
                     reject('Пользователь отменил выбор экрана');
                     showVisualCue(["Пользователь отменил выбор экрана!"], "Ошибка");
                     return;
                 }
                 try {
+                    logClientAction({ action: "User grants screen access" });
+
                     streams.screen = await navigator.mediaDevices.getUserMedia({
                         video: {
                             mandatory: {
@@ -187,7 +204,7 @@ async function getMediaDevices() {
                     });
 
                     if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
-                        logClientAction('Screen permission denied');
+                        logClientAction({ action: "Screen stream not available" });
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
@@ -196,14 +213,14 @@ async function getMediaDevices() {
 
                     try {
                         streams.microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        logClientAction('Microphone access granted');
+                        logClientAction({ action: "User grants microphone access" });
                     } catch (micError) {
                         if (micError.name === 'NotAllowedError') {
                             micPermissionDenied = true;
-                            logClientAction('Microphone permission denied: NotAllowedError');
+                            logClientAction({ action: "Microphone permission denied", error: "NotAllowedError" });
                             showVisualCue("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
                         } else {
-                            logClientAction('Microphone permission denied');
+                            logClientAction({ action: "Microphone permission denied" });
                             alert('Ошибка при доступе к микрофону: ' + micError.message);
                             showVisualCue('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
                             stopStreams();
@@ -214,14 +231,14 @@ async function getMediaDevices() {
 
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                        logClientAction('Camera access granted');
+                        logClientAction({ action: "User grants camera access" });
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
-                            logClientAction('Camera permission denied: NotAllowedError');
+                            logClientAction({ action: "Camera permission denied", error: "NotAllowedError" });
                             showVisualCue("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
                             camPermissionDenied = true;
                         } else {
-                            logClientAction('Camera permission denied');
+                            logClientAction({ action: "Camera permission denied" });
                             alert('Ошибка при доступе к камере: ' + camError.message);
                             showVisualCue('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
                             stopStreams();
@@ -234,6 +251,8 @@ async function getMediaDevices() {
                         stopStreams();
                         const extensionId = chrome.runtime.id;
                         const settingsUrl = `chrome://settings/content/siteDetails?site=chrome-extension://${extensionId}`;
+
+                        logClientAction({ action: "Prompt permission settings" });
 
                         alert('Не предоставлен доступ к камере или микрофону.\n' +
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
@@ -255,29 +274,33 @@ async function getMediaDevices() {
                                         // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
                                         // Tabs cannot be edited right now (user may be dragging a tab).
                                         // Не обрабатывается до внедрения нового уведомления 
-                                        logClientAction("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
+                                        logClientAction({ action: "Fail to close media.html before redirect", error: chrome.runtime.lastError.message })
                                         showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
                                     } else {
-                                        logClientAction("Successfully close tab media.html before redirect");
+                                        logClientAction({ action: "Successfully close media.html before redirect" });
                                     }
                                 });
                             } else {
-                                logClientAction("media.html not found before redirect");
+                                logClientAction({ action: "media.html not found before redirect" });
                             }
                         });
 
                         chrome.tabs.query({ url: settingsUrl }, (tabs) => {
                             if (tabs && tabs.length > 0) {
                                 chrome.tabs.update(tabs[0].id, { active: true });
+                                logClientAction({ action: "Focus on settings tab" });
                             } else {
                                 chrome.tabs.create({ url: settingsUrl });
+                                logClientAction({ action: "Create settings tab" });
                             }
                         });
 
-                        logClientAction('Redirecting to permission settings');
+                        logClientAction({ action: "Redirect to permission settings" });
                         reject('Доступ к устройствам не предоставлен');
                         return;
                     }
+
+                    logClientAction({ action: "Initialize combined and camera recorders" });
 
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
@@ -303,32 +326,34 @@ async function getMediaDevices() {
                     combinedPreview.muted = false;
 
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
-                    logClientAction('Combined recorder initialized');
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
-                    logClientAction('Camera recorder initialized');
+
+                    logClientAction({ action: "Create combined recorder" });
+                    logClientAction({ action: "Create camera recorder" });
 
                     recorders.combined.ondataavailable = async (event) => {
                         if (event.data.size > 0 && combinedWritableStream) {
-                            logClientAction(`Combined data available: ${event.data.size} bytes`);
+                            logClientAction({ action: "Combined data available", bytes: event.data.size });
                             await combinedWritableStream.write(event.data);
                         }
                     };
 
                     recorders.camera.ondataavailable = async (event) => {
                         if (event.data.size > 0 && cameraWritableStream) {
-                            logClientAction(`Camera data available: ${event.data.size} bytes`);
+                            logClientAction({ action: "Camera data available", bytes: event.data.size });
                             await cameraWritableStream.write(event.data);
                         }
                     };
                   
                     resolve();
                 } catch (error) {
-                    console.error('Ошибка при захвате:', error);
+                    logClientAction({ action: "Error during screen capture setup", error: error.message });
                     stopStreams();
                     reject(error);
                 }
             });
         } catch (error) {
+            logClientAction({ action: "General error in getMediaDevices", error: error.message });
             reject(error);
         }
     });
