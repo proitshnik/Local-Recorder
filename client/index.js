@@ -142,7 +142,7 @@ function saveInputValues() {
             link: inputElements.link.value
         }
     });
-	logClientAction('Input values saved');
+    logClientAction({ action: "Save input values" });
 }
 
 async function checkAndCleanLogs() {
@@ -165,6 +165,7 @@ async function checkAndCleanLogs() {
 			await chrome.storage.local.set({
 				'extension_logs': JSON.stringify(cleanedLogs)
 			});
+            logClientAction({ action: "Clean old logs" });
 		}
 	}
 }
@@ -173,6 +174,7 @@ function savePatronymic() {
     chrome.storage.local.set({
         'savedPatronymic': inputElements.patronymic.value
     });
+    logClientAction({ action: "Save patronymic value" });
 }
 
 noPatronymicCheckbox.addEventListener('change', async () => {
@@ -190,6 +192,7 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         validateInput(inputElements.patronymic);
     }
     saveInputValues();
+    logClientAction({ action: "Toggle no patronymic checkbox", checked: noPatronymicCheckbox.checked });
 });
 
 document.querySelectorAll('input').forEach(input => {
@@ -222,10 +225,11 @@ async function updateButtonsStates() {
 			buttonElements[key].setAttribute('disabled', true);
 		}
 	});
+    logClientAction({ action: "Update button states" });
 }
 
 window.addEventListener('load', async () => {
-	logClientAction('Popup opened');
+	logClientAction({ action: "Open popup" });
 
 	await checkAndCleanLogs();
 	logClientAction('Old logs cleaned due to 24-hour inactivity');
@@ -266,10 +270,13 @@ window.addEventListener('load', async () => {
 });
 
 buttonElements.permissions.addEventListener('click', () => {
+    logClientAction({ action: "Click permissions button" });
 	chrome.runtime.sendMessage({action: 'getPermissions'});
+    logClientAction({ action: "Send message", messageType: "getPermissions" });
 });
 
 buttonElements.upload.addEventListener('click', async () => {
+    logClientAction({ action: "Click upload button" });
     if (!server_connection) return;
 	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
 	if (!files) {
@@ -277,9 +284,11 @@ buttonElements.upload.addEventListener('click', async () => {
 		updateButtonsStates();
 	}
 	chrome.runtime.sendMessage({action: 'uploadVideoMedia'});
+    logClientAction({ action: "Send message", messageType: "uploadVideoMedia" });
 });
 
 async function startRecCallback() {
+    logClientAction({ action: "Click start record button" });
     let allValid = true;
     Object.values(inputElements).forEach(input => {
         if (input !== inputElements.patronymic || !noPatronymicCheckbox.checked) {
@@ -304,7 +313,7 @@ async function startRecCallback() {
         }
     });
     if (!allValid) {
-        console.warn("Невозможно начать запись: есть ошибки или незаполненные поля.");
+        logClientAction({ action: "Block recording due to validation errors" });
         return;
     }
 
@@ -324,24 +333,25 @@ async function startRecCallback() {
         action: "startRecord",
         formData: formData
     });
-    logClientAction('Start recording message sent');
+    logClientAction({ action: "Send message", messageType: "startRecord" });
 }
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "disableButtons") {
         startRecordButton.removeAttribute('disabled');
         stopRecordButton.setAttribute('disabled', '');
+        logClientAction({ action: "Receive message", messageType: "disableButtons" });
     }
 });
 
 async function stopRecCallback() {
+    logClientAction({ action: "Click stop record button" });
 	stopRecordButton.setAttribute('disabled', '');
 	startRecordButton.removeAttribute('disabled');
-	logClientAction('Stop recording initiated');
 	await chrome.runtime.sendMessage({
 		action: "stopRecord"
 	});
-	logClientAction('Stop recording message sent');
+    logClientAction({ action: "Send message", messageType: "stopRecord" });
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
@@ -351,5 +361,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 	if (message.action === 'updateButtonStates') {
 		chrome.storage.local.set({'bState': message.state});
 		updateButtonsStates();
+        logClientAction({ action: "Receive message", messageType: "updateButtonStates" });
 	}
 });
