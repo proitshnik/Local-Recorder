@@ -1,7 +1,11 @@
-function showVisualCue(messages, title = "Уведомление") {
+import { logClientAction } from './logger.js';
 
+function showVisualCue(messages, title = "Уведомление") {
     const existingOverlay = document.getElementById('custom-modal-overlay');
-    if (existingOverlay) existingOverlay.remove();
+    if (existingOverlay) {
+        existingOverlay.remove();
+        logClientAction({ action: "Remove existing modal overlay" });
+    }
 
     if (!Array.isArray(messages)) {
         messages = [messages];
@@ -27,14 +31,17 @@ function showVisualCue(messages, title = "Уведомление") {
     modal.querySelector('#modal-close-btn').addEventListener('click', () => {
         overlay.remove();
         document.body.style.overflow = '';
+        logClientAction({ action: "Click modal close button" });
     });
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+    logClientAction({ action: "Display modal overlay", title, messages });
 }
 // Приём сообщений от фонового скрипта
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'showModal') {
+        logClientAction({ action: "Receive message", messageType: "showModal" });
         showVisualCue(message.message, message.title);
     }
 });
