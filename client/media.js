@@ -31,7 +31,9 @@ var cameraWritableStream = null;
 var forceTimeout = null;
 var startTime = undefined;
 var endTime = undefined;
+
 var server_connection = undefined;
+var invalidStop = false;
 
 var metadata = {
     screen: {
@@ -125,7 +127,6 @@ const getDifferenceInTime = (date1, date2) => {
 };
 
 const setMetadatasRecordOn = () => {
-    console.log(startTime);
     metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
@@ -279,6 +280,19 @@ async function getMediaDevices() {
                         return;
                     }
 
+                    streams.camera.oninactive = async function () {
+                        if (!recorders.combined && !recorders.camera) return;
+                        if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
+                            showVisualCue(["Чтобы начать запись заново выдайте разрешения."], "Доступ к камере потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
+
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
                         streams.microphone.getAudioTracks()[0]
@@ -378,6 +392,7 @@ async function cleanup() {
     cameraPreview.srcObject = null;
     recorders.combined = null;
     recorders.camera = null;
+    invalidStop = false;
     console.log('Все потоки и запись остановлены.');
     log_client_action('cleanup_completed');
 }
@@ -413,7 +428,7 @@ async function addFileToTempList(fileName) {
     if (!tempFiles.includes(fileName)) {
         tempFiles.push(fileName);
     }
-    chrome.storage.local.set({'tempFiles': tempFiles});
+    return chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
@@ -450,10 +465,23 @@ async function uploadVideo(combinedFile, cameraFile) {
             return;
         }
 
+        const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+        if (!files.length) {
+            throw new Error(`Ошибка при поиске записей`);
+        }
+
         const formData = new FormData();
+
+        for (const filename of files) {
+            if (filename.includes('screen')) {
+                formData.append('screen_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            } else {
+                formData.append('camera_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            }
+        }
+        
         formData.append("id", session_id);
-        formData.append("screen_video", combinedFile, combinedFileName);
-        formData.append("camera_video", cameraFile, cameraFileName);
+
         await setMetadatasRecordOff();
         formData.append("metadata", JSON.stringify(metadata));
 
@@ -659,7 +687,11 @@ function stopRecord() {
 
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        await sendButtonsStates('readyToUpload');
+        if (invalidStop) {
+            await sendButtonsStates('needPermissions');
+        } else {
+            await sendButtonsStates('readyToUpload');
+        }
         cleanup();
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
@@ -698,10 +730,8 @@ async function startRecord() {
         cameraWritableStream = await cameraFileHandle.createWritable();
         log_client_action(`Camera file handle created: ${cameraFileName}`);
 
-        await Promise.all([
-            addFileToTempList(combinedFileName),
-            addFileToTempList(cameraFileName)
-        ]);
+        await addFileToTempList(combinedFileName);
+        await addFileToTempList(cameraFileName);
         log_client_action('Files added to temp list');
 
         chrome.storage.local.set({
