@@ -353,3 +353,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		updateButtonsStates();
 	}
 });
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "closePopup") {
+        window.close();
+    }
+});

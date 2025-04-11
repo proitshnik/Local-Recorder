@@ -29,23 +29,24 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.5); /* Затемнённый фон для overlay */
     display: flex;
-    align-items: center; /* Центр по вертикали */
-    justify-content: center; /* Центр по горизонтали */
+    align-items: flex-start;  /* Выравнивание по верхней части страницы */
+    justify-content: center;  /* Центрирование по горизонтали */
     z-index: 1000;
 }
+
 
 #custom-modal {
     background: #ffffff;
     color: #000000;
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 8px;
     max-width: 400px;
     width: 90%;
     text-align: center;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    font-family: sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 20px; /* Отступ сверху */
 }
 
 #custom-modal h2 {
