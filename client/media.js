@@ -182,7 +182,11 @@ async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         try {
             logClientAction({ action: "Request screen media" });
-
+            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+            await showVisualCue(["Пожалуйста, предоставьте доступ к экрану, микрофону и камере. " +
+                        "Не отключайте эти разрешения до окончания записи. " +
+                        "Это необходимо для корректной работы системы прокторинга."],
+                        "Разрешения для прокторинга");
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
                     logClientAction({ action: "User cancels screen selection" });
@@ -436,6 +440,20 @@ const getCurrentDateString = (date) => {
     `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
 
+const getFormattedDateString = (date) => {
+    logClientAction({ action: "Generate human-readable date string" });
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}, ${day}.${month}.${year}`;
+};
+
 const getAvailableDiskSpace = async () => {
     const estimate = await navigator.storage.estimate();
     const freeSpace = estimate.quota - estimate.usage;
@@ -572,7 +590,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
-            if (!server_connection) await clearLogs();
+            if (!server_connection) {
+                await clearLogs();
+            }
             await sendButtonsStates('readyToUpload');
         }
     }
@@ -583,6 +603,11 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Get media devices success" });
             await sendButtonsStates('readyToRecord');
+            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+            await showVisualCue(["Разрешения получены. Теперь вы можете начать запись.",
+                "Нажмите на кнопку «Начать запись» во всплывающем окне " +
+                "расширения прокторинга, когда будете готовы."],
+                "Готово к записи");
         })
         .catch(async () => {
             logClientAction({ action: "Get media devices failed" });
@@ -615,6 +640,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Start recording succeeds" });
             await sendButtonsStates('recording');
+            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+            await showVisualCue(["Запись экрана, микрофона и камеры началась. " +
+                "Не отключайте разрешения этим элементам до окончания записи.",
+                "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
+                "Идёт запись");
+
         })
         .catch(async (error) => {
             // В startRecord есть свой обработчик ошибок
@@ -628,6 +659,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
         .then(async () => {
             await sendButtonsStates('needPermissions');
+            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+            await showVisualCue(["Запись успешно отправлена на сервер."], "Запись отправлена");
         })
         .catch(async () => {
             await sendButtonsStates('failedUpload');
@@ -681,11 +714,18 @@ function stopRecord() {
     endTime = new Date();
     const stopPromises = [];
 
+    let combinedFileSize = 0;
+    let cameraFileSize = 0;
+
     if (recorders.combined) {
         stopPromises.push(new Promise((resolve) => {
             recorders.combined.onstop = async () => {
                 if (combinedWritableStream) {
                     await combinedWritableStream.close();
+                    if (combinedFileHandle.getFile) {
+                        const file = await combinedFileHandle.getFile();
+                        combinedFileSize = file.size;
+                    }
                     await handleFileSave(combinedFileHandle, combinedFileName);
                     logClientAction({ action: "Save recorded file", fileType: "screen", fileName: combinedFileName });
                 }
@@ -700,6 +740,10 @@ function stopRecord() {
             recorders.camera.onstop = async () => {
                 if (cameraWritableStream) {
                     await cameraWritableStream.close();
+                    if (cameraFileHandle.getFile) {
+                        const file = await cameraFileHandle.getFile();
+                        cameraFileSize = file.size;
+                    }
                     await handleFileSave(cameraFileHandle, cameraFileName);
                     logClientAction({ action: "Save recorded file", fileType: "camera", fileName: cameraFileName });
                 }
@@ -713,13 +757,35 @@ function stopRecord() {
     Promise.all(stopPromises).then(async () => {
         await sendButtonsStates('readyToUpload');
         logClientAction({ action: "Recording stopped and files saved" });
+
+        const durationMs = endTime - startTime;
+        const duration = new Date(durationMs).toISOString().slice(11, 19);
+
+        const stats = [
+            `Начало записи: ${getFormattedDateString(startTime)}`,
+            `Конец записи: ${getFormattedDateString(endTime)}`,
+            `Длительность записи: ${duration}`,
+            "Файлы записи экрана и камеры сохранены в папку сохранения по умолчанию.",
+            "Файл записи экрана:",
+            `${combinedFileName} (${(combinedFileSize / 1024 / 1024).toFixed(1)} MB)`,
+            "Файл записи камеры:",
+            `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`
+        ];
+        // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+        await showVisualCue(stats, "Запись завершена, статистика:");
+        if (server_connection) {
+            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
+            await showVisualCue(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+                "Отправка записи");
+        }
+
         cleanup();
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
         logClientAction({ action: "Fail to stop recording", error: error.message });
         cleanup();
     });
-    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+
     logClientAction({ action: "Stop recording triggered" });
 }
 
@@ -790,7 +856,6 @@ async function startRecord() {
 
         console.log('Запись начата');
         logClientAction({ action: "Start recording" });
-        showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         logClientAction({ action: "Fail to start recording", error: error.message });
