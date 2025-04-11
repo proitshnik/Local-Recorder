@@ -182,12 +182,17 @@ async function getMediaDevices() {
                             mandatory: {
                                 chromeMediaSource: 'desktop',
                                 chromeMediaSourceId: streamId,
-                                minWidth: 1440,
-                                maxWidth: 1920,
-                                minHeight: 810,
-                                maxHeight: 1080,
-                                minFrameRate: 20,
-                                maxFrameRate: 20
+                                width: { 
+                                    ideal: 1920, 
+                                    max: Math.min(2560, screen.width),
+                                    min: Math.min(1440, screen.width)
+                                },
+                                height: { 
+                                    ideal: 1080,
+                                    max: Math.min(1440, screen.height),
+                                    min: Math.min(810, screen.height)
+                                },
+                                frameRate: { ideal: 20, max: 20, min: 15 }
                             }
                         },
                     });
@@ -221,12 +226,13 @@ async function getMediaDevices() {
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ 
                             video: {
-                                width: 240,
-                                height: 180,
-                                frameRate: 25,
+                                width: { ideal: 320 },
+                                height: { ideal: 240 },
+                                frameRate: { ideal: 25, max: 30, min: 20 }
                             }, 
                             audio: false 
                         });
+                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                         log_client_action('Camera access granted');
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
@@ -325,13 +331,12 @@ async function getMediaDevices() {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 1_000_000,
                         videoBitsPerSecond: 100_000,
-                        // bitsPerSecond: 1000000
                     });
                     log_client_action('Combined recorder initialized');
                     
                     recorders.camera = new MediaRecorder(streams.camera, { 
                         mimeType: 'video/mp4; codecs="avc1.64001E"',
-                        videoBitsPerSecond: 700000
+                        videoBitsPerSecond: 700_000
                     });
                     log_client_action('Camera recorder initialized');
 
