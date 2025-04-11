@@ -4,6 +4,7 @@ import vm from 'vm';
 
 // Пути
 const inputPath = path.resolve('../README.md');
+// const inputPath = path.resolve('../client/README.md');
 const outputPath = path.resolve('../client/assets/help/readme.html');
 const markedPath = path.resolve('./libraries/marked.min.js');
 
