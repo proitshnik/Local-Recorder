@@ -192,7 +192,7 @@ async function getMediaDevices() {
                                     max: Math.min(1440, screen.height),
                                     min: Math.min(810, screen.height)
                                 },
-                                frameRate: { ideal: 20, max: 20, min: 15 }
+                                frameRate: { ideal: 20, max: 24, min: 15 }
                             }
                         },
                     });
@@ -228,11 +228,10 @@ async function getMediaDevices() {
                             video: {
                                 width: { ideal: 320 },
                                 height: { ideal: 240 },
-                                frameRate: { ideal: 25, max: 30, min: 20 }
+                                frameRate: { ideal: 17, max: 20, min: 15 }
                             }, 
                             audio: false 
                         });
-                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                         log_client_action('Camera access granted');
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
