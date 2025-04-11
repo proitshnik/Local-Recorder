@@ -523,7 +523,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
-            if (!server_connection) await clearLogs();
             await sendButtonsStates('readyToUpload');
         }
     }
@@ -621,7 +620,7 @@ async function initSession(formData) {
     }
 }
 
-function stopRecord() {
+async function stopRecord() {
     isRecording = false;
     isPreviewEnabled = false;
     hideMutePreviews();
@@ -665,8 +664,49 @@ function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
+
+    if (!server_connection) {
+        try {
+            const { extension_logs } = await chrome.storage.local.get('extension_logs');
+            let logsToSave = [];
+
+            if (extension_logs) {
+                if (typeof extension_logs === "string") {
+                    try {
+                        logsToSave = JSON.parse(extension_logs);
+                    } catch (e) {
+                        console.error("Ошибка парсинга логов:", e);
+                        logsToSave = [{ error: "Invalid logs", raw_data: extension_logs }];
+                    }
+                } else {
+                    logsToSave = extension_logs;
+                }
+            }
+
+            const logsFileName = `extension_logs_${getCurrentDateString(new Date())}.json`;
+            const logsBlob = new Blob([JSON.stringify(logsToSave, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(logsBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = logsFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            console.log(`Логи сохранены локально: ${logsFileName}`);
+            log_client_action(`logs_saved_locally: ${logsFileName}`);
+
+            await clearLogs();
+        } catch (error) {
+            console.error("Ошибка при сохранении логов:", error);
+            log_client_action(`logs_save_error: ${error.message}`);
+        }
+    }
+
     showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     log_client_action('Recording stopping');
+
 }
 
 async function startRecord() {
