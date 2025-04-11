@@ -235,7 +235,6 @@ async function getMediaDevices() {
                         const extensionId = chrome.runtime.id;
                         const settingsUrl = `chrome://settings/content/siteDetails?site=chrome-extension://${extensionId}`;
 
-                        //При отключении данного алерта программа перестает работать корректно
                         // alert('Не предоставлен доступ к камере или микрофону.\n' +
                         //     'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                         //     'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
@@ -248,25 +247,35 @@ async function getMediaDevices() {
                         // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
                         chrome.tabs.query({ url: mediaExtensionUrl }, (tabs) => {
                             if (tabs && tabs.length > 0) {
-                                // Стоит обработчик, сохраняющий одну вкладку media.html
-                                chrome.tabs.remove(tabs[0].id, () => {
+                                const tabId = tabs[0].id;
+                        
+                                chrome.runtime.sendMessage( { action: "prepareToClose" }, (response) => {
                                     if (chrome.runtime.lastError) {
-                                        log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
-                                        showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
+                                        log_client_action("Failed to send prepareToClose: " + chrome.runtime.lastError.message);
+                                        showVisualCueAsync(["Не удалось связаться с вкладкой media.html", chrome.runtime.lastError.message], "Ошибка");
+                                        openTab(settingsUrl);
+                                        return;
+                                    }
+                        
+                                    if (response && response.success) {
+                                        chrome.tabs.remove(tabId, () => {
+                                            if (chrome.runtime.lastError) {
+                                                log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
+                                                showVisualCueAsync("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
+                                            } else {
+                                                log_client_action("Successfully closed tab media.html before redirect");
+                                            }
+                                            openTab(settingsUrl);
+                                        });
                                     } else {
-                                        log_client_action("Successfully close tab media.html before redirect");
+                                        log_client_action("Tab didn't confirm deleting beforeunload" + response);
+                                        showVisualCueAsync(["Не удалось снять обработчик beforeunload", response], "Ошибка");
+                                        openTab(settingsUrl);
                                     }
                                 });
                             } else {
                                 log_client_action("media.html not found before redirect");
-                            }
-                        });
-
-                        chrome.tabs.query({ url: settingsUrl }, (tabs) => {
-                            if (tabs && tabs.length > 0) {
-                                chrome.tabs.update(tabs[0].id, { active: true });
-                            } else {
-                                chrome.tabs.create({ url: settingsUrl, active: true });
+                                openTab(settingsUrl);
                             }
                         });
 
@@ -326,6 +335,16 @@ async function getMediaDevices() {
             });
         } catch (error) {
             reject(error);
+        }
+    });
+}
+
+function openTab(url) {
+    chrome.tabs.query({ url: url }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+            chrome.tabs.update(tabs[0].id, { active: true });
+        } else {
+            chrome.tabs.create({ url: url, active: true });
         }
     });
 }
@@ -576,6 +595,16 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .catch(async () => {
             await sendButtonsStates('failedUpload');
         });
+    }
+    // TEMP
+    else if (message.action === "prepareToClose") {
+        console.log("Received prepareToClose action");
+
+        window.onbeforeunload = null;
+
+        sendResponse({ success: true });
+
+        return true;
     }
 });
 
