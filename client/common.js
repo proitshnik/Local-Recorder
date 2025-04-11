@@ -12,6 +12,8 @@ export async function deleteFilesFromTempList() {
 // Асинхронная версия модального уведомления, возвращающая Promise
 export function showVisualCueAsync(messages, title = "Уведомление") {
     return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: "closePopup" });
+
         const existingOverlay = document.getElementById('custom-modal-overlay');
         if (existingOverlay) existingOverlay.remove();
 
@@ -48,6 +50,8 @@ export function showVisualCueAsync(messages, title = "Уведомление") {
 
 
 export function showVisualCue(messages, title = "Уведомление") {
+
+    chrome.runtime.sendMessage({ action: "closePopup" });
 
     const existingOverlay = document.getElementById('custom-modal-overlay');
     if (existingOverlay) existingOverlay.remove();

@@ -666,7 +666,7 @@ async function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
-    chrome.runtime.sendMessage({ action: "closePopup" });
+    //chrome.runtime.sendMessage({ action: "closePopup" });
     await showVisualCueAsync(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     log_client_action('Recording stopping');
 }
@@ -736,7 +736,7 @@ async function startRecord() {
 
         console.log('Запись начата');
         log_client_action('recording_started');
-        chrome.runtime.sendMessage({ action: "closePopup" });
+        //chrome.runtime.sendMessage({ action: "closePopup" });
         await showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
