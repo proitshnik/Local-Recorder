@@ -457,7 +457,7 @@ window.addEventListener('load', () => {
 });
 
 // Функция для отправки видео на сервер после завершения записи
-async function uploadVideo(combinedFile, cameraFile) {
+async function uploadVideo() {
     chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
@@ -601,7 +601,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
-        uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
+        uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
         })
