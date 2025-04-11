@@ -79,15 +79,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 function clearLogs() {
 	return new Promise((resolve, reject) => {
-		chrome.storage.local.remove('extension_logs', () => {
-			if (chrome.runtime.lastError) {
-				console.error('Ошибка при очистке логов:', chrome.runtime.lastError);
-				reject(chrome.runtime.lastError);
-			} else {
+		chrome.storage.local.remove('extension_logs')
+			.then(() => {
 				console.log('Логи успешно очищены');
 				resolve();
-			}
-		});
+			})
+			.catch((error) => {
+				console.error('Ошибка при очистке логов:', error);
+				reject(error);
+			});
 	});
 }
 
