@@ -32,6 +32,7 @@ var forceTimeout = null;
 var startTime = undefined;
 var endTime = undefined;
 var server_connection = undefined;
+var notifications_flag = true;
 
 var metadata = {
     screen: {
@@ -583,6 +584,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 });
 
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'suppressGlobalVisualCue') {
+        notifications_flag = false;
+        console.log('notifications_flag = ', notifications_flag);
+    }
+});
+
 async function initSession(formData) {
     log_client_action({
         action: 'Start recording initiated',
@@ -620,6 +629,15 @@ async function initSession(formData) {
         throw error;
     }
 }
+
+// Инициализируем промис, который разрешится, когда придёт сигнал о подавлении уведомления
+let suppressNotificationPromise = new Promise((resolve) => {
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message.action === 'suppressGlobalVisualCue') {
+            resolve(true);
+        }
+    });
+});
 
 function stopRecord() {
     isRecording = false;
@@ -665,7 +683,17 @@ function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
-    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+
+    // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+    Promise.race([
+        suppressNotificationPromise,
+        new Promise((resolve) => setTimeout(() => resolve(false), 150))
+    ]).then((suppress) => {
+        if (!suppress) {
+            showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+        }
+    });
+
     log_client_action('Recording stopping');
 }
 

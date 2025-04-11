@@ -70,10 +70,10 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		}
 		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
+		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
-		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 	}
 });
 
@@ -98,6 +98,14 @@ chrome.runtime.onMessage.addListener(
 				.then(() => sendResponse({ success: true }))
 				.catch((error) => sendResponse({ success: false, error }));
 			return true;
+		}
+	}
+);
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, sendResponse) {
+		if (message.action === "stopMediaNotification") {
+			chrome.runtime.sendMessage({action: 'suppressGlobalVisualCue'});
 		}
 	}
 );

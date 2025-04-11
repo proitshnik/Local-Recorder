@@ -36,5 +36,6 @@ function showVisualCue(messages, title = "Уведомление") {
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'showModal') {
         showVisualCue(message.message, message.title);
+        chrome.runtime.sendMessage({action: 'stopMediaNotification'});
     }
 });
