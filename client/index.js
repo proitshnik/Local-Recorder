@@ -1,11 +1,12 @@
-import { buttonsStatesSave, deleteFilesFromTempList } from "./common.js";
+import { buttonsStatesSave } from "./common.js";
 import { log_client_action } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
-const uploadButton = document.querySelector('.record-section__button_upload');
-const permissionsButton = document.querySelector('.record-section__button_permissions');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
+
+let server_connection = true;
+chrome.storage.local.set({'server_connection': server_connection});
 
 const inputElements = {
 	group: document.querySelector('#group_input'),
@@ -22,13 +23,10 @@ const buttonElements = {
 	upload: document.querySelector('.record-section__button_upload')
 };
 
-// Inactive: 0, Active: 1, Inprogress: 2
-const buttonsStates = {
-	permissions: 1,
-	start: 0,
-	stop: 0,
-	upload: 0
-};
+if (!server_connection) {
+    buttonElements.upload.style.display = 'None';
+    buttonElements.permissions.style.width = '368px';
+}
 
 const bStates = {
 	'needPermissions': {
@@ -69,16 +67,16 @@ const validationRules = {
         message: "Группа должна содержать ровно 4 цифры. Пример: '1234'"
     },
     name: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Имя должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иван'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Имя должно начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иван'"
     },
     surname: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Фамилия должна начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванов'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Фамилия должна начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иванов'"
     },
     patronymic: {
-        regex: /^[А-ЯЁ][а-яё]+$/, 
-        message: "Отчество должно начинаться с заглавной буквы и содержать только буквы. Пример: 'Иванович'"
+        regex: /^[A-ZА-ЯЁ][a-zа-яёA-ZА-ЯЁ-]*$/,
+        message: "Отчество должно начинаться с заглавной буквы и содержать только русские/латинские буквы и тире. Пример: 'Иванович'"
     },
     link: {
         regex: /.+/,
@@ -90,15 +88,22 @@ function validateInput(input) {
     const rule = validationRules[input.id.replace('_input', '')];
     const messageElement = input.nextElementSibling;
 
+    input.classList.remove('input-valid', 'input-invalid');
+    messageElement.classList.remove('message-error');
+    input.dataset.emptyChecked = '';
+
     if (!input.value.trim()) {
         messageElement.textContent = rule.message;
         return;
     }
-    
+
     if (!rule.regex.test(input.value)) {
-        messageElement.textContent = `Неверно! ${rule.message}`;
+        messageElement.textContent = rule.message;
+        input.classList.add('input-invalid');
+        messageElement.classList.add('message-error');
     } else {
-        messageElement.textContent = "Верно!";
+        messageElement.textContent = "";
+        input.classList.add('input-valid');
     }
 }
 
@@ -109,6 +114,9 @@ function handleFocus(event) {
     
     if (!input.value.trim()) {
         messageElement.textContent = rule.message;
+        input.classList.remove('input-valid', 'input-invalid');
+        messageElement.classList.remove('message-error');
+        input.dataset.emptyChecked = '';
     }
 }
 
@@ -193,6 +201,7 @@ async function updateButtonsStates() {
 	if (!bState) {
 		bState = 'needPermissions';
 	}
+    console.log(bState);
 	Object.entries(bStates[bState]).forEach(function([key, state]) {
 		if (state === 0) {
 			buttonElements[key].classList.add('record-section__button_inactive');
@@ -261,6 +270,7 @@ buttonElements.permissions.addEventListener('click', () => {
 });
 
 buttonElements.upload.addEventListener('click', async () => {
+    if (!server_connection) return;
 	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
 	if (!files) {
 		buttonsStatesSave('needPermissions');
@@ -274,7 +284,21 @@ async function startRecCallback() {
     Object.values(inputElements).forEach(input => {
         if (input !== inputElements.patronymic || !noPatronymicCheckbox.checked) {
             validateInput(input);
-            if (!input.value.trim() || input.nextElementSibling.textContent.startsWith("Неверно!")) {
+            const valueIsEmpty = !input.value.trim();
+            const hasInvalidClass = input.classList.contains('input-invalid');
+
+            if (valueIsEmpty) {
+                allValid = false;
+
+                // Если еще не была проверка на пустоту — пометить
+                if (!input.dataset.emptyChecked) {
+                    input.classList.add('input-invalid');
+                    const rule = validationRules[input.id.replace('_input', '')];
+                    input.nextElementSibling.textContent = rule.message;
+                    input.nextElementSibling.classList.add('message-error');
+                    input.dataset.emptyChecked = 'true';
+                }
+            } else if (hasInvalidClass) {
                 allValid = false;
             }
         }
