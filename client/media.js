@@ -168,6 +168,7 @@ async function sendButtonsStates(state) {
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
+        let streamLossSource = null;
         try {
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
@@ -255,7 +256,7 @@ async function getMediaDevices() {
                                     if (chrome.runtime.lastError) {
                                         // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
                                         // Tabs cannot be edited right now (user may be dragging a tab).
-                                        // Не обрабатывается до внедрения нового уведомления 
+                                        // Не обрабатывается до внедрения нового уведомления
                                         log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
                                         showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
                                     } else {
@@ -280,14 +281,52 @@ async function getMediaDevices() {
                         return;
                     }
 
+                    // Обработка потери доступа
                     streams.camera.oninactive = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'camera';
+                        log_client_action('Camera stream inactive');
+
                         if (!recorders.combined && !recorders.camera) return;
+
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
                             showVisualCue(["Чтобы начать запись заново выдайте разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
+
+                    streams.screen.getVideoTracks()[0].onended = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'screen';
+                        log_client_action('Screen stream ended');
+
+                        if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            showVisualCue(["Разрешение на захват экрана отозвано."], "Доступ к экрану потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Экран больше не захватывается. Запись будет остановлена."], "Доступ к экрану потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
+
+                    streams.microphone.getAudioTracks()[0].onended = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'microphone';
+                        log_client_action('Microphone stream ended');
+
+                        if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            showVisualCue(["Разрешение на микрофон отозвано."], "Доступ к микрофону потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -334,7 +373,7 @@ async function getMediaDevices() {
                             await cameraWritableStream.write(event.data);
                         }
                     };
-                  
+
                     resolve();
                 } catch (error) {
                     console.error('Ошибка при захвате:', error);
