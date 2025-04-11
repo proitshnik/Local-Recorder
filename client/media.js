@@ -168,39 +168,6 @@ async function sendButtonsStates(state) {
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
-        // Флаг для предотвращения повторных обработок
-        let isHandlingInactive = false;
-
-        // Функция обработки потери доступа
-        async function handleStreamInactive(deviceType) {
-            if (isHandlingInactive) {
-                log_client_action(`Skipping ${deviceType} inactive handler: already processing`);
-                return;
-            }
-            isHandlingInactive = true;
-            log_client_action(`${deviceType} stream inactive`);
-
-            try {
-                if (!recorders.combined && !recorders.camera) {
-                    return;
-                }
-                log_client_action(`Stream states: combined=${recorders.combined?.state}, camera=${recorders.camera?.state}`);
-                if (recorders.combined?.state === 'inactive' && recorders.camera?.state === 'inactive') {
-                    showVisualCue(["Чтобы начать запись заново, выдайте разрешения."], `Доступ к ${deviceType.toLowerCase()} потерян!`);
-                    log_client_action('Both recorders inactive, requesting permissions');
-                    stopStreams();
-                    await sendButtonsStates('needPermissions');
-                } else {
-                    showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], `Доступ к ${deviceType.toLowerCase()} потерян!`);
-                    log_client_action('Active recorders detected, stopping recording');
-                    invalidStop = true;
-                    stopRecord();
-                }
-            } finally {
-                isHandlingInactive = false;
-            }
-        }
-
         try {
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
@@ -225,18 +192,6 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
-                    streams.screen.oninactive = async function () {
-                        log_client_action('Screen oninactive triggered');
-                        await handleStreamInactive('Screen');
-                    };
-
-                    streams.screen.getVideoTracks().forEach(track => {
-                        track.onended = async () => {
-                            log_client_action('Screen track onended triggered');
-                            await handleStreamInactive('Screen');
-                        };
-                    });
-
                     let micPermissionDenied = false;
                     let camPermissionDenied = false;
 
@@ -257,10 +212,6 @@ async function getMediaDevices() {
                             return;
                         }
                     }
-
-                    streams.microphone.oninactive = async function () {
-                        await handleStreamInactive('Microphone');
-                    };
 
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -330,7 +281,16 @@ async function getMediaDevices() {
                     }
 
                     streams.camera.oninactive = async function () {
-                        await handleStreamInactive('Camera');
+                        if (!recorders.combined && !recorders.camera) return;
+                        if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
+                            showVisualCue(["Чтобы начать запись заново выдайте разрешения."], "Доступ к камере потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
                     };
 
                     streams.combined = new MediaStream([
