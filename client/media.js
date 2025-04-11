@@ -693,6 +693,15 @@ function stopRecord() {
             await sendButtonsStates('readyToUpload');
         }
         cleanup();
+        if (!server_connection) {
+            await deleteFilesFromTempList();
+            chrome.alarms.get('dynamicCleanup', (alarm) => {
+                if (alarm) {
+                    chrome.alarms.clear('dynamicCleanup');
+                }
+                log_client_action('Delete tempfiles successful');
+            });
+        }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
