@@ -186,7 +186,6 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.style.backgroundColor = "#DCDCDC";
 
         inputElements.patronymic.classList.remove('input-valid', 'input-invalid');
-        messageElement.classList.remove('message-error');
         inputElements.patronymic.dataset.emptyChecked = '';
     } else {
         let storedData = await chrome.storage.local.get('savedPatronymic');
