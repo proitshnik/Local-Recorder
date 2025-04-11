@@ -243,8 +243,6 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
 
-                        // TODO Привязать к кнопке визуального уведомления, как в нем будет новая логика
-
                         const mediaExtensionUrl = chrome.runtime.getURL("media.html");
 
                         // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
@@ -253,9 +251,6 @@ async function getMediaDevices() {
                                 // Стоит обработчик, сохраняющий одну вкладку media.html
                                 chrome.tabs.remove(tabs[0].id, () => {
                                     if (chrome.runtime.lastError) {
-                                        // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
-                                        // Tabs cannot be edited right now (user may be dragging a tab).
-                                        // Не обрабатывается до внедрения нового уведомления 
                                         log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
                                         showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
                                     } else {
