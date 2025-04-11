@@ -1,4 +1,4 @@
-import { showVisualCue } from './common.js';
+import { showVisualCue, showVisualCueAsync } from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { log_client_action } from './logger.js';
 
@@ -201,11 +201,11 @@ async function getMediaDevices() {
                         if (micError.name === 'NotAllowedError') {
                             micPermissionDenied = true;
                             log_client_action('Microphone permission denied: NotAllowedError');
-                            showVisualCue("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
+                            await showVisualCueAsync("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
                         } else {
                             log_client_action('Microphone permission denied');
-                            alert('Ошибка при доступе к микрофону: ' + micError.message);
-                            showVisualCue('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
+                            //alert('Ошибка при доступе к микрофону: ' + micError.message);
+                            await showVisualCueAsync('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
                             stopStreams();
                             reject(micError);
                             return;
@@ -218,12 +218,12 @@ async function getMediaDevices() {
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
                             log_client_action('Camera permission denied: NotAllowedError');
-                            showVisualCue("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
+                            await showVisualCueAsync("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
                             camPermissionDenied = true;
                         } else {
                             log_client_action('Camera permission denied');
-                            alert('Ошибка при доступе к камере: ' + camError.message);
-                            showVisualCue('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
+                            //alert('Ошибка при доступе к камере: ' + camError.message);
+                            await showVisualCueAsync('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
                             stopStreams();
                             reject(camError);
                             return;
@@ -235,10 +235,11 @@ async function getMediaDevices() {
                         const extensionId = chrome.runtime.id;
                         const settingsUrl = `chrome://settings/content/siteDetails?site=chrome-extension://${extensionId}`;
 
-                        alert('Не предоставлен доступ к камере или микрофону.\n' +
-                            'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
-                            'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
-                        showVisualCue(['Не предоставлен доступ к камере или микрофону.',
+                        //При отключении данного алерта программа перестает работать корректно
+                        // alert('Не предоставлен доступ к камере или микрофону.\n' +
+                        //     'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
+                        //     'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
+                        await showVisualCueAsync(['Не предоставлен доступ к камере или микрофону.',
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
 
@@ -621,7 +622,7 @@ async function initSession(formData) {
     }
 }
 
-function stopRecord() {
+async function stopRecord() {
     isRecording = false;
     isPreviewEnabled = false;
     hideMutePreviews();
@@ -665,7 +666,7 @@ function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
-    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+    await showVisualCueAsync(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     log_client_action('Recording stopping');
 }
 
@@ -734,7 +735,7 @@ async function startRecord() {
 
         console.log('Запись начата');
         log_client_action('recording_started');
-        showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
+        await showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         log_client_action('recording_stopped ' + error);
