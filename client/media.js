@@ -112,6 +112,39 @@ async function sendButtonsStates(state) {
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
+        // Флаг для предотвращения повторных обработок
+        let isHandlingInactive = false;
+
+        // Функция обработки потери доступа
+        async function handleStreamInactive(deviceType) {
+            if (isHandlingInactive) {
+                log_client_action(`Skipping ${deviceType} inactive handler: already processing`);
+                return;
+            }
+            isHandlingInactive = true;
+            log_client_action(`${deviceType} stream inactive`);
+
+            try {
+                if (!recorders.combined && !recorders.camera) {
+                    return;
+                }
+                log_client_action(`Stream states: combined=${recorders.combined?.state}, camera=${recorders.camera?.state}`);
+                if (recorders.combined?.state === 'inactive' && recorders.camera?.state === 'inactive') {
+                    showVisualCue(["Чтобы начать запись заново, выдайте разрешения."], `Доступ к ${deviceType.toLowerCase()} потерян!`);
+                    log_client_action('Both recorders inactive, requesting permissions');
+                    stopStreams();
+                    await sendButtonsStates('needPermissions');
+                } else {
+                    showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], `Доступ к ${deviceType.toLowerCase()} потерян!`);
+                    log_client_action('Active recorders detected, stopping recording');
+                    invalidStop = true;
+                    stopRecord();
+                }
+            } finally {
+                isHandlingInactive = false;
+            }
+        }
+
         try {
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
@@ -136,12 +169,15 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
-                    // Обработчик закрытия доступа к экрану
+                    streams.screen.oninactive = async function () {
+                        log_client_action('Screen oninactive triggered');
+                        await handleStreamInactive('Screen');
+                    };
+
                     streams.screen.getVideoTracks().forEach(track => {
-                        track.onended = () => {
-                            log_client_action('Screen access revoked');
-                            console.log('Доступ к экрану был отозван пользователем или системой');
-                            showVisualCue(["Доступ к экрану был закрыт!"], "Предупреждение");
+                        track.onended = async () => {
+                            log_client_action('Screen track onended triggered');
+                            await handleStreamInactive('Screen');
                         };
                     });
 
@@ -165,6 +201,10 @@ async function getMediaDevices() {
                             return;
                         }
                     }
+
+                    streams.microphone.oninactive = async function () {
+                        await handleStreamInactive('Microphone');
+                    };
 
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -208,7 +248,7 @@ async function getMediaDevices() {
                                     if (chrome.runtime.lastError) {
                                         // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
                                         // Tabs cannot be edited right now (user may be dragging a tab).
-                                        // Не обрабатывается до внедрения нового уведомления 
+                                        // Не обрабатывается до внедрения нового уведомления
                                         log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
                                         showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
                                     } else {
@@ -232,6 +272,10 @@ async function getMediaDevices() {
                         reject('Доступ к устройствам не предоставлен');
                         return;
                     }
+
+                    streams.camera.oninactive = async function () {
+                        await handleStreamInactive('Camera');
+                    };
 
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
@@ -269,7 +313,7 @@ async function getMediaDevices() {
                             await cameraWritableStream.write(event.data);
                         }
                     };
-                  
+
                     resolve();
                 } catch (error) {
                     console.error('Ошибка при захвате:', error);
