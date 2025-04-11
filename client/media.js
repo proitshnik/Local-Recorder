@@ -17,6 +17,10 @@ var recorders = {
 var combinedPreview = document.querySelector('.combined__preview');
 var cameraPreview = document.querySelector('.camera__preview');
 
+var previewButton = document.getElementById('preview-toggle-btn');
+var isRecording = false;
+var isPreviewEnabled = false;
+
 var rootDirectory = null;
 var combinedFileName = null;
 var cameraFileName = null;
@@ -27,6 +31,9 @@ var cameraWritableStream = null;
 var forceTimeout = null;
 var startTime = undefined;
 var endTime = undefined;
+
+var server_connection = undefined;
+var invalidStop = false;
 
 var metadata = {
     screen: {
@@ -57,6 +64,53 @@ const stopStreams = () => {
     log_client_action('All streams stopped')
 };
 
+function generateObjectId() {
+    const bytes = new Uint8Array(12);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, timestamp, false);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes.subarray(4));
+    } else {
+      for (let i = 4; i < 12; i++) {
+        bytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+
+    return Array.from(bytes)
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+}
+
+function getBrowserFingerprint() {
+    return {
+        browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
+        userAgent: navigator.userAgent,
+        language: navigator.language || navigator.userLanguage || 'unknown',
+        cpuCores: navigator.hardwareConcurrency || 'unknown',
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+        timestamp: new Date().toISOString(),
+        cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
+        windowSize: `${window.innerWidth}x${window.innerHeight}`,
+        doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
+    };
+}
+
+async function clearLogs() {
+    await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
+            if (response.success) {
+                console.log("Логи очищены перед завершением");
+            } else {
+                console.error("Ошибка очистки логов:", response.error);
+            }
+            resolve();
+        });
+    });
+}
+
 const getDifferenceInTime = (date1, date2) => {
     const diff = Math.abs(Math.floor(date2.getTime() / 1000) - Math.floor(date1.getTime() / 1000)); // ms
     const totalSeconds = Math.floor(diff);
@@ -73,7 +127,6 @@ const getDifferenceInTime = (date1, date2) => {
 };
 
 const setMetadatasRecordOn = () => {
-    console.log(startTime);
     metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
@@ -106,6 +159,9 @@ async function checkOpenedPopup() {
 }
 
 async function sendButtonsStates(state) {
+    if (state === 'readyToUpload' && !server_connection) {
+        state = 'needPermissions';
+    }
     if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
     else buttonsStatesSave(state);
 }
@@ -295,6 +351,11 @@ async function getMediaDevices() {
                         cameraPreview.height = 240;
                     };
 
+                    cameraPreview.style.display = 'block';
+                    combinedPreview.style.display = 'block';
+
+                    combinedPreview.muted = false;
+
                     recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
                     log_client_action('Combined recorder initialized');
                     recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
@@ -327,6 +388,43 @@ async function getMediaDevices() {
     });
 }
 
+function hideMutePreviews() {
+    cameraPreview.style.display = 'none';
+    combinedPreview.style.display = 'none';
+
+    combinedPreview.muted = true;
+}
+
+previewButton.addEventListener('click', () => {
+    if (!isRecording) return;
+
+    combinedPreview.muted = true;
+
+    isPreviewEnabled = !isPreviewEnabled;
+
+    const displayValue = isPreviewEnabled ? 'block' : 'none';
+    cameraPreview.style.display = displayValue;
+    combinedPreview.style.display = displayValue;
+
+    log_client_action(isPreviewEnabled ? 'Preview mode enabled' : 'Preview mode disabled');
+
+    updatePreviewButton();
+});
+
+function updatePreviewButton() {
+    if (!isRecording) {
+        previewButton.disabled = true;
+        previewButton.textContent = 'Включить';
+        previewButton.classList.remove('enabled', 'disabled');
+        return;
+    }
+
+    previewButton.disabled = false;
+    previewButton.textContent = isPreviewEnabled ? 'Выключить' : 'Включить';
+    previewButton.classList.toggle('enabled', !isPreviewEnabled);
+    previewButton.classList.toggle('disabled', isPreviewEnabled);
+}
+
 async function cleanup() {
     if (forceTimeout) clearTimeout(forceTimeout);
     stopStreams();
@@ -334,6 +432,7 @@ async function cleanup() {
     cameraPreview.srcObject = null;
     recorders.combined = null;
     recorders.camera = null;
+    invalidStop = false;
     console.log('Все потоки и запись остановлены.');
     log_client_action('cleanup_completed');
 }
@@ -369,10 +468,15 @@ async function addFileToTempList(fileName) {
     if (!tempFiles.includes(fileName)) {
         tempFiles.push(fileName);
     }
-    chrome.storage.local.set({'tempFiles': tempFiles});
+    return chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
+// системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
 const beforeUnloadHandler = (event) => {
+    showVisualCue(["Не закрывайте вкладку расширения при записи!", 
+        "Не обновляйте вкладку расширения при записи!",
+        "Не закрывайте браузер при записи!", 
+        "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
     event.preventDefault();
     event.returnValue = true;
 };
@@ -393,7 +497,7 @@ window.addEventListener('load', () => {
 });
 
 // Функция для отправки видео на сервер после завершения записи
-async function uploadVideo(combinedFile, cameraFile) {
+async function uploadVideo() {
     chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
@@ -401,10 +505,23 @@ async function uploadVideo(combinedFile, cameraFile) {
             return;
         }
 
+        const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+        if (!files.length) {
+            throw new Error(`Ошибка при поиске записей`);
+        }
+
         const formData = new FormData();
+
+        for (const filename of files) {
+            if (filename.includes('screen')) {
+                formData.append('screen_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            } else {
+                formData.append('camera_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            }
+        }
+        
         formData.append("id", session_id);
-        formData.append("screen_video", combinedFile, combinedFileName);
-        formData.append("camera_video", cameraFile, cameraFileName);
+
         await setMetadatasRecordOff();
         formData.append("metadata", JSON.stringify(metadata));
 
@@ -463,16 +580,7 @@ async function uploadVideo(combinedFile, cameraFile) {
                 log_client_action(`upload_error: ${error.message}`);
             })
             .finally(async () => {
-                await new Promise((resolve) => {
-                    chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
-                        if (response.success) {
-                            console.log("Логи очищены перед завершением");
-                        } else {
-                            console.error("Ошибка очистки логов:", response.error);
-                        }
-                        resolve();
-                    });
-                });
+                await clearLogs();
             });
     });
 }
@@ -483,10 +591,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
+            if (!server_connection) await clearLogs();
             await sendButtonsStates('readyToUpload');
         }
     }
     else if (message.action === 'getPermissionsMedia') {
+        server_connection = (await chrome.storage.local.get('server_connection'))['server_connection'];
         getMediaDevices()
         .then(async () => {
             await sendButtonsStates('readyToRecord');
@@ -505,24 +615,33 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('patronymic', message.formData.patronymic || '');
         formData.append('link', message.formData.link || '');
 
-        await initSession(formData);
-
-        try {
-            await startRecord()
-            .then(async () => {
-                await sendButtonsStates('recording');
-            })
-            .catch(async (error) => {
-                await sendButtonsStates('needPermissions');
+        if (server_connection) await initSession(formData);
+        else {
+            log_client_action({
+                action: 'Start recording initiated',
+                browserFingerprint: getBrowserFingerprint()
             });
-        } catch (error) {
-            // chrome.runtime.sendMessage({ action: "disableButtons" });
-            alert(error);
-        };
+
+            await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
+
+            const sessionId = generateObjectId();
+            await chrome.storage.local.set({ 'session_id': sessionId });
+            log_client_action(`Session initialized with ID: ${sessionId}`);
+        }
+        
+        startRecord()
+        .then(async () => {
+            await sendButtonsStates('recording');
+        })
+        .catch(async (error) => {
+            // В startRecord есть свой обработчик ошибок
+            showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+            await sendButtonsStates('needPermissions');
+        });
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
-        uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
+        uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
         })
@@ -533,23 +652,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 });
 
 async function initSession(formData) {
-    const browserFingerprint = {
-        browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
-        userAgent: navigator.userAgent,
-        language: navigator.language || navigator.userLanguage || 'unknown',
-        cpuCores: navigator.hardwareConcurrency || 'unknown',
-        screenResolution: `${window.screen.width}x${window.screen.height}`,
-        availableScreenResolution: `${window.screen.availWidth}x${window.screen.availHeight}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-        timestamp: new Date().toISOString(),
-        cookiesEnabled: navigator.cookieEnabled ? 'yes' : 'no',
-        windowSize: `${window.innerWidth}x${window.innerHeight}`,
-        doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
-    };
-
     log_client_action({
         action: 'Start recording initiated',
-        browserFingerprint: browserFingerprint
+        browserFingerprint: getBrowserFingerprint()
     });
 
     await chrome.storage.local.set({
@@ -585,6 +690,11 @@ async function initSession(formData) {
 }
 
 function stopRecord() {
+    isRecording = false;
+    isPreviewEnabled = false;
+    hideMutePreviews();
+    updatePreviewButton();
+
     setMetadatasRecordOn();
     endTime = new Date();
     const stopPromises = [];
@@ -617,10 +727,22 @@ function stopRecord() {
 
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        await sendButtonsStates('readyToUpload');
+        if (invalidStop) {
+            await sendButtonsStates('needPermissions');
+        } else {
+            await sendButtonsStates('readyToUpload');
+        }
         cleanup();
+        if (!server_connection) {
+            await deleteFilesFromTempList();
+            chrome.alarms.get('dynamicCleanup', (alarm) => {
+                if (alarm) {
+                    chrome.alarms.clear('dynamicCleanup');
+                }
+                log_client_action('Delete tempfiles successful');
+            });
+        }
     }).catch(error => {
-        // TODO. Что делать при ошибке???
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
@@ -657,10 +779,8 @@ async function startRecord() {
         cameraWritableStream = await cameraFileHandle.createWritable();
         log_client_action(`Camera file handle created: ${cameraFileName}`);
 
-        await Promise.all([
-            addFileToTempList(combinedFileName),
-            addFileToTempList(cameraFileName)
-        ]);
+        await addFileToTempList(combinedFileName);
+        await addFileToTempList(cameraFileName);
         log_client_action('Files added to temp list');
 
         chrome.storage.local.set({
@@ -685,13 +805,22 @@ async function startRecord() {
         startTime = new Date();
         recorders.combined.start(5000);
         recorders.camera.start(5000);
+
+        isRecording = true;
+        isPreviewEnabled = false;
+        hideMutePreviews();
+        updatePreviewButton();
+
         console.log('Запись начата');
         log_client_action('recording_started');
         showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
-        console.error('Ошибка при запуске записи:', error);
-        log_client_action('recording_stopped');
-        showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        console.error('Ошибка при запуске записи:', error.message);
+        log_client_action('recording_stopped ' + error);
         cleanup();
+        // Есть внешний обработчик ошибок
+        // showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
+        // await sendButtonsStates('needPermissions');
+        throw error;
     }
 }
