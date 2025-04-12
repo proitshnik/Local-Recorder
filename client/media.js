@@ -276,6 +276,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                         } else {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
                             stopRecord();
@@ -293,6 +294,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                         } else {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
                             stopRecord();
@@ -310,6 +312,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                         } else {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
@@ -726,6 +729,7 @@ async function stopRecord() {
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
         if (invalidStop) {
+            // До этого уже вызывается функция
             await sendButtonsStates('needPermissions');
         } else {
             await sendButtonsStates('readyToUpload');
