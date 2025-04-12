@@ -201,7 +201,6 @@ async function updateButtonsStates() {
 	if (!bState) {
 		bState = 'needPermissions';
 	}
-    console.log(bState);
 	Object.entries(bStates[bState]).forEach(function([key, state]) {
 		if (state === 0) {
 			buttonElements[key].classList.add('record-section__button_inactive');
@@ -347,9 +346,13 @@ async function stopRecCallback() {
 startRecordButton.addEventListener('click', startRecCallback);
 stopRecordButton.addEventListener('click', stopRecCallback);
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-	if (message.action === 'updateButtonStates') {
-		chrome.storage.local.set({'bState': message.state});
-		updateButtonsStates();
-	}
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'updateButtonStates') {
+        chrome.storage.local.set({ bState: message.state }, () => {
+            updateButtonsStates();
+            sendResponse({ status: 'success' });
+        });
+        return true;
+    }
+    return false;
 });
