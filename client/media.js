@@ -278,6 +278,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
@@ -297,6 +298,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
@@ -315,6 +317,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
@@ -679,7 +682,7 @@ async function initSession(formData) {
     }
 }
 
-async function stopRecord() {
+function stopDuration() {
     const durationMs = new Date() - startTime;
 
     const seconds = Math.floor((durationMs / 1000) % 60);
@@ -699,6 +702,10 @@ async function stopRecord() {
     chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
         console.log('stopRecordSignal sent');
     });
+}
+
+async function stopRecord() {
+    if (!invalidStop) stopDuration();
     chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
   
     isRecording = false;
