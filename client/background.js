@@ -103,7 +103,7 @@ chrome.runtime.onMessage.addListener(
 	}
 );
 
-function closeTabAndOpenTab(tabId, settingsUrl, delay = 1000) {
+function closeTabAndOpenTab(tabId, settingsUrl, delay = 300) {
 	openTab(settingsUrl);
 	chrome.tabs.remove(tabId);
 	log_client_action("First close tab media.html");
