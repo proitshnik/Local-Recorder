@@ -15,12 +15,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 	}
 });
 
+var startTime
+
 function sendStartMessage(formData) {
 	screenCaptureActive = true;
     chrome.runtime.sendMessage({
         action: 'startRecording',
         formData: formData
     });
+	startTime = new Date();
 }
 
 async function checkTabState() {
@@ -122,8 +125,17 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
 			screenCaptureActive = false;
+			const durationMs = new Date() - startTime;
+
+			const seconds = Math.floor((durationMs / 1000) % 60);
+			const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+			const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+			const timeStr = `${hours.toString().padStart(2, '0')}:` +
+				`${minutes.toString().padStart(2, '0')}:` +
+				`${seconds.toString().padStart(2, '0')}`;
 			chrome.storage.local.set({
-				'timeStr': 'Некорректно завершение'
+				'timeStr': timeStr
 			}, function() {
 				console.log('timeStr saved to storage');
 			});
