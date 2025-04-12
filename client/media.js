@@ -697,7 +697,14 @@ async function stopRecord() {
             console.log(`Логи сохранены локально: ${logsFileName}`);
             log_client_action(`logs_saved_locally: ${logsFileName}`);
 
-            await clearLogs();
+            (async () => {
+                try {
+                    await clearLogs();
+                    console.log('Операция clearLogs завершена успешно');
+                } catch (error) {
+                    console.error('Ошибка во время выполнения clearLogs:', error);
+                }
+            })();
         } catch (error) {
             console.error("Ошибка при сохранении логов:", error);
             log_client_action(`logs_save_error: ${error.message}`);
