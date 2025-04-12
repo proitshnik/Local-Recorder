@@ -712,7 +712,6 @@ async function stopRecord() {
                 }
                 resolve();
             };
-            console.log('Keeeeek ', cameraWritableStream)
             if (recorders.camera.state === 'inactive') {
                 if (cameraWritableStream) {
                     await cameraWritableStream.close();
