@@ -145,7 +145,7 @@ chrome.runtime.onMessage.addListener(
 					closeTabAndOpenTab(tabId, message.settingsUrl)
 				} else {
 					log_client_action("media.html not found before redirect");
-					openTab(settingsUrl);
+					openTab(message.settingsUrl);
 				}
 			});
 		}
