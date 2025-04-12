@@ -160,8 +160,9 @@ async function sendButtonsStates(state) {
         state = 'needPermissions';
     }
     if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
-        if (!(response.status === 'success')) {
-            log_client_action(`Message with state: ${state} failed to reach popup. Error: ${chrome.runtime.lastError.message}`);
+        if (chrome.runtime.lastError) {
+            log_client_action(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
+            buttonsStatesSave(state);
         } else {
             log_client_action(`Message with state: ${state} sent successfully`);
         }
