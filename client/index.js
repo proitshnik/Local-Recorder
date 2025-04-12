@@ -484,3 +484,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     return false;
 });
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "closePopup") {
+        window.close();
+    }
+});
