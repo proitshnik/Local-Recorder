@@ -151,18 +151,21 @@ const setMetadatasRecordOff = async () => {
 };
 
 async function checkOpenedPopup() {
-    let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
-    if (a.length > 0) {
-        return true;
-    }
-    return false;
+    const a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
+    return a.length > 0;
 }
 
 async function sendButtonsStates(state) {
     if (state === 'readyToUpload' && !server_connection) {
         state = 'needPermissions';
     }
-    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
+    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
+        if (!(response.status === 'success')) {
+            log_client_action(`Message with state: ${state} failed to reach popup. Error: ${chrome.runtime.lastError.message}`);
+        } else {
+            log_client_action(`Message with state: ${state} sent successfully`);
+        }
+    });
     else buttonsStatesSave(state);
 }
 
