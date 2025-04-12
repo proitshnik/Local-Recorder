@@ -336,7 +336,7 @@ window.addEventListener('load', async () => {
     updatePermissionsStatus();
     setInterval(updatePermissionsStatus, 2000); // Обновление каждые 2 секунды
 
-    chrome.storage.local.get(['lastRecordTime', 'bState', 'lastRecordDuration'], (result) => {
+    chrome.storage.local.get(['lastRecordTime', 'bState', 'timeStr'], (result) => {
         if (result.lastRecordTime) {
             startTime = new Date(result.lastRecordTime);
             updateStartDateDisplay(formatDateTime(startTime));
@@ -349,17 +349,8 @@ window.addEventListener('load', async () => {
                 }
 
                 timerInterval = setInterval(updateRecordTimer, 1000);
-            } else if (result.lastRecordDuration) {
-                const durationMs = result.lastRecordDuration;
-                const seconds = Math.floor((durationMs / 1000) % 60);
-                const minutes = Math.floor((durationMs / 1000 / 60) % 60);
-                const hours = Math.floor(durationMs / 1000 / 60 / 60);
-
-                const timeStr = `${hours.toString().padStart(2, '0')}:` +
-                    `${minutes.toString().padStart(2, '0')}:` +
-                    `${seconds.toString().padStart(2, '0')}`;
-
-                recordTime.textContent = timeStr;
+            } else if (result.timeStr) {
+                recordTime.textContent = result.timeStr;
             } else {
                 recordTime.textContent = '-';
             }
@@ -457,26 +448,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         clearInterval(timerInterval);
 
-        const durationMs = new Date() - startTime;
-
-        const seconds = Math.floor((durationMs / 1000) % 60);
-        const minutes = Math.floor((durationMs / 1000 / 60) % 60);
-        const hours = Math.floor(durationMs / 1000 / 60 / 60);
-
-        const timeStr = `${hours.toString().padStart(2, '0')}:` +
-            `${minutes.toString().padStart(2, '0')}:` +
-            `${seconds.toString().padStart(2, '0')}`;
-
-        recordTime.textContent = timeStr;
-
-        chrome.storage.local.set({
-            'lastRecordDuration': durationMs
-        }, function() {
-            console.log('Duration saved to storage');
+        chrome.storage.local.get(['timeStr'], (result) => {
+            const timeStr = result.timeStr;
+            recordTime.textContent = timeStr;
+            sendResponse({status: 'stopRecordSignalProcessed'});
         });
 
         sendResponse({status: 'stopRecordSignalProcessed'});
-
         return true;
     }
 });

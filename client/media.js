@@ -696,6 +696,23 @@ async function initSession(formData) {
 }
 
 function stopRecord() {
+
+    const durationMs = new Date() - startTime;
+
+    const seconds = Math.floor((durationMs / 1000) % 60);
+    const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+    const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+    const timeStr = `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+
+    chrome.storage.local.set({
+        'timeStr': timeStr
+    }, function() {
+        console.log('timeStr saved to storage');
+    });
+
     chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
         console.log('stopRecordSignal sent');
     });

@@ -122,6 +122,11 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
 			screenCaptureActive = false;
+			chrome.storage.local.set({
+				'timeStr': 'Некорректно завершение'
+			}, function() {
+				console.log('timeStr saved to storage');
+			});
 		}
 	});
 });
