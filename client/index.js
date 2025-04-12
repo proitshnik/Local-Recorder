@@ -343,6 +343,11 @@ window.addEventListener('load', async () => {
 
             if (result.bState === 'recording') {
                 updateRecordTimer();
+
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+
                 timerInterval = setInterval(updateRecordTimer, 1000);
             } else if (result.lastRecordDuration) {
                 const durationMs = result.lastRecordDuration;
@@ -354,13 +359,13 @@ window.addEventListener('load', async () => {
                     `${minutes.toString().padStart(2, '0')}:` +
                     `${seconds.toString().padStart(2, '0')}`;
 
-                document.getElementById('record-time').textContent = timeStr;
+                recordTime.textContent = timeStr;
             } else {
-                document.getElementById('record-time').textContent = '-';
+                recordTime.textContent = '-';
             }
         } else {
             updateStartDateDisplay('-');
-            document.getElementById('record-time').textContent = '-';
+            recordTime.textContent = '-';
         }
     });
 });
@@ -411,6 +416,18 @@ async function startRecCallback() {
     startRecordButton.setAttribute('disabled', '');
     stopRecordButton.removeAttribute('disabled');
     saveInputValues();
+
+    const now = new Date();
+    startTime = now;
+    updateStartDateDisplay(formatDateTime(now));
+
+    updateRecordTimer();
+
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+
+    timerInterval = setInterval(updateRecordTimer, 1000);
 
     const formData = {
         group: inputElements.group.value,
