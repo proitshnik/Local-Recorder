@@ -69,9 +69,10 @@ def upload_video():
     try:
         if "screen_video" not in request.files or "camera_video" not in request.files or "id" not in request.form:
             return jsonify({"error": "Отсутствует видеофайл или ID сессии"}), 400
+        
+        screen_video = request.files.getlist("screen_video")
+        camera_video = request.files.getlist("camera_video")
 
-        screen_video = request.files["screen_video"]
-        camera_video = request.files["camera_video"]
         id = request.form["id"]
         metadata = json.loads(request.form["metadata"])
 
@@ -82,15 +83,22 @@ def upload_video():
         session_end = datetime.now(timezone.utc)
         session_date_end, session_time_end = session_end.strftime("%Y-%m-%d %H:%M:%S").split()
         
-        screen_extension = os.path.splitext(screen_video.filename)[1] or ".mp4"
-        screen_video_name = f"{id}_screen_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{screen_extension}"
-        screen_video_path = os.path.join(UPLOAD_FOLDER, screen_video_name)
-        screen_video.save(screen_video_path)
+        screen_video_paths: list[str] = []
+        camera_video_paths: list[str] = []
+
+        for video in screen_video:
+            screen_extension = os.path.splitext(video.filename)[1] or ".mp4"
+            screen_video_name = f"{id}_screen_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{screen_extension}"
+            screen_video_path = os.path.join(UPLOAD_FOLDER, screen_video_name)
+            video.save(screen_video_path)
+            screen_video_paths.append(screen_video_path)
         
-        camera_extension = os.path.splitext(camera_video.filename)[1] or ".mp4"
-        camera_video_name = f"{id}_camera_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{camera_extension}"
-        camera_video_path = os.path.join(UPLOAD_FOLDER, camera_video_name)
-        camera_video.save(camera_video_path)
+        for video in camera_video:
+            camera_extension = os.path.splitext(video.filename)[1] or ".mp4"
+            camera_video_name = f"{id}_camera_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{camera_extension}"
+            camera_video_path = os.path.join(UPLOAD_FOLDER, camera_video_name)
+            video.save(camera_video_path)
+            camera_video_paths.append(camera_video_path)
 
         logs_file = request.files.get("logs")
         if logs_file:
@@ -101,20 +109,23 @@ def upload_video():
         else:
             logs_file_path = None
 
+        status = 'good'
+        if (len(screen_video_paths) > 1 or len(camera_video_paths) > 1): status = 'bad'
+
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
             {"$set": {
                 "session_date_end": session_date_end,
                 "session_time_end": session_time_end,
-                "screen_video_path": screen_video_path,
-                "camera_video_path": camera_video_path,
-                "status": "good",
+                "screen_video_path": screen_video_paths,
+                "camera_video_path": camera_video_paths,
+                "status": status,
                 "metadata": metadata,
                 "logs_path": logs_file_path
             }}
         )
 
-        return jsonify({"message": "Видео и логи успешно загружены", "screen_video_path": screen_video_path, "camera_video_path": camera_video_path, "logs_path": logs_file_path}), 200
+        return jsonify({"message": "Видео и логи успешно загружены", "screen_video_paths": screen_video_paths, "camera_video_paths": camera_video_paths, "logs_path": logs_file_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

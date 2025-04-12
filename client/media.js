@@ -31,7 +31,9 @@ var cameraWritableStream = null;
 var forceTimeout = null;
 var startTime = undefined;
 var endTime = undefined;
+
 var server_connection = undefined;
+var invalidStop = false;
 
 var metadata = {
     screen: {
@@ -125,7 +127,6 @@ const getDifferenceInTime = (date1, date2) => {
 };
 
 const setMetadatasRecordOn = () => {
-    console.log(startTime);
     metadata.screen.session_client_start = getCurrentDateString(startTime);
     metadata.screen.session_client_mime = recorders.combined.mimeType;
     const [screenVideoTrack] = streams.screen.getVideoTracks();
@@ -150,23 +151,28 @@ const setMetadatasRecordOff = async () => {
 };
 
 async function checkOpenedPopup() {
-    let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
-    if (a.length > 0) {
-        return true;
-    }
-    return false;
+    const a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
+    return a.length > 0;
 }
 
 async function sendButtonsStates(state) {
     if (state === 'readyToUpload' && !server_connection) {
         state = 'needPermissions';
     }
-    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state});
+    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
+        if (chrome.runtime.lastError) {
+            log_client_action(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
+            buttonsStatesSave(state);
+        } else {
+            log_client_action(`Message with state: ${state} sent successfully`);
+        }
+    });
     else buttonsStatesSave(state);
 }
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
+        let streamLossSource = null;
         try {
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
@@ -254,7 +260,7 @@ async function getMediaDevices() {
                                     if (chrome.runtime.lastError) {
                                         // TODO Типичная проблема Chrome с нерешенным alert при переключении вкладки и возвращении
                                         // Tabs cannot be edited right now (user may be dragging a tab).
-                                        // Не обрабатывается до внедрения нового уведомления 
+                                        // Не обрабатывается до внедрения нового уведомления
                                         log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
                                         showVisualCue("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
                                     } else {
@@ -278,6 +284,57 @@ async function getMediaDevices() {
                         reject('Доступ к устройствам не предоставлен');
                         return;
                     }
+
+                    // Обработка потери доступа
+                    streams.camera.oninactive = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'camera';
+                        log_client_action('Camera stream inactive');
+
+                        if (!recorders.combined && !recorders.camera) return;
+
+                        if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
+                            showVisualCue(["Чтобы начать запись заново выдайте разрешения."], "Доступ к камере потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
+
+                    streams.screen.getVideoTracks()[0].onended = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'screen';
+                        log_client_action('Screen stream ended');
+
+                        if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            showVisualCue(["Разрешение на захват экрана отозвано."], "Доступ к экрану потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Экран больше не захватывается. Запись будет остановлена."], "Доступ к экрану потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
+
+                    streams.microphone.getAudioTracks()[0].onended = async function () {
+                        if (streamLossSource) return;
+                        streamLossSource = 'microphone';
+                        log_client_action('Microphone stream ended');
+
+                        if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            showVisualCue(["Разрешение на микрофон отозвано."], "Доступ к микрофону потерян!");
+                            stopStreams();
+                            await sendButtonsStates('needPermissions');
+                        } else {
+                            showVisualCue(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
+                            invalidStop = true;
+                            stopRecord();
+                        }
+                    };
 
                     streams.combined = new MediaStream([
                         streams.screen.getVideoTracks()[0],
@@ -320,7 +377,7 @@ async function getMediaDevices() {
                             await cameraWritableStream.write(event.data);
                         }
                     };
-                  
+
                     resolve();
                 } catch (error) {
                     console.error('Ошибка при захвате:', error);
@@ -378,6 +435,7 @@ async function cleanup() {
     cameraPreview.srcObject = null;
     recorders.combined = null;
     recorders.camera = null;
+    invalidStop = false;
     console.log('Все потоки и запись остановлены.');
     log_client_action('cleanup_completed');
 }
@@ -413,7 +471,7 @@ async function addFileToTempList(fileName) {
     if (!tempFiles.includes(fileName)) {
         tempFiles.push(fileName);
     }
-    chrome.storage.local.set({'tempFiles': tempFiles});
+    return chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
@@ -442,7 +500,7 @@ window.addEventListener('load', () => {
 });
 
 // Функция для отправки видео на сервер после завершения записи
-async function uploadVideo(combinedFile, cameraFile) {
+async function uploadVideo() {
     chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
@@ -450,10 +508,23 @@ async function uploadVideo(combinedFile, cameraFile) {
             return;
         }
 
+        const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+        if (!files.length) {
+            throw new Error(`Ошибка при поиске записей`);
+        }
+
         const formData = new FormData();
+
+        for (const filename of files) {
+            if (filename.includes('screen')) {
+                formData.append('screen_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            } else {
+                formData.append('camera_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            }
+        }
+        
         formData.append("id", session_id);
-        formData.append("screen_video", combinedFile, combinedFileName);
-        formData.append("camera_video", cameraFile, cameraFileName);
+
         await setMetadatasRecordOff();
         formData.append("metadata", JSON.stringify(metadata));
 
@@ -573,7 +644,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     else if (message.action === 'uploadVideoMedia') {
         log_client_action('Start uploading command received');
-        uploadVideo(await combinedFileHandle.getFile(), await cameraFileHandle.getFile())
+        uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
         })
@@ -659,8 +730,21 @@ function stopRecord() {
 
     // Ждем завершения обоих рекордеров, затем вызываем uploadVideo() и cleanup()
     Promise.all(stopPromises).then(async () => {
-        await sendButtonsStates('readyToUpload');
+        if (invalidStop) {
+            await sendButtonsStates('needPermissions');
+        } else {
+            await sendButtonsStates('readyToUpload');
+        }
         cleanup();
+        if (!server_connection) {
+            await deleteFilesFromTempList();
+            chrome.alarms.get('dynamicCleanup', (alarm) => {
+                if (alarm) {
+                    chrome.alarms.clear('dynamicCleanup');
+                }
+                log_client_action('Delete tempfiles successful');
+            });
+        }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
@@ -698,10 +782,8 @@ async function startRecord() {
         cameraWritableStream = await cameraFileHandle.createWritable();
         log_client_action(`Camera file handle created: ${cameraFileName}`);
 
-        await Promise.all([
-            addFileToTempList(combinedFileName),
-            addFileToTempList(cameraFileName)
-        ]);
+        await addFileToTempList(combinedFileName);
+        await addFileToTempList(cameraFileName);
         log_client_action('Files added to temp list');
 
         chrome.storage.local.set({
