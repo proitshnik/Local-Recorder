@@ -699,6 +699,7 @@ function stopRecord() {
     chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
         console.log('stopRecordSignal sent');
     });
+    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
 
     isRecording = false;
     isPreviewEnabled = false;
