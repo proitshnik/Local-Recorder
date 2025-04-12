@@ -103,8 +103,10 @@ async function clearLogs() {
         chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
             if (response.success) {
                 console.log("Логи очищены перед завершением");
+                log_client_action("Логи очищены перед завершением");
             } else {
                 console.error("Ошибка очистки логов:", response.error);
+                log_client_action("Ошибка очистки логов:", response.error);
             }
             resolve();
         });
