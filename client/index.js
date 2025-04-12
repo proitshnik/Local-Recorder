@@ -6,7 +6,7 @@ const stopRecordButton = document.querySelector('.record-section__button_record-
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 const permissionsStatus = document.querySelector('#permissions-status');
 
-let server_connection = true;
+let server_connection = false;
 chrome.storage.local.set({'server_connection': server_connection});
 
 const inputElements = {
@@ -146,7 +146,7 @@ function saveInputValues() {
 	log_client_action('Input values saved');
 }
 
-// Проверка разрешений камеры и микрофона
+// Проверка разрешений камеры, микрофона, экрана
 async function updatePermissionsStatus() {
     let micStatus = '✗ Микрофон';
     let camStatus = '✗ Камера';
@@ -166,8 +166,19 @@ async function updatePermissionsStatus() {
         console.log('Camera permission check failed:', e);
     }
 
-    const storedPermissions = await chrome.storage.local.get('screenPermission');
-    screenStatus = storedPermissions.screenPermission || '✗ Экран';
+    try {
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ type: 'getScreenCaptureStatus' }, (response) => {
+                resolve(response);
+            });
+        });
+
+        if (response?.active) {
+            screenStatus = '✓ Экран';
+        }
+    } catch (e) {
+        console.log('Screen status check failed:', e);
+    }
 
     permissionsStatus.textContent = `${micStatus} | ${camStatus} | ${screenStatus}`;
 }
@@ -291,7 +302,7 @@ window.addEventListener('load', async () => {
 	updateButtonsStates();
     
     updatePermissionsStatus();
-    setInterval(updatePermissionsStatus, 10000); // Обновление каждые 10 секунд
+    setInterval(updatePermissionsStatus, 2000); // Обновление каждые 2 секунды
 });
 
 buttonElements.permissions.addEventListener('click', () => {

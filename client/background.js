@@ -101,3 +101,15 @@ chrome.runtime.onMessage.addListener(
 		}
 	}
 );
+
+let screenCaptureActive = false;
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message.type === 'screenCaptureStatus') {
+		screenCaptureActive = message.active;
+		sendResponse({ success: true });
+	}
+	if (message.type === 'getScreenCaptureStatus') {
+		sendResponse({ active: screenCaptureActive });
+	}
+});

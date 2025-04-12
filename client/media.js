@@ -197,6 +197,8 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
+                    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: true });
+
                     let micPermissionDenied = false;
                     let camPermissionDenied = false;
 
@@ -305,6 +307,7 @@ async function getMediaDevices() {
                     };
 
                     streams.screen.getVideoTracks()[0].onended = async function () {
+                        chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
                         if (streamLossSource) return;
                         streamLossSource = 'screen';
                         log_client_action('Screen stream ended');
