@@ -293,7 +293,7 @@ async function getMediaDevices() {
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            await showVisualCueAsync(["Экран больше не захватывается. Запись будет остановлена."], "Доступ к экрану потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -310,7 +310,7 @@ async function getMediaDevices() {
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            await showVisualCueAsync(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -456,10 +456,11 @@ async function addFileToTempList(fileName) {
 
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
 const beforeUnloadHandler = (event) => {
-    showVisualCueAsync(["Не закрывайте вкладку расширения при записи!", 
-        "Не обновляйте вкладку расширения при записи!",
-        "Не закрывайте браузер при записи!", 
-        "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
+    // TODO
+    // showVisualCueAsync(["Не закрывайте вкладку расширения при записи!", 
+    //     "Не обновляйте вкладку расширения при записи!",
+    //     "Не закрывайте браузер при записи!", 
+    //     "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
     event.preventDefault();
     event.returnValue = true;
 };
@@ -730,7 +731,7 @@ async function stopRecord() {
         cleanup();
     });
     //chrome.runtime.sendMessage({ action: "closePopup" });
-    await showVisualCueAsync(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+    await showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
     log_client_action('Recording stopping');
 }
 
