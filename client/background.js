@@ -1,4 +1,5 @@
 import {deleteFilesFromTempList, showGlobalVisualCue} from "./common.js";
+import { log_client_action } from "./logger.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.action === 'scheduleCleanup') {
@@ -106,6 +107,28 @@ chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
 		if (message.action === "stopMediaNotification") {
 			chrome.runtime.sendMessage({action: 'suppressGlobalVisualCue'});
+		}
+	}
+);
+
+function openTab(url) {
+	log_client_action("openTab " + url);
+	chrome.tabs.query({ url: url }, (tabs) => {
+		if (tabs && tabs.length > 0) {
+			chrome.tabs.update(tabs[0].id, { active: true });
+			log_client_action("Update for " + url);
+		} else {
+			chrome.tabs.create({ url: url, active: true });
+			log_client_action("Create for " + url);
+		}
+	});
+}
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, sendResponse) {
+		if (message.action === 'gotoMediaTab') {
+			// Активируем вкладку media.html (по URL, переданному в message.mediaExtensionUrl)
+			openTab(message.mediaExtensionUrl);
 		}
 	}
 );

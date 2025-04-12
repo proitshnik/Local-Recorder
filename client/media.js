@@ -1,4 +1,4 @@
-import { showVisualCue, waitForNotificationSuppression } from './common.js';
+import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { log_client_action } from './logger.js';
 
@@ -687,7 +687,7 @@ function stopRecord() {
     // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
     waitForNotificationSuppression().then((suppress) => {
         if (!suppress) {
-            showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+            showVisualCueAsync(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
         }
     });
 
