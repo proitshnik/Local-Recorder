@@ -696,6 +696,10 @@ async function initSession(formData) {
 }
 
 function stopRecord() {
+    chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
+        console.log('stopRecordSignal sent');
+    });
+
     isRecording = false;
     isPreviewEnabled = false;
     hideMutePreviews();
@@ -771,6 +775,7 @@ async function startRecord() {
     rootDirectory = await navigator.storage.getDirectory();
     log_client_action('Root directory accessed');
     startTime = new Date();
+
     let startRecordTime = getCurrentDateString(startTime);
 
     combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;

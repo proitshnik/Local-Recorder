@@ -118,9 +118,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	const extensionUrl = chrome.runtime.getURL('media.html');
-	const tabs = await chrome.tabs.query({ url: extensionUrl });
 
-	if (tabs.length === 0) {
-		screenCaptureActive = false;
-	}
+	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
+		if (tabs.length === 0) {
+			screenCaptureActive = false;
+		}
+	});
 });

@@ -451,30 +451,41 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'stopRecordSignal') {
+        console.log('Received stopRecordSignal');
+
+        clearInterval(timerInterval);
+
+        const durationMs = new Date() - startTime;
+
+        const seconds = Math.floor((durationMs / 1000) % 60);
+        const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+        const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+        const timeStr = `${hours.toString().padStart(2, '0')}:` +
+            `${minutes.toString().padStart(2, '0')}:` +
+            `${seconds.toString().padStart(2, '0')}`;
+
+        recordTime.textContent = timeStr;
+
+        chrome.storage.local.set({
+            'lastRecordDuration': durationMs
+        }, function() {
+            console.log('Duration saved to storage');
+        });
+
+        sendResponse({status: 'stopRecordSignalProcessed'});
+
+        return true;
+    }
+});
+
 async function stopRecCallback() {
     stopRecordButton.setAttribute('disabled', '');
     startRecordButton.removeAttribute('disabled');
     log_client_action('Stop recording initiated');
 
-    clearInterval(timerInterval);
-
-    const now = new Date();
-    const durationMs = now - startTime;
-
-    const seconds = Math.floor((durationMs / 1000) % 60);
-    const minutes = Math.floor((durationMs / 1000 / 60) % 60);
-    const hours = Math.floor(durationMs / 1000 / 60 / 60);
-
-    const timeStr = `${hours.toString().padStart(2, '0')}:` +
-        `${minutes.toString().padStart(2, '0')}:` +
-        `${seconds.toString().padStart(2, '0')}`;
-
-    recordTime.textContent = timeStr;
-
-    await chrome.storage.local.set({
-        'lastRecordDuration': durationMs
-    });
-    
     await chrome.runtime.sendMessage({
         action: "stopRecord"
     });
