@@ -326,11 +326,11 @@ async function getMediaDevices() {
                         log_client_action('Microphone stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
-                            showVisualCue(["Разрешение на микрофон отозвано."], "Доступ к микрофону потеряно!");
+                            showVisualCue(["Разрешение на микрофон отозвано."], "Доступ к микрофону потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            showVisualCue(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потеряно!");
+                            showVisualCue(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
