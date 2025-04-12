@@ -250,39 +250,11 @@ async function getMediaDevices() {
 
                         const mediaExtensionUrl = chrome.runtime.getURL("media.html");
 
-                        // Закрытие вкладки media.html перед открытием вкладки с настройками разрешений расширения
-                        chrome.tabs.query({ url: mediaExtensionUrl }, (tabs) => {
-                            if (tabs && tabs.length > 0) {
-                                const tabId = tabs[0].id;
-                        
-                                chrome.runtime.sendMessage( { action: "prepareToClose" }, (response) => {
-                                    if (chrome.runtime.lastError) {
-                                        log_client_action("Failed to send prepareToClose: " + chrome.runtime.lastError.message);
-                                        showVisualCueAsync(["Не удалось связаться с вкладкой media.html", chrome.runtime.lastError.message], "Ошибка");
-                                        openTab(settingsUrl);
-                                        return;
-                                    }
-                        
-                                    if (response && response.success) {
-                                        chrome.tabs.remove(tabId, () => {
-                                            if (chrome.runtime.lastError) {
-                                                log_client_action("Can't close tab media.html before redirect: " + chrome.runtime.lastError.message);
-                                                showVisualCueAsync("Не удалось закрыть вкладку: " + chrome.runtime.lastError.message, "Ошибка");
-                                            } else {
-                                                log_client_action("Successfully closed tab media.html before redirect");
-                                            }
-                                            openTab(settingsUrl);
-                                        });
-                                    } else {
-                                        log_client_action("Tab didn't confirm deleting beforeunload" + response);
-                                        showVisualCueAsync(["Не удалось снять обработчик beforeunload", response], "Ошибка");
-                                        openTab(settingsUrl);
-                                    }
-                                });
-                            } else {
-                                log_client_action("media.html not found before redirect");
-                                openTab(settingsUrl);
-                            }
+                        // Закрытие вкладки media.html c открытием вкладки с настройками разрешений расширения
+                        chrome.runtime.sendMessage({
+                            action: 'closeTabAndOpenTab',
+                            mediaExtensionUrl: mediaExtensionUrl,
+                            settingsUrl: settingsUrl
                         });
 
                         log_client_action('Redirecting to permission settings');
@@ -392,16 +364,6 @@ async function getMediaDevices() {
             });
         } catch (error) {
             reject(error);
-        }
-    });
-}
-
-function openTab(url) {
-    chrome.tabs.query({ url: url }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-            chrome.tabs.update(tabs[0].id, { active: true });
-        } else {
-            chrome.tabs.create({ url: url, active: true });
         }
     });
 }
@@ -666,16 +628,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .catch(async () => {
             await sendButtonsStates('failedUpload');
         });
-    }
-    // TEMP
-    else if (message.action === "prepareToClose") {
-        console.log("Received prepareToClose action");
-
-        window.onbeforeunload = null;
-
-        sendResponse({ success: true });
-
-        return true;
     }
 });
 
