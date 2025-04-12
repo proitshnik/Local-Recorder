@@ -272,7 +272,7 @@ async function getMediaDevices() {
 
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
                             await showVisualCueAsync(["Разрешение на камеру отозвано.", 
-                                "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к камере потерян!");
+                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
@@ -289,7 +289,7 @@ async function getMediaDevices() {
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
-                                "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к экрану потерян!");
+                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
@@ -306,7 +306,7 @@ async function getMediaDevices() {
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await showVisualCueAsync(["Разрешение на микрофон отозвано.", 
-                                "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к микрофону потерян!");
+                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
