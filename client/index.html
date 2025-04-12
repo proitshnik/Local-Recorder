@@ -27,6 +27,11 @@
             <input type="text" name="link" id="link_input" class="user-inputs__input" placeholder="Введите ссылку" required minlength="2" maxlength="2048">
             <span class="message"></span>
         </div>
+        <div class="stats-section">
+            <p><strong>Разрешения:</strong> <span id="permissions-status">Проверка...</span></p>
+            <p><strong>Дата начала последней записи:</strong> <span id="start-date">-</span></p>
+            <p><strong>Время записи:</strong> <span id="record-time">-</span></p>
+        </div>
         <div class="record-section">
             <button class="record-section__button record-section__button_permissions">Разрешения</button>
             <button class="record-section__button record-section__button_upload">Отправить</button>
@@ -34,12 +39,6 @@
         <div class="record-section">
             <button class="record-section__button record-section__button_record-start">Начать запись</button>
             <button class="record-section__button record-section__button_record-stop">Остановить запись</button>
-        </div>
-        <div class="stats-section">
-            <h2>Статистика</h2>
-            <p><strong>Разрешения:</strong> <span id="permissions-status">Проверка...</span></p>
-            <p><strong>Дата начала последней записи:</strong> <span id="start-date">-</span></p>
-            <p><strong>Время записи:</strong> <span id="record-time">-</span></p>
         </div>
         <script type="module" src="index.js"></script>
     </body>
