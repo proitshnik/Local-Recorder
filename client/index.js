@@ -454,6 +454,10 @@ async function stopRecCallback() {
 
     recordTime.textContent = timeStr;
 
+    await chrome.storage.local.set({
+        'lastRecordDuration': durationMs
+    });
+    
     await chrome.runtime.sendMessage({
         action: "stopRecord"
     });
