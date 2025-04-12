@@ -817,6 +817,7 @@ async function startRecord() {
         hideMutePreviews();
         updatePreviewButton();
 
+
         console.log('Запись начата');
         log_client_action('recording_started');
         showVisualCue(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");

@@ -5,7 +5,11 @@ const startRecordButton = document.querySelector('.record-section__button_record
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 const permissionsStatus = document.querySelector('#permissions-status');
+const startDate = document.querySelector('#start-date');
+const recordTime = document.querySelector('#record-time')
 
+let timerInterval = null;
+let startTime = null;
 let server_connection = false;
 chrome.storage.local.set({'server_connection': server_connection});
 
@@ -144,6 +148,34 @@ function saveInputValues() {
         }
     });
 	log_client_action('Input values saved');
+}
+
+function formatDateTime(date) {
+    return date.toLocaleString('ru-RU', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+}
+
+function updateStartDateDisplay(dateStr) {
+    startDate.textContent = dateStr || '-';
+}
+
+function updateRecordTimer() {
+    if (!startTime) return;
+
+    const now = new Date();
+    const diffMs = now - startTime;
+
+    const seconds = Math.floor((diffMs / 1000) % 60);
+    const minutes = Math.floor((diffMs / 1000 / 60) % 60);
+    const hours = Math.floor(diffMs / 1000 / 60 / 60);
+
+    const timeStr = `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+
+    recordTime.textContent = timeStr;
 }
 
 // Проверка разрешений камеры, микрофона, экрана
@@ -303,6 +335,34 @@ window.addEventListener('load', async () => {
     
     updatePermissionsStatus();
     setInterval(updatePermissionsStatus, 2000); // Обновление каждые 2 секунды
+
+    chrome.storage.local.get(['lastRecordTime', 'bState', 'lastRecordDuration'], (result) => {
+        if (result.lastRecordTime) {
+            startTime = new Date(result.lastRecordTime);
+            updateStartDateDisplay(formatDateTime(startTime));
+
+            if (result.bState === 'recording') {
+                updateRecordTimer();
+                timerInterval = setInterval(updateRecordTimer, 1000);
+            } else if (result.lastRecordDuration) {
+                const durationMs = result.lastRecordDuration;
+                const seconds = Math.floor((durationMs / 1000) % 60);
+                const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+                const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+                const timeStr = `${hours.toString().padStart(2, '0')}:` +
+                    `${minutes.toString().padStart(2, '0')}:` +
+                    `${seconds.toString().padStart(2, '0')}`;
+
+                document.getElementById('record-time').textContent = timeStr;
+            } else {
+                document.getElementById('record-time').textContent = '-';
+            }
+        } else {
+            updateStartDateDisplay('-');
+            document.getElementById('record-time').textContent = '-';
+        }
+    });
 });
 
 buttonElements.permissions.addEventListener('click', () => {
@@ -375,13 +435,30 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 async function stopRecCallback() {
-	stopRecordButton.setAttribute('disabled', '');
-	startRecordButton.removeAttribute('disabled');
-	log_client_action('Stop recording initiated');
-	await chrome.runtime.sendMessage({
-		action: "stopRecord"
-	});
-	log_client_action('Stop recording message sent');
+    stopRecordButton.setAttribute('disabled', '');
+    startRecordButton.removeAttribute('disabled');
+    log_client_action('Stop recording initiated');
+
+    clearInterval(timerInterval);
+
+    const now = new Date();
+    const durationMs = now - startTime;
+
+    const seconds = Math.floor((durationMs / 1000) % 60);
+    const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+    const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+    const timeStr = `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+
+    recordTime.textContent = timeStr;
+
+    await chrome.runtime.sendMessage({
+        action: "stopRecord"
+    });
+
+    log_client_action('Stop recording message sent');
 }
 
 startRecordButton.addEventListener('click', startRecCallback);

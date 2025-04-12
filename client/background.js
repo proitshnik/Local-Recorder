@@ -16,6 +16,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 function sendStartMessage(formData) {
+	screenCaptureActive = true;
     chrome.runtime.sendMessage({
         action: 'startRecording',
         formData: formData
@@ -70,6 +71,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		}
 		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
+		screenCaptureActive = false;
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
@@ -111,5 +113,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	}
 	if (message.type === 'getScreenCaptureStatus') {
 		sendResponse({ active: screenCaptureActive });
+	}
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+	const extensionUrl = chrome.runtime.getURL('media.html');
+	const tabs = await chrome.tabs.query({ url: extensionUrl });
+
+	if (tabs.length === 0) {
+		screenCaptureActive = false;
 	}
 });
