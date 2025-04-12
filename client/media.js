@@ -684,7 +684,7 @@ async function stopRecord() {
     const stopPromises = [];
 
     if (recorders.combined) {
-        stopPromises.push(new Promise((resolve) => {
+        stopPromises.push(new Promise(async (resolve) => {
             recorders.combined.onstop = async () => {
                 if (combinedWritableStream) {
                     await combinedWritableStream.close();
@@ -692,12 +692,19 @@ async function stopRecord() {
                 }
                 resolve();
             };
-            recorders.combined.stop();
+            if (recorders.combined.state === 'inactive') {
+                if (combinedWritableStream) {
+                    await combinedWritableStream.close();
+                    await handleFileSave(combinedFileHandle, combinedFileName);
+                }
+                resolve();
+            }
+            else recorders.combined.stop();
         }));
     }
 
     if (recorders.camera) {
-        stopPromises.push(new Promise((resolve) => {
+        stopPromises.push(new Promise(async (resolve) => {
             recorders.camera.onstop = async () => {
                 if (cameraWritableStream) {
                     await cameraWritableStream.close();
@@ -705,7 +712,15 @@ async function stopRecord() {
                 }
                 resolve();
             };
-            recorders.camera.stop();
+            console.log('Keeeeek ', cameraWritableStream)
+            if (recorders.camera.state === 'inactive') {
+                if (cameraWritableStream) {
+                    await cameraWritableStream.close();
+                    await handleFileSave(cameraFileHandle, cameraFileName);
+                }
+                resolve();
+            }
+            else recorders.camera.stop();
         }));
     }
 
