@@ -850,7 +850,7 @@ async function startRecord() {
         console.log('Запись начата');
         log_client_action('recording_started');
         //chrome.runtime.sendMessage({ action: "closePopup" });
-        await showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
+        showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         log_client_action('recording_stopped ' + error);
