@@ -179,7 +179,7 @@ async function getMediaDevices() {
                     log_client_action('User canceled screen selection');
                     console.error('Пользователь отменил выбор экрана');
                     reject('Пользователь отменил выбор экрана');
-                    showVisualCueAsync(["Пользователь отменил выбор экрана!"], "Ошибка");
+                    await showVisualCueAsync(["Пользователь отменил выбор экрана!"], "Ошибка");
                     return;
                 }
                 try {
@@ -271,12 +271,12 @@ async function getMediaDevices() {
                         if (!recorders.combined && !recorders.camera) return;
 
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
-                            showVisualCueAsync(["Разрешение на камеру отозвано.", 
+                            await showVisualCueAsync(["Разрешение на камеру отозвано.", 
                                 "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -288,12 +288,12 @@ async function getMediaDevices() {
                         log_client_action('Screen stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
-                            showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
+                            await showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
                                 "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            showVisualCueAsync(["Экран больше не захватывается. Запись будет остановлена."], "Доступ к экрану потерян!");
+                            await showVisualCueAsync(["Экран больше не захватывается. Запись будет остановлена."], "Доступ к экрану потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -305,12 +305,12 @@ async function getMediaDevices() {
                         log_client_action('Microphone stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
-                            showVisualCueAsync(["Разрешение на микрофон отозвано.", 
+                            await showVisualCueAsync(["Разрешение на микрофон отозвано.", 
                                 "Дайте доступ заново в разрешении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                             await sendButtonsStates('needPermissions');
                         } else {
-                            showVisualCueAsync(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
+                            await showVisualCueAsync(["Микрофон больше не доступен. Запись будет остановлена."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -619,7 +619,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .catch(async (error) => {
             // В startRecord есть свой обработчик ошибок
             await sendButtonsStates('needPermissions');
-            showVisualCueAsync(["Ошибка при запуске записи:", error], "Ошибка");
+            await showVisualCueAsync(["Ошибка при запуске записи:", error], "Ошибка");
         });
     }
     else if (message.action === 'uploadVideoMedia') {
@@ -664,7 +664,7 @@ async function initSession(formData) {
         log_client_action(`Session initialized with ID: ${sessionId}`);
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
-        showVisualCueAsync(["Ошибка инициализации сессии", error], "Ошибка")
+        await showVisualCueAsync(["Ошибка инициализации сессии", error.message], "Ошибка")
         log_client_action(`Session initialization failed: ${error.message}`);
         // startRecordButton.removeAttribute('disabled');
 		// stopRecordButton.setAttribute('disabled', '');
