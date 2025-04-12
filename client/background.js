@@ -1,4 +1,5 @@
 import {deleteFilesFromTempList, showGlobalVisualCue} from "./common.js";
+import { log_client_action } from "./logger.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.action === 'scheduleCleanup') {
@@ -98,6 +99,55 @@ chrome.runtime.onMessage.addListener(
 				.then(() => sendResponse({ success: true }))
 				.catch((error) => sendResponse({ success: false, error }));
 			return true;
+		}
+	}
+);
+
+function closeTabAndOpenTab(tabId, settingsUrl, delay = 300) {
+	openTab(settingsUrl);
+	chrome.tabs.remove(tabId);
+	log_client_action("First close tab media.html");
+
+	const checkInterval = setInterval(() => {
+		chrome.tabs.get(tabId, () => {
+			if (chrome.runtime.lastError) {
+				clearInterval(checkInterval);
+				log_client_action("Successfully closed tab media.html");
+				openTab(settingsUrl);
+			} else {
+				chrome.tabs.remove(tabId);
+				log_client_action("Сlosed tab media.html");
+			}
+		});
+	}, delay);
+}
+
+function openTab(url) {
+	log_client_action("openTab " + url);
+	chrome.tabs.query({ url: url }, (tabs) => {
+		if (tabs && tabs.length > 0) {
+			chrome.tabs.update(tabs[0].id, { active: true });
+			log_client_action("Update for " + url);
+		} else {
+			chrome.tabs.create({ url: url, active: true });
+			log_client_action("Create for " + url);
+		}
+	});
+}
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, sendResponse) {
+		if (message.action === "closeTabAndOpenTab") {
+			chrome.tabs.query({ url: message.mediaExtensionUrl }, (tabs) => {
+				if (tabs && tabs.length > 0) {
+					const tabId = tabs[0].id;
+					log_client_action("Try close media.html");
+					closeTabAndOpenTab(tabId, message.settingsUrl)
+				} else {
+					log_client_action("media.html not found before redirect");
+					openTab(message.settingsUrl);
+				}
+			});
 		}
 	}
 );
