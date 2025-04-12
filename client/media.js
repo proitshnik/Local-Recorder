@@ -271,10 +271,10 @@ async function getMediaDevices() {
                         if (!recorders.combined && !recorders.camera) return;
 
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на камеру отозвано.", 
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
-                            await sendButtonsStates('needPermissions');
                         } else {
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
@@ -288,10 +288,10 @@ async function getMediaDevices() {
                         log_client_action('Screen stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
-                            await sendButtonsStates('needPermissions');
                         } else {
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
@@ -305,10 +305,10 @@ async function getMediaDevices() {
                         log_client_action('Microphone stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
+                            await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на микрофон отозвано.", 
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
-                            await sendButtonsStates('needPermissions');
                         } else {
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
