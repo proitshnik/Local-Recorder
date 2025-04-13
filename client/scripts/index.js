@@ -164,6 +164,7 @@ function saveInputValues() {
 }
 
 function formatDateTime(date) {
+    logClientAction("formatDateTime", date);
     return date.toLocaleString('ru-RU', {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -171,6 +172,7 @@ function formatDateTime(date) {
 }
 
 function updateStartDateDisplay(dateStr) {
+    logClientAction("updateStartDateDisplay", dateStr);
     startDate.textContent = dateStr || '-';
 }
 
@@ -202,6 +204,7 @@ async function updatePermissionsStatus() {
         micStatus = micPermission.state === 'granted' ? '✓ Микрофон' : '✗ Микрофон';
     } catch (e) {
         console.log('Microphone permission check failed:', e);
+        logClientAction('Microphone permission check failed:', e);
     }
 
     try {
@@ -209,6 +212,7 @@ async function updatePermissionsStatus() {
         camStatus = camPermission.state === 'granted' ? '✓ Камера' : '✗ Камера';
     } catch (e) {
         console.log('Camera permission check failed:', e);
+        logClientAction('Camera permission check failed:', e);
     }
 
     try {
@@ -223,9 +227,12 @@ async function updatePermissionsStatus() {
         }
     } catch (e) {
         console.log('Screen status check failed:', e);
+        logClientAction('Screen status check failed:', e);
     }
 
     permissionsStatus.textContent = `${micStatus} | ${camStatus} | ${screenStatus}`;
+
+    logClientAction("updatePermissionsStatus", `${micStatus} | ${camStatus} | ${screenStatus}`)
 }
 
 async function checkAndCleanLogs() {
