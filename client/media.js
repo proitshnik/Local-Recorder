@@ -192,7 +192,7 @@ async function getMediaDevices() {
                                     max: Math.min(1440, screen.height),
                                     min: Math.min(810, screen.height)
                                 },
-                                frameRate: { ideal: 20, max: 24, min: 15 }
+                                frameRate: { ideal: 20, max: 20, min: 15 }
                             }
                         },
                     });
@@ -228,7 +228,7 @@ async function getMediaDevices() {
                             video: {
                                 width: { ideal: 320 },
                                 height: { ideal: 240 },
-                                frameRate: { ideal: 17, max: 20, min: 15 }
+                                frameRate: { ideal: 17, max: 17, min: 15 }
                             }, 
                             audio: false 
                         });
@@ -328,8 +328,8 @@ async function getMediaDevices() {
 
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
-                        audioBitsPerSecond: 1_000_000,
-                        videoBitsPerSecond: 100_000,
+                        audioBitsPerSecond: 128_000,
+                        videoBitsPerSecond: 500_000,
                     });
                     log_client_action('Combined recorder initialized');
                     
