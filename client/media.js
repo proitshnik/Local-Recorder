@@ -801,7 +801,7 @@ async function stopRecord() {
     // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
     waitForNotificationSuppression().then((suppress) => {
         if (!suppress) {
-            showVisualCueAsync(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+            showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
         }
     });
     //chrome.runtime.sendMessage({ action: "closePopup" });

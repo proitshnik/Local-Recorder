@@ -75,7 +75,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		}
 		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
-		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 		screenCaptureActive = false;
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
