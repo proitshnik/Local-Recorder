@@ -197,6 +197,8 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
+                    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: true });
+
                     let micPermissionDenied = false;
                     let camPermissionDenied = false;
 
@@ -276,6 +278,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
@@ -284,6 +287,7 @@ async function getMediaDevices() {
                     };
 
                     streams.screen.getVideoTracks()[0].onended = async function () {
+                        chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
                         if (streamLossSource) return;
                         streamLossSource = 'screen';
                         log_client_action('Screen stream ended');
@@ -294,6 +298,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
@@ -312,6 +317,7 @@ async function getMediaDevices() {
                                 "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                         } else {
+                            stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
@@ -676,7 +682,32 @@ async function initSession(formData) {
     }
 }
 
+function stopDuration() {
+    const durationMs = new Date() - startTime;
+
+    const seconds = Math.floor((durationMs / 1000) % 60);
+    const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+    const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+    const timeStr = `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+
+    chrome.storage.local.set({
+        'timeStr': timeStr
+    }, function() {
+        console.log('timeStr saved to storage');
+    });
+
+    chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
+        console.log('stopRecordSignal sent');
+    });
+}
+
 async function stopRecord() {
+    if (!invalidStop) stopDuration();
+    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
+  
     isRecording = false;
     isPreviewEnabled = false;
     hideMutePreviews();
@@ -768,6 +799,7 @@ async function startRecord() {
     rootDirectory = await navigator.storage.getDirectory();
     log_client_action('Root directory accessed');
     startTime = new Date();
+
     let startRecordTime = getCurrentDateString(startTime);
 
     combinedFileName = `proctoring_screen_${startRecordTime}.mp4`;
@@ -814,10 +846,11 @@ async function startRecord() {
         hideMutePreviews();
         updatePreviewButton();
 
+
         console.log('Запись начата');
         log_client_action('recording_started');
         //chrome.runtime.sendMessage({ action: "closePopup" });
-        await showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
+        showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         log_client_action('recording_stopped ' + error);
