@@ -289,7 +289,7 @@ async function getMediaDevices() {
                         //     'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
                         await showVisualCueAsync(['Не предоставлен доступ к камере или микрофону.',
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
-                            'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
+                            'Пожалуйста, убедитесь, что камера и микрофон разрешены, а затем нажмите во всплывающем окне расширения кнопку Разрешения.']);
 
                         const mediaExtensionUrl = chrome.runtime.getURL("pages/media.html");
 
@@ -316,12 +316,12 @@ async function getMediaDevices() {
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на камеру отозвано.", 
-                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к камере потерян!");
+                                "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к камере потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -336,12 +336,12 @@ async function getMediaDevices() {
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
-                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к экрану потерян!");
+                                "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к экрану потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -355,12 +355,12 @@ async function getMediaDevices() {
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
                             await showVisualCueAsync(["Разрешение на микрофон отозвано.", 
-                                "Дайте доступ заново в расширении по кнопке Разрешения."], "Доступ к микрофону потерян!");
+                                "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения и начните запись."], "Доступ к микрофону потерян!");
+                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
