@@ -7,6 +7,7 @@
     flex-direction: column;
     align-items: center;
     border: thick double #000000;
+    background-color: #faeedd;
 }
 
 label {
@@ -158,4 +159,31 @@ label {
 .output-video {
     margin: 0;
     box-sizing: content-box;
+}
+
+.stats-section {
+    box-sizing: border-box;
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.stats-section p {
+    font-size: 14px;
+    color: #000;
+    margin: 5px;
+}
+
+.stats-section strong {
+    font-weight: bold;
+}
+
+.stats-section span {
+    color: #000;
+}
+
+#permissions-status,
+#start-date,
+#record-time {
+    font-weight: normal;
+    color: #000;
 }

@@ -4,8 +4,13 @@ import { logClientAction } from "./logger.js";
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
+const permissionsStatus = document.querySelector('#permissions-status');
+const startDate = document.querySelector('#start-date');
+const recordTime = document.querySelector('#record-time')
 
-let server_connection = true;
+let timerInterval = null;
+let startTime = null;
+let server_connection = false;
 chrome.storage.local.set({'server_connection': server_connection});
 
 const inputElements = {
@@ -145,6 +150,71 @@ function saveInputValues() {
     logClientAction({ action: "Save input values" });
 }
 
+function formatDateTime(date) {
+    return date.toLocaleString('ru-RU', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+}
+
+function updateStartDateDisplay(dateStr) {
+    startDate.textContent = dateStr || '-';
+}
+
+function updateRecordTimer() {
+    if (!startTime) return;
+
+    const now = new Date();
+    const diffMs = now - startTime;
+
+    const seconds = Math.floor((diffMs / 1000) % 60);
+    const minutes = Math.floor((diffMs / 1000 / 60) % 60);
+    const hours = Math.floor(diffMs / 1000 / 60 / 60);
+
+    const timeStr = `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+
+    recordTime.textContent = timeStr;
+}
+
+// Проверка разрешений камеры, микрофона, экрана
+async function updatePermissionsStatus() {
+    let micStatus = '✗ Микрофон';
+    let camStatus = '✗ Камера';
+    let screenStatus = '✗ Экран';
+
+    try {
+        const micPermission = await navigator.permissions.query({ name: 'microphone' });
+        micStatus = micPermission.state === 'granted' ? '✓ Микрофон' : '✗ Микрофон';
+    } catch (e) {
+        console.log('Microphone permission check failed:', e);
+    }
+
+    try {
+        const camPermission = await navigator.permissions.query({ name: 'camera' });
+        camStatus = camPermission.state === 'granted' ? '✓ Камера' : '✗ Камера';
+    } catch (e) {
+        console.log('Camera permission check failed:', e);
+    }
+
+    try {
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ type: 'getScreenCaptureStatus' }, (response) => {
+                resolve(response);
+            });
+        });
+
+        if (response?.active) {
+            screenStatus = '✓ Экран';
+        }
+    } catch (e) {
+        console.log('Screen status check failed:', e);
+    }
+
+    permissionsStatus.textContent = `${micStatus} | ${camStatus} | ${screenStatus}`;
+}
+
 async function checkAndCleanLogs() {
 	const now = new Date();
 	const delTime = 24 * 60 * 60 * 1000;
@@ -207,7 +277,6 @@ async function updateButtonsStates() {
 	if (!bState) {
 		bState = 'needPermissions';
 	}
-    console.log(bState);
 	Object.entries(bStates[bState]).forEach(function([key, state]) {
 		if (state === 0) {
 			buttonElements[key].classList.add('record-section__button_inactive');
@@ -270,6 +339,33 @@ window.addEventListener('load', async () => {
     });
 
 	updateButtonsStates();
+    
+    updatePermissionsStatus();
+    setInterval(updatePermissionsStatus, 2000); // Обновление каждые 2 секунды
+
+    chrome.storage.local.get(['lastRecordTime', 'bState', 'timeStr'], (result) => {
+        if (result.lastRecordTime) {
+            startTime = new Date(result.lastRecordTime);
+            updateStartDateDisplay(formatDateTime(startTime));
+
+            if (result.bState === 'recording') {
+                updateRecordTimer();
+
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+
+                timerInterval = setInterval(updateRecordTimer, 1000);
+            } else if (result.timeStr) {
+                recordTime.textContent = result.timeStr;
+            } else {
+                recordTime.textContent = '-';
+            }
+        } else {
+            updateStartDateDisplay('-');
+            recordTime.textContent = '-';
+        }
+    });
 });
 
 buttonElements.permissions.addEventListener('click', () => {
@@ -324,6 +420,18 @@ async function startRecCallback() {
     stopRecordButton.removeAttribute('disabled');
     saveInputValues();
 
+    const now = new Date();
+    startTime = now;
+    updateStartDateDisplay(formatDateTime(now));
+
+    updateRecordTimer();
+
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+
+    timerInterval = setInterval(updateRecordTimer, 1000);
+
     const formData = {
         group: inputElements.group.value,
         name: inputElements.name.value,
@@ -347,6 +455,23 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'stopRecordSignal') {
+        console.log('Received stopRecordSignal');
+
+        clearInterval(timerInterval);
+
+        chrome.storage.local.get(['timeStr'], (result) => {
+            const timeStr = result.timeStr;
+            recordTime.textContent = timeStr;
+            sendResponse({status: 'stopRecordSignalProcessed'});
+        });
+
+        sendResponse({status: 'stopRecordSignalProcessed'});
+        return true;
+    }
+});
+
 async function stopRecCallback() {
     logClientAction({ action: "Click stop record button" });
 	stopRecordButton.setAttribute('disabled', '');
@@ -360,10 +485,20 @@ async function stopRecCallback() {
 startRecordButton.addEventListener('click', startRecCallback);
 stopRecordButton.addEventListener('click', stopRecCallback);
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-	if (message.action === 'updateButtonStates') {
-		chrome.storage.local.set({'bState': message.state});
-		updateButtonsStates();
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'updateButtonStates') {
+        chrome.storage.local.set({ bState: message.state }, () => {
+            updateButtonsStates();
+            sendResponse({ status: 'success' });
+        });
+        return true;
+    }
+    return false;
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "closePopup") {
+        window.close();
         logClientAction({ action: "Receive message", messageType: "updateButtonStates" });
-	}
+    }
 });

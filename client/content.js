@@ -1,6 +1,9 @@
 import { logClientAction } from './logger.js';
 
 function showVisualCue(messages, title = "Уведомление") {
+
+    chrome.runtime.sendMessage({ action: "closePopup" });
+
     const existingOverlay = document.getElementById('custom-modal-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
