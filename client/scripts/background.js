@@ -191,7 +191,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	});
 });
 
-function closeTabAndOpenTab(tabId, settingsUrl, delay = 300) {
+function closeTabAndOpenTab(tabId, settingsUrl, delay = 150) {
 	openTab(settingsUrl);
 	chrome.tabs.remove(tabId);
 	logClientAction("First close tab media.html");
