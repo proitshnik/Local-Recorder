@@ -886,7 +886,6 @@ async function stopRecord() {
         cleanup();
     });
     //chrome.runtime.sendMessage({ action: "closePopup" });
-    await showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
     logClientAction('Recording stopping');
 }
 
