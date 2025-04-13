@@ -1,5 +1,5 @@
 .page {
-    width: 550px;
+    width: 390px;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
     display: flex;
@@ -10,34 +10,39 @@
     background-color: #faeedd;
 }
 
-label {
-    margin-top: 5px;
-    margin-bottom: -7px;
-    font-size: 15px;
+.page__title {
+    margin: 1px 0 1px;
+    font-size: 18px;
+    text-align: center;
 }
 
-.page__title {
-    margin: 0 0 10px;
-    font-size: 20px;
-    text-align: center;
+label {
+    margin: 2px 0 0 0;
+    font-size: 13px;
 }
 
 .user-inputs {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 10px;
-    width: 65%;
+    gap: 4px;
+    margin-bottom: 6px;
+    width: 90%;
 }
 
 .user-inputs__input {
-    padding: 8px;
-    font-size: 14px;
+    padding: 6px;
+    font-size: 13px;
     border: 2px solid #ccc;
-    border-radius: 10px;
+    border-radius: 8px;
     box-sizing: border-box;
     width: 100%;
     transition: all 0.3s ease;
+}
+
+.user-inputs__label {
+    font-size: 13px;
+    margin-bottom: 1px;
+    font-weight: bold;
 }
 
 /* Валидное поле */
@@ -71,8 +76,8 @@ label {
 }
 
 .message, .message-error {
-    font-size: 13px;
-    margin-top: -6px;
+    font-size: 12px;
+    margin-top: -4px;
 }
 
 .message-error {
@@ -86,8 +91,8 @@ label {
 }
 
 .no-patronymic-checkbox {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     cursor: pointer;
     appearance: none;
     border: 1px solid #333;
@@ -105,8 +110,13 @@ label {
     position: absolute;
 }
 
+.no-patronymic-checkbox:hover {
+    outline: none;
+    box-shadow: 0 0 8px rgba(100, 100, 255, 0.3);
+}
+
 .no-patronymic-text {
-    font-size: 14px;
+    font-size: 13px;
     user-select: none;
     cursor: default;
 }
@@ -114,17 +124,22 @@ label {
 .record-section {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 4px;
+    margin-bottom: 4px;
+    width: 90%;
 }
 
 .record-section__button {
-    padding: 8px 16px;
-    font-size: 16px;
+    flex: 1;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: bold;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    width: 180px;
+    transition: background 0.3s, transform 0.05s;
+    color: black;
+    width: 170px;
 }
 
 .record-section__button_inactive {
@@ -151,7 +166,28 @@ label {
     background-color: #c636d9;
 }
 
+.record-section__button_active_permissions:hover {
+    background-color: #229bb3;
+}
+
+.record-section__button_active_start:hover {
+    background-color: #35b949;
+}
+
+.record-section__button_active_stop:hover {
+    background-color: #991f1f;
+}
+
+.record-section__button_active_upload:hover {
+    background-color: #9a27a8;
+}
+
+.record-section__button:active {
+    transform: scale(0.98);
+}
+
 .record-section__button:disabled {
+    opacity: 0.6;
     color: #000;
     cursor: not-allowed;
 }
@@ -159,4 +195,33 @@ label {
 .output-video {
     margin: 0;
     box-sizing: content-box;
+}
+
+.stats-section {
+    box-sizing: border-box;
+    text-align: left;
+    margin-bottom: 10px;
+    align-self: flex-start;
+    padding-left: 5%;
+}
+
+.stats-section p {
+    font-size: 12px;
+    color: #000;
+    margin: 1px 0;
+}
+
+.stats-section strong {
+    font-weight: bold;
+}
+
+.stats-section span {
+    color: #000;
+}
+
+#permissions-status,
+#start-date,
+#record-time {
+    font-weight: normal;
+    color: #000;
 }
