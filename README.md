@@ -26,7 +26,7 @@
 
     ![Alt text](client/assets/docs/developerMode.png)
 
-3. Нажмите "Load unpacked" (Загрузить распакованное расширение) и выберите папку расширения `client`
+3. Нажмите "Load unpacked" (Загрузить распакованное расширение) и выберите папку расширения `client`.
 
     ![Alt text](client/assets/docs/loadUnpacked.png)
 
