@@ -20,26 +20,26 @@
 
 1. Откройте раздел "Управление расширениями" в браузере.
 
-    ![Alt text](client/assets/docs/managingExtensions.png)
+    ![Alt text](assets/docs/managingExtensions.png)
 
 2. Активируйте режим разработчика.
 
-    ![Alt text](client/assets/docs/developerMode.png)
+    ![Alt text](assets/docs/developerMode.png)
 
 3. Нажмите "Load unpacked" (Загрузить распакованное расширение) и выберите папку расширения `client`.
 
-    ![Alt text](client/assets/docs/loadUnpacked.png)
+    ![Alt text](assets/docs/loadUnpacked.png)
 
 
 4. Для удобства закрепите расширение на панели инструментов.
 
-    ![Alt text](client/assets/docs/pinnedExtension.png)
+    ![Alt text](assets/docs/pinnedExtension.png)
 
 
 ## Работа с клиентской частью расширения
 ### 1. Интерфейс popup-расширения
 
-![Alt text](client/assets/docs/popupInterface.png)
+![Alt text](assets/docs/popupInterface.png)
 
 - Поля:
  - Группа
@@ -66,17 +66,17 @@
 - **Фамилия, Имя, Отчество**: должны начинаться с заглавной буквы и содержать только русские/латинские буквы и тире (например, `Иванов` или `Albus-Severus`). 
 - **Ссылка на экзаменационную "комнату"**: поле не должно быть пустым.
 
-    ![Alt text](client/assets/docs/popupInterface.png)
+    ![Alt text](assets/docs/popupInterface.png)
 
 Примечания:
 - Система автоматически проверяет корректность ввода и предоставляет подсказки при ошибках.
     - Ошибки:
     
-        ![Alt text](client/assets/docs/inputErrors.png)
+        ![Alt text](assets/docs/inputErrors.png)
     
     - Подсказки:
     
-        ![Alt text](client/assets/docs/inputHints.png)
+        ![Alt text](assets/docs/inputHints.png)
 
 
 
@@ -84,17 +84,17 @@
 1. Нажмите кнопку **"Разрешения"** для перехода в системную вкладку расширения.
 Система уведомляет о необходимости предоставления разрешений, а также просит не прерывать их для корректной работы приложения.
 
-    ![Alt text](client/assets/docs/permissionsCue.png)
+    ![Alt text](assets/docs/permissionsCue.png)
 
 
 2. Нажав на кнопку "Хорошо. Я прочитал(а).", система предложит выдать разрешение на запись экрана:
 
-    ![Alt text](client/assets/docs/permissionScreen.png)
+    ![Alt text](assets/docs/permissionScreen.png)
 
     ### Прерывание записи
     При отмене предоставления доступа к экрану система сообщит, об отмене разрешения для экрана:
 
-    ![Alt text](client/assets/docs/permissionErrorScreenCue.png)
+    ![Alt text](assets/docs/permissionErrorScreenCue.png)
 
     Повторно нажмите **"Разрешения"**.
 
@@ -102,24 +102,24 @@
 - "Разрешить в этот раз". Расширение будет запрашивать у Вас разрешение каждый раз при записи. 
 - "Разрешить при нахождении на сайте". Вы соглашаетесь с тем, что расширение всегда использует либо микрофон, либо камеру. 
  
-    ![Alt text](client/assets/docs/permissionsCamMic.png)
+    ![Alt text](assets/docs/permissionsCamMic.png)
 
 
     ### Прерывание записи
 
     При запрете разрешений на использование микрофона и камеры система сообщит, что доступ к микрофону или камере запрещен:
 
-    ![Alt text](client/assets/docs/permissionErrorMicCue.png) ![Alt text](client/assets/docs/permissionErrorCamCue.png)
+    ![Alt text](assets/docs/permissionErrorMicCue.png) ![Alt text](assets/docs/permissionErrorCamCue.png)
 
  
 
     После чего система попросит убедиться, что доступ к микрофону и камере разрешены.
 
-    ![Alt text](client/assets/docs/permissionNotification.png)
+    ![Alt text](assets/docs/permissionNotification.png)
 
     Нажав на кнопку "Хорошо. Я прочитал(а)."), система закроет системную вкладку расширения и перенаправит Вас на вкладку настроек безопасности расширения. Для камеры и микрофона необходимо поменять статус "Блокировать" на "Разрешить" или "Спрашивать (по умолчанию)". 
 
-    ![Alt text](client/assets/docs/permissionsCamMicStatus.png)
+    ![Alt text](assets/docs/permissionsCamMicStatus.png)
 
     Примечание:
     - В случае со статусом "Спрашивать (по умолчанию)" расширение будет запрашивать у Вас разрешение каждый раз при записи.
@@ -128,16 +128,16 @@
 
 4. После выдачи всех разрешений система сообщит о готовности к записи с небольшой информацией о работе расширения.
 
-    ![Alt text](client/assets/docs/readyToRecordCue.png)
+    ![Alt text](assets/docs/readyToRecordCue.png)
     
     Также на вкладке появится предпросмотр: экрана и камеры.
 
     ### Прерывание записи
     Если закрыть доступ к экрану, камере или микрофону после предоставления разрешений, то система уведомит о том, что соответствующее разрешение было заблокировано и нужно повторно нажать кнопку "Разрешения" после предоставления недостающих разрешений.
 
-    ![Alt text](client/assets/docs/permissionLoseScreenCue.png)
-    ![Alt text](client/assets/docs/permissionLoseCamCue.png)
-    ![Alt text](client/assets/docs/permissionLoseMicCue.png)
+    ![Alt text](assets/docs/permissionLoseScreenCue.png)
+    ![Alt text](assets/docs/permissionLoseCamCue.png)
+    ![Alt text](assets/docs/permissionLoseMicCue.png)
 
 ### 4. Начало записи
 
@@ -146,13 +146,13 @@
 - Отключит предпросмотр.
 - Уведомит о начале процесса.
 
-    ![Alt text](client/assets/docs/startRecord.png)
+    ![Alt text](assets/docs/startRecord.png)
 
 
 2. Во время записи можно можно включить и выключить предпросмотр через системную вкладку.
  
-    ![Alt text](client/assets/docs/previewOn.png)
-    ![Alt text](client/assets/docs/previewDown.png)
+    ![Alt text](assets/docs/previewOn.png)
+    ![Alt text](assets/docs/previewDown.png)
 
 
     ### Прерывание записи
@@ -169,7 +169,7 @@
     - Название файла записи камеры (его размер):
     - Куда сохранен файл логов
 
-        ![Alt text](client/assets/docs/stopRecord.png)
+        ![Alt text](assets/docs/stopRecord.png)
 
 #### Конец записи
 1. Нажмите "Остановить запись".
@@ -182,20 +182,6 @@
 - Название файла записи экрана (его размер)
 - Название файла записи камеры (его размер):
 - Куда сохранен файл логов
-
-## Сервер расширения
-### CLI
-Для запуска сервера в папке server ввести следующую команду:
-```bash
-docker-compose up --build || docker compose up --build
-```
-
-### GUI
-При вводе адреса `http://localhost:5000/` открывается страница с пятью окнами ввода: “Группа”, “Фамилия”, “Имя”, “Отчество”, “Дата” – для фильтрации, и кнопкой “Поиск” для вывода записей в базе данных по заданному фильтру (по умолчанию показываются все записи). Поля участвуют в поиске по принципу “И”, и если поля пустые, то выводится вся база данных. База данных работает в UTC0 серверном формате. Метаданные прокторинга в формате локального для пользователя времени. Логирование осуществляется в UTC0 клиентском формате, вместе с этим в логировании есть поле с часовым поясом клиента.
-
-Вывод записей базы данных происходит на странице `http://localhost:5000/results`. Страница работает только при переадресации с главной страницы поиска.
-
-Также все результаты выводятся в неприведенном виде по адресе `http://localhost:5000/get_sessions`
 
 ## Просмотр записей
 
