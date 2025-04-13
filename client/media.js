@@ -171,10 +171,10 @@ async function sendButtonsStates(state) {
     }
     if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
         if (chrome.runtime.lastError) {
-            log_client_action(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
+            logClientAction(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
             buttonsStatesSave(state);
         } else {
-            log_client_action(`Message with state: ${state} sent successfully`);
+            logClientAction(`Message with state: ${state} sent successfully`);
         }
     });
     else buttonsStatesSave(state);
@@ -288,7 +288,7 @@ async function getMediaDevices() {
                     streams.camera.oninactive = async function () {
                         if (streamLossSource) return;
                         streamLossSource = 'camera';
-                        log_client_action('Camera stream inactive');
+                        logClientAction('Camera stream inactive');
 
                         if (!recorders.combined && !recorders.camera) return;
 
@@ -310,7 +310,7 @@ async function getMediaDevices() {
                         chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
                         if (streamLossSource) return;
                         streamLossSource = 'screen';
-                        log_client_action('Screen stream ended');
+                        logClientAction('Screen stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
@@ -329,7 +329,7 @@ async function getMediaDevices() {
                     streams.microphone.getAudioTracks()[0].onended = async function () {
                         if (streamLossSource) return;
                         streamLossSource = 'microphone';
-                        log_client_action('Microphone stream ended');
+                        logClientAction('Microphone stream ended');
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
@@ -708,7 +708,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
     }
     else if (message.action === 'uploadVideoMedia') {
-        log_client_action('Start uploading command received');
+        logClientAction('Start uploading command received');
         uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
@@ -883,7 +883,7 @@ async function stopRecord() {
                 if (alarm) {
                     chrome.alarms.clear('dynamicCleanup');
                 }
-                log_client_action('Delete tempfiles successful');
+                logClientAction('Delete tempfiles successful');
             });
         }
     }).catch(error => {
@@ -893,7 +893,7 @@ async function stopRecord() {
     });
     //chrome.runtime.sendMessage({ action: "closePopup" });
     await showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
-    log_client_action('Recording stopping');
+    logClientAction('Recording stopping');
 }
 
 async function startRecord() {
@@ -929,7 +929,7 @@ async function startRecord() {
 
         await addFileToTempList(combinedFileName);
         await addFileToTempList(cameraFileName);
-        log_client_action('Files added to temp list');
+        logClientAction('Files added to temp list');
 
         chrome.storage.local.set({
             'fileNames': {
@@ -962,7 +962,7 @@ async function startRecord() {
 
 
         console.log('Запись начата');
-        log_client_action('recording_started');
+        logClientAction('recording_started');
         //chrome.runtime.sendMessage({ action: "closePopup" });
         showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
