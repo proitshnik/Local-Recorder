@@ -107,11 +107,11 @@ async function clearLogs() {
             if (response.success) {
                 logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
-                log_client_action("Логи очищены перед завершением");
+                logClientAction("Логи очищены перед завершением");
             } else {
                 logClientAction({ action: "Error while clearing logs", error: response.error });
                 console.error("Ошибка очистки логов:", response.error);
-                log_client_action("Ошибка очистки логов:", response.error);
+                logClientAction("Ошибка очистки логов:", response.error);
             }
             resolve();
         });
@@ -971,7 +971,7 @@ async function stopRecord() {
             URL.revokeObjectURL(url);
 
             console.log(`Логи сохранены локально: ${logsFileName}`);
-            log_client_action(`logs_saved_locally: ${logsFileName}`);
+            logClientAction(`logs_saved_locally: ${logsFileName}`);
 
             (async () => {
                 try {
@@ -983,13 +983,13 @@ async function stopRecord() {
             })();
         } catch (error) {
             console.error("Ошибка при сохранении логов:", error);
-            log_client_action(`logs_save_error: ${error.message}`);
+            logClientAction(`logs_save_error: ${error.message}`);
         }
     }
 
     showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     //chrome.runtime.sendMessage({ action: "closePopup" });
-    log_client_action('Recording stopping');
+    logClientAction('Recording stopping');
 }
 
 async function startRecord() {

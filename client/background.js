@@ -108,12 +108,12 @@ function clearLogs() {
 		chrome.storage.local.remove('extension_logs')
 			.then(() => {
 				console.log('Логи успешно очищены');
-				log_client_action('Логи успешно очищены');
+				logClientAction('Логи успешно очищены');
 				resolve();
 			})
 			.catch((error) => {
 				console.error('Ошибка при очистке логов:', error);
-				log_client_action('Ошибка при очистке логов:', error);
+				logClientAction('Ошибка при очистке логов:', error);
 				reject(error);
 			});
 	});
@@ -234,5 +234,6 @@ chrome.runtime.onMessage.addListener(
 				}
 			});
 		}
+	  sendResponse(message);
 	}
 );
