@@ -38,6 +38,13 @@ function showVisualCue(messages, title = "Уведомление") {
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'showModal') {
         showVisualCue(message.message, message.title);
-        chrome.runtime.sendMessage({action: 'stopMediaNotification'});
+        chrome.runtime.sendMessage({ action: 'stopMediaNotification' }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error send stopMediaNotification', chrome.runtime.lastError.message);
+                log_client_action("Error send stopMediaNotification", chrome.runtime.lastError.message);
+            }
+                console.log('Response stopMediaNotification', response);
+                log_client_action("Response stopMediaNotification", response);
+        });
     }
 });
