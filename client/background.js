@@ -79,7 +79,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
-		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
 	}
 });
 
@@ -104,6 +103,23 @@ chrome.runtime.onMessage.addListener(
 				.then(() => sendResponse({ success: true }))
 				.catch((error) => sendResponse({ success: false, error }));
 			return true;
+		}
+	}
+);
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, sendResponse) {
+		if (message.action === "stopMediaNotification") {
+			chrome.runtime.sendMessage({ action: 'suppressGlobalVisualCue' }, (response) => {
+				if (chrome.runtime.lastError) {
+					console.error('Error send suppressGlobalVisualCue', chrome.runtime.lastError.message);
+					log_client_action("Error send suppressGlobalVisualCue", chrome.runtime.lastError.message);
+				}
+				else {
+					console.log('Response suppressGlobalVisualCue', response);
+					log_client_action("Response suppressGlobalVisualCue", response);
+				}
+			});
 		}
 	}
 );
@@ -178,7 +194,11 @@ function openTab(url) {
 
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
-		if (message.action === "closeTabAndOpenTab") {
+		if (message.action === 'gotoMediaTab') {
+			// Активируем вкладку media.html (по URL, переданному в message.mediaExtensionUrl)
+			openTab(message.mediaExtensionUrl);
+		}
+	  if (message.action === "closeTabAndOpenTab") {
 			chrome.tabs.query({ url: message.mediaExtensionUrl }, (tabs) => {
 				if (tabs && tabs.length > 0) {
 					const tabId = tabs[0].id;

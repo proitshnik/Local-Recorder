@@ -1,4 +1,4 @@
-import { showVisualCue, showVisualCueAsync } from './common.js';
+import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { log_client_action } from './logger.js';
 
@@ -33,6 +33,7 @@ var startTime = undefined;
 var endTime = undefined;
 
 var server_connection = undefined;
+var notifications_flag = true;
 var invalidStop = false;
 
 var metadata = {
@@ -644,6 +645,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 });
 
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'suppressGlobalVisualCue') {
+        notifications_flag = false;
+        console.log('notifications_flag = ', notifications_flag);
+    }
+});
+
 async function initSession(formData) {
     log_client_action({
         action: 'Start recording initiated',
@@ -681,6 +690,15 @@ async function initSession(formData) {
         throw error;
     }
 }
+
+// Инициализируем промис, который разрешится, когда придёт сигнал о подавлении уведомления
+let suppressNotificationPromise = new Promise((resolve) => {
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message.action === 'suppressGlobalVisualCue') {
+            resolve(true);
+        }
+    });
+});
 
 function stopDuration() {
     const durationMs = new Date() - startTime;
@@ -779,8 +797,14 @@ async function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         cleanup();
     });
+
+    // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+    waitForNotificationSuppression().then((suppress) => {
+        if (!suppress) {
+            showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
+        }
+    });
     //chrome.runtime.sendMessage({ action: "closePopup" });
-    await showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
     log_client_action('Recording stopping');
 }
 
