@@ -21,6 +21,32 @@ label {
     font-size: 13px;
 }
 
+.help-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #c7c9c5;
+    color: #000000;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.help-button:hover {
+    background-color: #a9aba6;
+}
+
+.help-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 rgba(169, 171, 166, 1);
+}
+
 .user-inputs {
     display: flex;
     flex-direction: column;

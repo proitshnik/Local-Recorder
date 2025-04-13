@@ -1,6 +1,6 @@
 {
 	"name": "Local proctoring",
-	"description": "Local screencast",
+	"description": "Local recording tool containing screen, microphone and camera.",
 	"version": "1.0.1",
 	"manifest_version": 3,
 	"permissions": [
@@ -13,26 +13,26 @@
 	"content_scripts": [
 		{
 			"matches": ["<all_urls>"],
-			"js": ["content.js"],
-			"css": ["media.css"]
+			"js": ["scripts/content.js"],
+			"css": ["styles/media.css"]
 		}
 	],
 	"action": {
-		"default_popup": "index.html"
+		"default_popup": "pages/index.html"
 	},
 	"background": {
-		"service_worker": "background.js",
+		"service_worker": "scripts/background.js",
 		"type": "module"
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["media.html", "media.js", "logger.js"],
+			"resources": ["pages/media.html", "scripts/media.js", "scripts/logger.js"],
 			"matches": ["<all_urls>"]
 		}
 	],
 	"icons": {
-		"16": "assets/icon.png",
-		"48": "assets/icon.png",
-		"128": "assets/icon.png"
+		"16": "assets/icons/icon.png",
+		"48": "assets/icons/icon.png",
+		"128": "assets/icons/icon.png"
 	}
 }

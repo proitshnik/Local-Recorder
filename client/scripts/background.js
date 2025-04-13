@@ -33,7 +33,7 @@ function sendStartMessage(formData) {
 }
 
 async function checkTabState() {
-	const tabs = await chrome.tabs.query({url: chrome.runtime.getURL('media.html')});
+	const tabs = await chrome.tabs.query({url: chrome.runtime.getURL('pages/media.html')});
 	logClientAction({ action: "Check tab state for media.html", tabsCount: tabs.length });
 	if (tabs && tabs.length === 1) {
 		if (tabs[0].active) {
@@ -46,7 +46,7 @@ async function checkTabState() {
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-	const extensionUrl = chrome.runtime.getURL('media.html');
+	const extensionUrl = chrome.runtime.getURL('pages/media.html');
 	if (changeInfo.url === extensionUrl) {
 		logClientAction({ action: "Reload media.html", tabId: tabId });
 		const tabs = await chrome.tabs.query({url: extensionUrl});
@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		if (result === undefined) {
 			logClientAction({ action: "media.html tab not found, create new tab" });
 			const tab = await chrome.tabs.create({
-				url: chrome.runtime.getURL('media.html'),
+				url: chrome.runtime.getURL('pages/media.html'),
 				index: 0, // Устанавливаем вкладку в начало списка
 				pinned: true // Закрепляем вкладку
 			});
@@ -108,12 +108,12 @@ function clearLogs() {
 		chrome.storage.local.remove('extension_logs')
 			.then(() => {
 				console.log('Логи успешно очищены');
-				log_client_action('Логи успешно очищены');
+				logClientAction('Логи успешно очищены');
 				resolve();
 			})
 			.catch((error) => {
 				console.error('Ошибка при очистке логов:', error);
-				log_client_action('Ошибка при очистке логов:', error);
+				logClientAction('Ошибка при очистке логов:', error);
 				reject(error);
 			});
 	});
@@ -161,7 +161,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
-	const extensionUrl = chrome.runtime.getURL('media.html');
+	const extensionUrl = chrome.runtime.getURL('pages/media.html');
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
