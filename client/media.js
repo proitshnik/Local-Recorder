@@ -110,7 +110,7 @@ async function clearLogs() {
                 logClientAction("Логи очищены перед завершением");
             } else {
                 logClientAction({ action: "Error while clearing logs", error: response.error });
-                console.error("Ошибка очистки логов:", response.error);
+                // console.error("Ошибка очистки логов:", response.error);
                 logClientAction("Ошибка очистки логов:", response.error);
             }
             resolve();
