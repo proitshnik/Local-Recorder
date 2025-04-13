@@ -135,11 +135,11 @@ chrome.runtime.onMessage.addListener(
 			chrome.runtime.sendMessage({ action: 'suppressGlobalVisualCue' }, (response) => {
 				if (chrome.runtime.lastError) {
 					console.error('Error send suppressGlobalVisualCue', chrome.runtime.lastError.message);
-					log_client_action("Error send suppressGlobalVisualCue", chrome.runtime.lastError.message);
+					logClientAction("Error send suppressGlobalVisualCue", chrome.runtime.lastError.message);
 				}
 				else {
 					console.log('Response suppressGlobalVisualCue', response);
-					log_client_action("Response suppressGlobalVisualCue", response);
+					logClientAction("Response suppressGlobalVisualCue", response);
 				}
 			});
 		}

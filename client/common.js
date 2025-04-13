@@ -28,11 +28,11 @@ export function showVisualCueAsync(messages, title = "Уведомление") {
             mediaExtensionUrl: chrome.runtime.getURL("media.html") }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
-                    log_client_action("Error send gotoMediaTab", chrome.runtime.lastError.message);
+                    logClientAction("Error send gotoMediaTab", chrome.runtime.lastError.message);
                 }
                 else {
                     console.log('Response gotoMediaTab', response);
-                    log_client_action("Response gotoMediaTab", response);
+                    logClientAction("Response gotoMediaTab", response);
                 }
             });
 

@@ -718,11 +718,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Start recording succeeds" });
             await sendButtonsStates('recording');
-            await showVisualCueAsync(["Запись экрана, микрофона и камеры началась. " +
-                "Не отключайте разрешения этим элементам до окончания записи.",
-                "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
-                "Идёт запись");
-
+            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+            waitForNotificationSuppression().then((suppress) => {
+                if (!suppress) {
+                    showVisualCueAsync(["Запись экрана, микрофона и камеры началась. " +
+                        "Не отключайте разрешения этим элементам до окончания записи.",
+                        "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
+                        "Идёт запись");
+                }
+            }); 
         })
         .catch(async (error) => {
             // В startRecord есть свой обработчик ошибок
@@ -907,10 +911,19 @@ async function stopRecord() {
             "Файл записи камеры:",
             `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`
         ];
-        await showVisualCueAsync(stats, "Запись завершена, статистика:");
+        // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+        waitForNotificationSuppression().then((suppress) => {
+            if (!suppress) {
+                showVisualCueAsync(stats, "Запись завершена, статистика:");
+            }
+        });
         if (server_connection && !invalidStop) {
-            await showVisualCueAsync(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
-                "Отправка записи");
+            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+            waitForNotificationSuppression().then((suppress) => {
+                if (!suppress) {
+                    showVisualCueAsync(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."], "Отправка записи");
+                }
+            });   
         }
 
         cleanup();
@@ -929,12 +942,6 @@ async function stopRecord() {
         cleanup();
     });
 
-    // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-    waitForNotificationSuppression().then((suppress) => {
-        if (!suppress) {
-            showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
-        }
-    });
     //chrome.runtime.sendMessage({ action: "closePopup" });
     logClientAction('Recording stopping');
 }
@@ -1007,7 +1014,6 @@ async function startRecord() {
         console.log('Запись начата');
         logClientAction('recording_started');
         //chrome.runtime.sendMessage({ action: "closePopup" });
-        showVisualCueAsync(["Началась запись экрана. Убедитесь, что ваше устройство работает корректно."], "Начало записи");
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         logClientAction({ action: "Fail to start recording", error: error.message });

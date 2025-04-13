@@ -49,11 +49,11 @@ chrome.runtime.onMessage.addListener((message) => {
         chrome.runtime.sendMessage({ action: 'stopMediaNotification' }, (response) => {
             if (chrome.runtime.lastError) {
                 console.error('Error send stopMediaNotification', chrome.runtime.lastError.message);
-                log_client_action("Error send stopMediaNotification", chrome.runtime.lastError.message);
+                logClientAction("Error send stopMediaNotification", chrome.runtime.lastError.message);
             }
             else {
                 console.log('Response stopMediaNotification', response);
-                log_client_action("Response stopMediaNotification", response);
+                logClientAction("Response stopMediaNotification", response);
             }
         });
     }
