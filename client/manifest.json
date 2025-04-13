@@ -1,6 +1,6 @@
 {
 	"name": "Local proctoring",
-	"description": "Local screencast",
+	"description": "Local recording tool containing screen, microphone and camera.",
 	"version": "1.0.1",
 	"manifest_version": 3,
 	"permissions": [
