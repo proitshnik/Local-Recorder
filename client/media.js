@@ -858,14 +858,14 @@ async function stopRecord() {
             `Начало записи: ${getFormattedDateString(startTime)}`,
             `Конец записи: ${getFormattedDateString(endTime)}`,
             `Длительность записи: ${duration}`,
-            "Файлы записи экрана и камеры сохранены в папку сохранения по умолчанию.",
+            "Файлы записи экрана и камеры сохранены в папку загрузок по умолчанию.",
             "Файл записи экрана:",
             `${combinedFileName} (${(combinedFileSize / 1024 / 1024).toFixed(1)} MB)`,
             "Файл записи камеры:",
             `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`
         ];
         await showVisualCueAsync(stats, "Запись завершена, статистика:");
-        if (server_connection) {
+        if (server_connection && !invalidStop) {
             await showVisualCueAsync(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
                 "Отправка записи");
         }
