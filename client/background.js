@@ -16,11 +16,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 	}
 });
 
+var startTime
+
 function sendStartMessage(formData) {
+	screenCaptureActive = true;
     chrome.runtime.sendMessage({
         action: 'startRecording',
         formData: formData
     });
+	startTime = new Date();
 }
 
 async function checkTabState() {
@@ -72,6 +76,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		message.action === 'startRecord' ? sendStartMessage(message.formData) : chrome.runtime.sendMessage({action: message.action + 'Media'});
 	} else if (message.action === 'stopRecord') {
 		showGlobalVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
+		screenCaptureActive = false;
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
 		});
@@ -80,15 +85,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 function clearLogs() {
 	return new Promise((resolve, reject) => {
-		chrome.storage.local.remove('extension_logs', () => {
-			if (chrome.runtime.lastError) {
-				console.error('Ошибка при очистке логов:', chrome.runtime.lastError);
-				reject(chrome.runtime.lastError);
-			} else {
+		chrome.storage.local.remove('extension_logs')
+			.then(() => {
 				console.log('Логи успешно очищены');
 				resolve();
-			}
-		});
+			})
+			.catch((error) => {
+				console.error('Ошибка при очистке логов:', error);
+				reject(error);
+			});
 	});
 }
 
@@ -111,6 +116,61 @@ chrome.runtime.onMessage.addListener(
 	}
 );
 
+let screenCaptureActive = false;
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message.type === 'screenCaptureStatus') {
+		screenCaptureActive = message.active;
+		sendResponse({ success: true });
+	}
+	if (message.type === 'getScreenCaptureStatus') {
+		sendResponse({ active: screenCaptureActive });
+	}
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+	const extensionUrl = chrome.runtime.getURL('media.html');
+
+	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
+		if (tabs.length === 0) {
+			screenCaptureActive = false;
+			const durationMs = new Date() - startTime;
+
+			const seconds = Math.floor((durationMs / 1000) % 60);
+			const minutes = Math.floor((durationMs / 1000 / 60) % 60);
+			const hours = Math.floor(durationMs / 1000 / 60 / 60);
+
+			const timeStr = `${hours.toString().padStart(2, '0')}:` +
+				`${minutes.toString().padStart(2, '0')}:` +
+				`${seconds.toString().padStart(2, '0')}`;
+			chrome.storage.local.set({
+				'timeStr': timeStr
+			}, function() {
+				console.log('timeStr saved to storage');
+			});
+		}
+	});
+});
+
+function closeTabAndOpenTab(tabId, settingsUrl, delay = 300) {
+	openTab(settingsUrl);
+	chrome.tabs.remove(tabId);
+	log_client_action("First close tab media.html");
+
+	const checkInterval = setInterval(() => {
+		chrome.tabs.get(tabId, () => {
+			if (chrome.runtime.lastError) {
+				clearInterval(checkInterval);
+				log_client_action("Successfully closed tab media.html");
+				openTab(settingsUrl);
+			} else {
+				chrome.tabs.remove(tabId);
+				log_client_action("Сlosed tab media.html");
+			}
+		});
+	}, delay);
+}
+
 function openTab(url) {
 	log_client_action("openTab " + url);
 	chrome.tabs.query({ url: url }, (tabs) => {
@@ -129,6 +189,18 @@ chrome.runtime.onMessage.addListener(
 		if (message.action === 'gotoMediaTab') {
 			// Активируем вкладку media.html (по URL, переданному в message.mediaExtensionUrl)
 			openTab(message.mediaExtensionUrl);
+		}
+	  if (message.action === "closeTabAndOpenTab") {
+			chrome.tabs.query({ url: message.mediaExtensionUrl }, (tabs) => {
+				if (tabs && tabs.length > 0) {
+					const tabId = tabs[0].id;
+					log_client_action("Try close media.html");
+					closeTabAndOpenTab(tabId, message.settingsUrl)
+				} else {
+					log_client_action("media.html not found before redirect");
+					openTab(message.settingsUrl);
+				}
+			});
 		}
 	}
 );

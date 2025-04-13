@@ -1,3 +1,7 @@
+.mediatab {
+    background-color: #faeedd;
+}
+
 .main {
     padding: 20px;
 }
@@ -27,23 +31,26 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Затемненный фон для overlay */
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5); /* Затемнённый фон для overlay */
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    align-items: flex-start;  /* Выравнивание по верхней части страницы */
+    justify-content: center;  /* Центрирование по горизонтали */
     z-index: 1000;
 }
 
+
 #custom-modal {
-    background: #ffffff; /* Белый фон модального окна */
-    color: #000000; /* Чёрный цвет текста */
+    background: #ffffff;
+    color: #000000;
     padding: 20px;
     border-radius: 8px;
     max-width: 400px;
+    width: 90%;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 20px; /* Отступ сверху */
 }
 
 #custom-modal h2 {
@@ -56,17 +63,19 @@
 
 #modal-close-btn {
     margin-top: 15px;
-    background: #007BFF; /* Синий фон для кнопки */
-    color: #ffffff !important; /* Белый текст */
+    background: #007BFF;
+    color: #ffffff !important;
     border: none;
     padding: 10px 20px;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
+    font-weight: 500;
 }
 
 #modal-close-btn:hover {
     background: #0056b3;
 }
+
 
 .preview-label {
     font-size: 18px;
