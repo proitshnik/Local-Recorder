@@ -1,5 +1,5 @@
 import { buttonsStatesSave } from "./common.js";
-import { log_client_action } from "./logger.js";
+import { logClientAction } from "./logger.js";
 
 const startRecordButton = document.querySelector('.record-section__button_record-start');
 const stopRecordButton = document.querySelector('.record-section__button_record-stop');
@@ -147,7 +147,7 @@ function saveInputValues() {
             link: inputElements.link.value
         }
     });
-	log_client_action('Input values saved');
+    logClientAction({ action: "Save input values" });
 }
 
 function formatDateTime(date) {
@@ -235,6 +235,7 @@ async function checkAndCleanLogs() {
 			await chrome.storage.local.set({
 				'extension_logs': JSON.stringify(cleanedLogs)
 			});
+            logClientAction({ action: "Clean old logs" });
 		}
 	}
 }
@@ -243,6 +244,7 @@ function savePatronymic() {
     chrome.storage.local.set({
         'savedPatronymic': inputElements.patronymic.value
     });
+    logClientAction({ action: "Save patronymic value" });
 }
 
 noPatronymicCheckbox.addEventListener('change', async () => {
@@ -252,6 +254,9 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.disabled = true;
         inputElements.patronymic.nextElementSibling.textContent = "";
         inputElements.patronymic.style.backgroundColor = "#DCDCDC";
+
+        inputElements.patronymic.classList.remove('input-valid', 'input-invalid');
+        inputElements.patronymic.dataset.emptyChecked = '';
     } else {
         let storedData = await chrome.storage.local.get('savedPatronymic');
         inputElements.patronymic.value = storedData.savedPatronymic || "";
@@ -260,6 +265,7 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         validateInput(inputElements.patronymic);
     }
     saveInputValues();
+    logClientAction({ action: "Toggle no patronymic checkbox", checked: noPatronymicCheckbox.checked });
 });
 
 document.querySelectorAll('input').forEach(input => {
@@ -291,13 +297,14 @@ async function updateButtonsStates() {
 			buttonElements[key].setAttribute('disabled', true);
 		}
 	});
+    logClientAction({ action: "Update button states" });
 }
 
 window.addEventListener('load', async () => {
-	log_client_action('Popup opened');
+	logClientAction({ action: "Open popup" });
 
 	await checkAndCleanLogs();
-	log_client_action('Old logs cleaned due to 24-hour inactivity');
+	logClientAction('Old logs cleaned due to 24-hour inactivity');
 
     let inputValues = await chrome.storage.local.get('inputElementsValue');
     inputValues = inputValues.inputElementsValue || {};    
@@ -362,10 +369,13 @@ window.addEventListener('load', async () => {
 });
 
 buttonElements.permissions.addEventListener('click', () => {
+    logClientAction({ action: "Click permissions button" });
 	chrome.runtime.sendMessage({action: 'getPermissions'});
+    logClientAction({ action: "Send message", messageType: "getPermissions" });
 });
 
 buttonElements.upload.addEventListener('click', async () => {
+    logClientAction({ action: "Click upload button" });
     if (!server_connection) return;
 	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
 	if (!files) {
@@ -373,9 +383,11 @@ buttonElements.upload.addEventListener('click', async () => {
 		updateButtonsStates();
 	}
 	chrome.runtime.sendMessage({action: 'uploadVideoMedia'});
+    logClientAction({ action: "Send message", messageType: "uploadVideoMedia" });
 });
 
 async function startRecCallback() {
+    logClientAction({ action: "Click start record button" });
     let allValid = true;
     Object.values(inputElements).forEach(input => {
         if (input !== inputElements.patronymic || !noPatronymicCheckbox.checked) {
@@ -400,7 +412,7 @@ async function startRecCallback() {
         }
     });
     if (!allValid) {
-        console.warn("Невозможно начать запись: есть ошибки или незаполненные поля.");
+        logClientAction({ action: "Block recording due to validation errors" });
         return;
     }
 
@@ -432,13 +444,14 @@ async function startRecCallback() {
         action: "startRecord",
         formData: formData
     });
-    log_client_action('Start recording message sent');
+    logClientAction({ action: "Send message", messageType: "startRecord" });
 }
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "disableButtons") {
         startRecordButton.removeAttribute('disabled');
         stopRecordButton.setAttribute('disabled', '');
+        logClientAction({ action: "Receive message", messageType: "disableButtons" });
     }
 });
 
@@ -460,15 +473,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function stopRecCallback() {
-    stopRecordButton.setAttribute('disabled', '');
-    startRecordButton.removeAttribute('disabled');
-    log_client_action('Stop recording initiated');
-
-    await chrome.runtime.sendMessage({
-        action: "stopRecord"
-    });
-
-    log_client_action('Stop recording message sent');
+    logClientAction({ action: "Click stop record button" });
+	stopRecordButton.setAttribute('disabled', '');
+	startRecordButton.removeAttribute('disabled');
+	await chrome.runtime.sendMessage({
+		action: "stopRecord"
+	});
+    logClientAction({ action: "Send message", messageType: "stopRecord" });
 }
 
 startRecordButton.addEventListener('click', startRecCallback);
@@ -488,5 +499,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "closePopup") {
         window.close();
+        logClientAction({ action: "Receive message", messageType: "updateButtonStates" });
     }
 });
