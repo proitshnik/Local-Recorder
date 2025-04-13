@@ -1,4 +1,4 @@
-import { showVisualCue, showVisualCueAsync } from './common.js';
+import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { logClientAction } from './logger.js';
 
@@ -33,6 +33,7 @@ var startTime = undefined;
 var endTime = undefined;
 
 var server_connection = undefined;
+var notifications_flag = true;
 var invalidStop = false;
 
 var metadata = {
@@ -204,7 +205,18 @@ async function getMediaDevices() {
                         video: {
                             mandatory: {
                                 chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: streamId
+                                chromeMediaSourceId: streamId,
+                                width: { 
+                                    ideal: 1920, 
+                                    max: Math.min(2560, screen.width),
+                                    min: Math.min(1440, screen.width)
+                                },
+                                height: { 
+                                    ideal: 1080,
+                                    max: Math.min(1440, screen.height),
+                                    min: Math.min(810, screen.height)
+                                },
+                                frameRate: { ideal: 20, max: 20, min: 15 }
                             }
                         },
                     });
@@ -238,7 +250,14 @@ async function getMediaDevices() {
                     }
 
                     try {
-                        streams.camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        streams.camera = await navigator.mediaDevices.getUserMedia({ 
+                            video: {
+                                width: { ideal: 320 },
+                                height: { ideal: 240 },
+                                frameRate: { ideal: 17, max: 17, min: 15 }
+                            }, 
+                            audio: false 
+                        });
                         logClientAction({ action: "User grants camera access" });
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
@@ -367,10 +386,17 @@ async function getMediaDevices() {
 
                     combinedPreview.muted = false;
 
-                    recorders.combined = new MediaRecorder(streams.combined, { mimeType: 'video/mp4; codecs="avc1.64001E, opus"' });
-                    recorders.camera = new MediaRecorder(streams.camera, { mimeType: 'video/mp4; codecs="avc1.64001E"' });
-
+                    recorders.combined = new MediaRecorder(streams.combined, {
+                        mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
+                        audioBitsPerSecond: 128_000,
+                        videoBitsPerSecond: 500_000,
+                    });
                     logClientAction({ action: "Create combined recorder" });
+                    
+                    recorders.camera = new MediaRecorder(streams.camera, { 
+                        mimeType: 'video/mp4; codecs="avc1.64001E"',
+                        videoBitsPerSecond: 700_000
+                    });
                     logClientAction({ action: "Create camera recorder" });
 
                     recorders.combined.ondataavailable = async (event) => {
@@ -717,6 +743,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 });
 
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'suppressGlobalVisualCue') {
+        notifications_flag = false;
+        console.log('notifications_flag = ', notifications_flag);
+    }
+});
+
 async function initSession(formData) {
     logClientAction({ action: "Start recording via initSession", browserFingerprint: getBrowserFingerprint() });
 
@@ -752,6 +786,15 @@ async function initSession(formData) {
         throw error;
     }
 }
+
+// Инициализируем промис, который разрешится, когда придёт сигнал о подавлении уведомления
+let suppressNotificationPromise = new Promise((resolve) => {
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message.action === 'suppressGlobalVisualCue') {
+            resolve(true);
+        }
+    });
+});
 
 function stopDuration() {
     const durationMs = new Date() - startTime;
@@ -884,6 +927,13 @@ async function stopRecord() {
         console.error("Ошибка при остановке записи:", error);
         logClientAction({ action: "Fail to stop recording", error: error.message });
         cleanup();
+    });
+
+    // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
+    waitForNotificationSuppression().then((suppress) => {
+        if (!suppress) {
+            showVisualCueAsync(["Запись завершена. Файл будет сохранен."], "Окончание записи");
+        }
     });
     //chrome.runtime.sendMessage({ action: "closePopup" });
     logClientAction('Recording stopping');
