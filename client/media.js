@@ -671,9 +671,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
-            if (!server_connection) {
-                await clearLogs();
-            }
             await sendButtonsStates('readyToUpload');
         }
     }
