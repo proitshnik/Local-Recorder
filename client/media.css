@@ -99,7 +99,7 @@
 
 #preview-toggle-btn.enabled {
     background-color: #28a745;
-    color: white;
+    color: black;
 }
 
 #preview-toggle-btn.enabled:hover {
@@ -108,7 +108,7 @@
 
 #preview-toggle-btn.disabled {
     background-color: #dc3545;
-    color: white;
+    color: black;
 }
 
 #preview-toggle-btn.disabled:hover {
