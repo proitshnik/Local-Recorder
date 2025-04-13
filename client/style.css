@@ -138,7 +138,7 @@ label {
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.3s, transform 0.05s;
-    color: white;
+    color: black;
     width: 170px;
 }
 
