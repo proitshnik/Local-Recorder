@@ -1,4 +1,4 @@
-import { log_client_action } from "./logger";
+import { log_client_action } from "./logger.js";
 
 export async function deleteFilesFromTempList() {
     const tempFiles = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];

@@ -1,4 +1,4 @@
-import { log_client_action } from "./logger";
+import { log_client_action } from "./logger.js";
 
 function showVisualCue(messages, title = "Уведомление") {
 
