@@ -185,8 +185,7 @@ async function getMediaDevices() {
         let streamLossSource = null;
         try {
             logClientAction({ action: "Request screen media" });
-            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-            await showVisualCue(["Пожалуйста, предоставьте доступ к экрану, микрофону и камере. " +
+            await showVisualCueAsync(["Пожалуйста, предоставьте доступ к экрану, микрофону и камере. " +
                         "Не отключайте эти разрешения до окончания записи. " +
                         "Это необходимо для корректной работы системы прокторинга."],
                         "Разрешения для прокторинга");
@@ -657,8 +656,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Get media devices success" });
             await sendButtonsStates('readyToRecord');
-            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-            await showVisualCue(["Разрешения получены. Теперь вы можете начать запись.",
+            await showVisualCueAsync(["Разрешения получены. Теперь вы можете начать запись.",
                 "Нажмите на кнопку «Начать запись» во всплывающем окне " +
                 "расширения прокторинга, когда будете готовы."],
                 "Готово к записи");
@@ -694,8 +692,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Start recording succeeds" });
             await sendButtonsStates('recording');
-            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-            await showVisualCue(["Запись экрана, микрофона и камеры началась. " +
+            await showVisualCueAsync(["Запись экрана, микрофона и камеры началась. " +
                 "Не отключайте разрешения этим элементам до окончания записи.",
                 "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
                 "Идёт запись");
@@ -712,8 +709,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
-            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-            await showVisualCue(["Запись успешно отправлена на сервер."], "Запись отправлена");
+            await showVisualCueAsync(["Запись успешно отправлена на сервер."], "Запись отправлена");
         })
         .catch(async () => {
             await sendButtonsStates('failedUpload');
@@ -868,11 +864,9 @@ async function stopRecord() {
             "Файл записи камеры:",
             `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`
         ];
-        // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-        await showVisualCue(stats, "Запись завершена, статистика:");
+        await showVisualCueAsync(stats, "Запись завершена, статистика:");
         if (server_connection) {
-            // При мерже заменить функцию showVisualCue() на её ассинхронную версию showVisualCueAsync()
-            await showVisualCue(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+            await showVisualCueAsync(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
                 "Отправка записи");
         }
 
