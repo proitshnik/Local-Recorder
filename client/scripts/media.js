@@ -290,7 +290,7 @@ async function getMediaDevices() {
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены.']);
 
-                        const mediaExtensionUrl = chrome.runtime.getURL("media.html");
+                        const mediaExtensionUrl = chrome.runtime.getURL("pages/media.html");
 
                         // Закрытие вкладки media.html c открытием вкладки с настройками разрешений расширения
                         chrome.runtime.sendMessage({
@@ -682,8 +682,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             logClientAction({ action: "Get media devices success" });
             await sendButtonsStates('readyToRecord');
             await showVisualCueAsync(["Разрешения получены. Теперь вы можете начать запись.",
+                "Для удобства уведомление о доступе к вашему экрану можно скрыть или передвинуть. НЕЛЬЗЯ НАЖИМАТЬ НА «Закрыть доступ».",
+                "Предпросмотр будет отключен. Его можно включить по кнопке на служебной вкладке расширения. По умолчанию звук выключен и включается в плеере.",
+                "Во всплывающем окне расширения прокторинга можно найти статистику начала, продолжительности записи, а также разрешений.",
+                "В случае потери разрешений запись будет прервана и ее необходимо будет начать заново.",
+                "Расширение сообщит Вам обо всем необходимом. Удачной работы!",
+                "",
                 "Нажмите на кнопку «Начать запись» во всплывающем окне " +
-                "расширения прокторинга, когда будете готовы."],
+                "расширения прокторинга, когда будете готовы.",],
                 "Готово к записи");
         })
         .catch(async () => {
@@ -897,8 +903,7 @@ async function stopRecord() {
         }
         logClientAction({ action: "Recording stopped and files saved" });
 
-        const durationMs = endTime - startTime;
-        const duration = new Date(durationMs).toISOString().slice(11, 19);
+        const duration = getDifferenceInTime(endTime, startTime);
 
         const stats = [
             `Начало записи: ${getFormattedDateString(startTime)}`,
@@ -908,7 +913,8 @@ async function stopRecord() {
             "Файл записи экрана:",
             `${combinedFileName} (${(combinedFileSize / 1024 / 1024).toFixed(1)} MB)`,
             "Файл записи камеры:",
-            `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`
+            `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`,
+            "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
         // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
         waitForNotificationSuppression().then((suppress) => {
@@ -987,7 +993,6 @@ async function stopRecord() {
         }
     }
 
-    showVisualCue(["Запись завершена. Файл будет сохранен и загружен на сервер."], "Окончание записи");
     //chrome.runtime.sendMessage({ action: "closePopup" });
     logClientAction('Recording stopping');
 }
