@@ -20,11 +20,13 @@ export function showVisualCueAsync(messages, title = "Уведомление") {
             action: "gotoMediaTab",
             mediaExtensionUrl: chrome.runtime.getURL("media.html") }, (response) => {
                 if (chrome.runtime.lastError) {
-                console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
-                log_client_action("Error send gotoMediaTab", chrome.runtime.lastError.message);
+                    console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
+                    log_client_action("Error send gotoMediaTab", chrome.runtime.lastError.message);
                 }
-                console.log('Response gotoMediaTab', response);
-                log_client_action("Response gotoMediaTab", response);
+                else {
+                    console.log('Response gotoMediaTab', response);
+                    log_client_action("Response gotoMediaTab", response);
+                }
             });
 
         const existingOverlay = document.getElementById('custom-modal-overlay');

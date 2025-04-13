@@ -1,3 +1,5 @@
+import { log_client_action } from "./logger";
+
 function showVisualCue(messages, title = "Уведомление") {
 
     chrome.runtime.sendMessage({ action: "closePopup" });
@@ -43,8 +45,10 @@ chrome.runtime.onMessage.addListener((message) => {
                 console.error('Error send stopMediaNotification', chrome.runtime.lastError.message);
                 log_client_action("Error send stopMediaNotification", chrome.runtime.lastError.message);
             }
+            else {
                 console.log('Response stopMediaNotification', response);
                 log_client_action("Response stopMediaNotification", response);
+            }
         });
     }
 });
