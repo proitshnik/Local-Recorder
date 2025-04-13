@@ -1,5 +1,3 @@
-import { logClientAction } from './logger.js';
-
 function showVisualCue(messages, title = "Уведомление") {
 
     chrome.runtime.sendMessage({ action: "closePopup" });
@@ -7,7 +5,7 @@ function showVisualCue(messages, title = "Уведомление") {
     const existingOverlay = document.getElementById('custom-modal-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
-        logClientAction({ action: "Remove existing modal overlay" });
+        // logClientAction({ action: "Remove existing modal overlay" });
     }
 
     if (!Array.isArray(messages)) {
@@ -34,26 +32,26 @@ function showVisualCue(messages, title = "Уведомление") {
     modal.querySelector('#modal-close-btn').addEventListener('click', () => {
         overlay.remove();
         document.body.style.overflow = '';
-        logClientAction({ action: "Click modal close button" });
+        // logClientAction({ action: "Click modal close button" });
     });
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
-    logClientAction({ action: "Display modal overlay", title, messages });
+    // logClientAction({ action: "Display modal overlay", title, messages });
 }
 // Приём сообщений от фонового скрипта
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'showModal') {
-        logClientAction({ action: "Receive message", messageType: "showModal" });
+        // logClientAction({ action: "Receive message", messageType: "showModal" });
         showVisualCue(message.message, message.title);
         chrome.runtime.sendMessage({ action: 'stopMediaNotification' }, (response) => {
             if (chrome.runtime.lastError) {
                 console.error('Error send stopMediaNotification', chrome.runtime.lastError.message);
-                logClientAction("Error send stopMediaNotification", chrome.runtime.lastError.message);
+                // logClientAction("Error send stopMediaNotification", chrome.runtime.lastError.message);
             }
             else {
                 console.log('Response stopMediaNotification', response);
-                logClientAction("Response stopMediaNotification", response);
+                // logClientAction("Response stopMediaNotification", response);
             }
         });
     }
