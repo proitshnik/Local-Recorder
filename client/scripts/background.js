@@ -37,8 +37,10 @@ async function checkTabState() {
 	logClientAction({ action: "Check tab state for media.html", tabsCount: tabs.length });
 	if (tabs && tabs.length === 1) {
 		if (tabs[0].active) {
+			logClientAction({ action: "Tab state for media.html active"});
 			return [true, tabs[0].id];
 		} else {
+			logClientAction({ action: "Tab state for media.html not active"});
 			return [false, tabs[0].id];
 		}
 	}
@@ -89,6 +91,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 		}
 		if (message.action === "startRecord") {
 			sendStartMessage(message.formData);
+			logClientAction({ action: "sendStartMessage", message: message.formData});
 		} else {
 			chrome.runtime.sendMessage({action: message.action + "Media"});
 			logClientAction({ action: "Send message", messageType: `${message.action}Media` });
@@ -152,16 +155,19 @@ let screenCaptureActive = false;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.type === 'screenCaptureStatus') {
+		logClientAction("listener screenCaptureStatus");
 		screenCaptureActive = message.active;
 		sendResponse({ success: true });
 	}
 	if (message.type === 'getScreenCaptureStatus') {
+		logClientAction("listener getScreenCaptureStatus");
 		sendResponse({ active: screenCaptureActive });
 	}
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	const extensionUrl = chrome.runtime.getURL('pages/media.html');
+	logClientAction("onRemoved listener", extensionUrl);
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
@@ -179,6 +185,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 				'timeStr': timeStr
 			}, function() {
 				console.log('timeStr saved to storage');
+				logClientAction("timeStr saved to storage");
 			});
 		}
 	});
@@ -219,6 +226,7 @@ function openTab(url) {
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
 		if (message.action === 'gotoMediaTab') {
+			logClientAction("listener gotoMediaTab");
 			// Активируем вкладку media.html (по URL, переданному в message.mediaExtensionUrl)
 			openTab(message.mediaExtensionUrl);
 		}

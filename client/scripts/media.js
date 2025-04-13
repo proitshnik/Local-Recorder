@@ -1,4 +1,4 @@
-import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression} from './common.js';
+import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression, showGlobalVisualCue} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { logClientAction } from './logger.js';
 
@@ -107,11 +107,9 @@ async function clearLogs() {
             if (response.success) {
                 logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
-                logClientAction("Логи очищены перед завершением");
             } else {
                 logClientAction({ action: "Error while clearing logs", error: response.error });
                 // console.error("Ошибка очистки логов:", response.error);
-                logClientAction("Ошибка очистки логов:", response.error);
             }
             resolve();
         });
@@ -180,7 +178,10 @@ async function sendButtonsStates(state) {
             logClientAction(`Message with state: ${state} sent successfully`);
         }
     });
-    else buttonsStatesSave(state);
+    else {
+        buttonsStatesSave(state);
+        logClientAction(`sendButtonsStates ${state} else`);
+    }
 }
 
 async function getMediaDevices() {
@@ -574,12 +575,13 @@ async function uploadVideo() {
     chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
         if (!session_id) {
             console.error("Session ID не найден в хранилище");
-            logClientAction({ action: "Upload fails due to missing session ID" });
+            logClientAction({ action: `Upload fails due to missing session ID ${session_id}` });
             return;
         }
 
         const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
         if (!files.length) {
+            logClientAction("Ошибка при поиске записей");
             throw new Error(`Ошибка при поиске записей`);
         }
 
@@ -707,6 +709,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('patronymic', message.formData.patronymic || '');
         formData.append('link', message.formData.link || '');
 
+        logClientAction(formData);
+
         if (server_connection) {
             await initSession(formData);
         } else {
@@ -757,6 +761,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'suppressGlobalVisualCue') {
         notifications_flag = false;
         console.log('notifications_flag = ', notifications_flag);
+        logClientAction("'notifications_flag = ', notifications_flag")
     }
 });
 
@@ -800,6 +805,7 @@ async function initSession(formData) {
 let suppressNotificationPromise = new Promise((resolve) => {
     chrome.runtime.onMessage.addListener((message) => {
         if (message.action === 'suppressGlobalVisualCue') {
+            logClientAction("suppressNotificationPromise suppressGlobalVisualCue");
             resolve(true);
         }
     });
@@ -820,10 +826,12 @@ function stopDuration() {
         'timeStr': timeStr
     }, function() {
         console.log('timeStr saved to storage');
+        logClientAction("stopDuration timeStr saved to storage");
     });
 
     chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
         console.log('stopRecordSignal sent');
+        logClientAction("stopDuration stopRecordSignal sent");
     });
 }
 
@@ -916,6 +924,7 @@ async function stopRecord() {
             `${cameraFileName} (${(cameraFileSize / 1024 / 1024).toFixed(1)} MB)`,
             "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
+        logClientAction(stats);
         // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
         waitForNotificationSuppression().then((suppress) => {
             if (!suppress) {
