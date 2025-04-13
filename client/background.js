@@ -112,7 +112,7 @@ function clearLogs() {
 				resolve();
 			})
 			.catch((error) => {
-				console.error('Ошибка при очистке логов:', error);
+				// console.error('Ошибка при очистке логов:', error);
 				logClientAction('Ошибка при очистке логов:', error);
 				reject(error);
 			});
