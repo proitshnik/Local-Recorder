@@ -161,7 +161,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
-	const extensionUrl = chrome.runtime.getURL('media.html');
+	const extensionUrl = chrome.runtime.getURL('pages/media.html');
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
