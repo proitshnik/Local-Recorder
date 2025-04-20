@@ -125,11 +125,11 @@ chrome.runtime.onMessage.addListener(
 			chrome.runtime.sendMessage({ action: 'suppressGlobalVisualCue' }, (response) => {
 				if (chrome.runtime.lastError) {
 					console.error('Error send suppressGlobalVisualCue', chrome.runtime.lastError.message);
-					logClientAction("Error send suppressGlobalVisualCue", chrome.runtime.lastError.message);
+					logClientAction({ action: "Error send suppressGlobalVisualCue", message: chrome.runtime.lastError.message});
 				}
 				else {
 					console.log('Response suppressGlobalVisualCue', response);
-					logClientAction("Response suppressGlobalVisualCue", response);
+					logClientAction({ action: "Response suppressGlobalVisualCue", response});
 				}
 			});
 		}
@@ -152,7 +152,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	const extensionUrl = chrome.runtime.getURL('pages/media.html');
-	logClientAction("onRemoved listener", extensionUrl);
+	logClientAction({action: "onRemoved listener", extensionUrl});
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
