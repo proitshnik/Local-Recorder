@@ -85,8 +85,7 @@ function generateObjectId() {
 }
 
 function getBrowserFingerprint() {
-    logClientAction({ action: "Get browser fingerprint" });
-    return {
+    const fingerprint = {
         browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
         userAgent: navigator.userAgent,
         language: navigator.language || navigator.userLanguage || 'unknown',
@@ -99,6 +98,10 @@ function getBrowserFingerprint() {
         windowSize: `${window.innerWidth}x${window.innerHeight}`,
         doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
     };
+
+    logClientAction({ action: "Get browser fingerprint", fingerprint});
+
+    return fingerprint;
 }
 
 async function clearLogs() {
@@ -727,7 +730,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (server_connection) {
             await initSession(formData);
         } else {
-            logClientAction({ action: "Start recording without server", browserFingerprint: getBrowserFingerprint() });
+            getBrowserFingerprint()
 
             await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
 
@@ -779,7 +782,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function initSession(formData) {
-    logClientAction({ action: "Start recording via initSession", browserFingerprint: getBrowserFingerprint() });
+    getBrowserFingerprint()
 
     await chrome.storage.local.set({
         'lastRecordTime': new Date().toISOString()
