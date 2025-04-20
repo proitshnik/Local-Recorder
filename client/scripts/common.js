@@ -31,7 +31,7 @@ export function showVisualCueAsync(messages, title = "Уведомление") {
                     logClientAction("Error send gotoMediaTab", chrome.runtime.lastError.message);
                 }
                 else {
-                    console.log('Response gotoMediaTab', response);
+                    // console.log('Response gotoMediaTab', response);
                     logClientAction("Response gotoMediaTab", response);
                 }
             });
