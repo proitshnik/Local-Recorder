@@ -66,4 +66,4 @@ export function logClientAction(data) {
     });
 }
 
-setInterval(flushLogs, 5000);
+setInterval(flushLogs, 2000);
