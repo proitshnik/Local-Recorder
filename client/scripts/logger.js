@@ -26,7 +26,7 @@ export async function flushLogs() {
             let serializedLogs;
             try {
                 serializedLogs = JSON.stringify(logs);
-                console.log('Размер сериализованных логов:', new TextEncoder().encode(serializedLogs).length, 'байт');
+                // console.log('Размер сериализованных логов:', new TextEncoder().encode(serializedLogs).length, 'байт');
             } catch (e) {
                 console.error('Ошибка сериализации логов:', e.message);
                 return;
@@ -37,7 +37,7 @@ export async function flushLogs() {
                     if (chrome.runtime.lastError) {
                         console.error('Ошибка при сохранении логов:', chrome.runtime.lastError.message);
                     } else {
-                        console.log('Батч логов успешно сохранен', logs);
+                        // console.log('Батч логов успешно сохранен', logs);
                     }
                     resolve();
                 });

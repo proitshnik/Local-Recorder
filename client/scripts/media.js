@@ -777,7 +777,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'suppressGlobalVisualCue') {
         notifications_flag = false;
         console.log('notifications_flag = ', notifications_flag);
-        logClientAction("'notifications_flag = ', notifications_flag")
+        logClientAction(`notifications_flag = ${notifications_flag}`)
     }
 });
 
@@ -809,8 +809,7 @@ async function initSession(formData) {
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
         await showVisualCueAsync(["Ошибка инициализации сессии", error.message], "Ошибка")
-        logClientAction(`Session initialization failed: ${error.message}`);
-        logClientAction({ action: "Session initialization fails", error: error.message });
+        logClientAction({ action: "Session initialization failed", error: error.message });
         // startRecordButton.removeAttribute('disabled');
 		// stopRecordButton.setAttribute('disabled', '');
         throw error;
