@@ -105,6 +105,7 @@ async function clearLogs() {
     await new Promise((resolve) => {
         chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
             if (response.success) {
+                //ЗДЕСЬ НЕ НАДО ЛОГГИРОВАТЬ
                 //logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
             } else {
@@ -961,7 +962,6 @@ async function stopRecord() {
                 }
                 logClientAction('Delete tempfiles successful');
             });
-            await clearLogs()
         }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
@@ -1000,6 +1000,8 @@ async function stopRecord() {
 
             console.log(`Логи сохранены локально: ${logsFileName}`);
             logClientAction(`logs_saved_locally: ${logsFileName}`);
+
+            await clearLogs()
         } catch (error) {
             console.error("Ошибка при сохранении логов:", error);
             logClientAction(`logs_save_error: ${error.message}`);
