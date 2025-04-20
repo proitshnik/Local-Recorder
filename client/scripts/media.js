@@ -1,6 +1,6 @@
 import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression, showGlobalVisualCue} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
-import { logClientAction } from './logger.js';
+import { logClientAction, flushLogs } from './logger.js';
 
 var streams = {
     screen: null,
@@ -972,43 +972,11 @@ async function stopRecord() {
         cleanup();
     });
 
+    await delay(500);
+    await flushLogs();
+    await delay(100);
     if (!server_connection) {
-        try {
-            const { extension_logs } = await chrome.storage.local.get('extension_logs');
-            let logsToSave = [];
-
-            if (extension_logs) {
-                if (typeof extension_logs === "string") {
-                    try {
-                        logsToSave = JSON.parse(extension_logs);
-                    } catch (e) {
-                        console.error("Ошибка парсинга логов:", e);
-                        logsToSave = [{ error: "Invalid logs", raw_data: extension_logs }];
-                    }
-                } else {
-                    logsToSave = extension_logs;
-                }
-            }
-
-            const logsFileName = `extension_logs_${getCurrentDateString(new Date())}.json`;
-            const logsBlob = new Blob([JSON.stringify(logsToSave, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(logsBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = logsFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            console.log(`Логи сохранены локально: ${logsFileName}`);
-            logClientAction(`logs_saved_locally: ${logsFileName}`);
-
-            await clearLogs()
-        } catch (error) {
-            console.error("Ошибка при сохранении логов:", error);
-            logClientAction(`logs_save_error: ${error.message}`);
-        }
+        await downloadLogs();
     }
 
     //chrome.runtime.sendMessage({ action: "closePopup" });
@@ -1091,5 +1059,53 @@ async function startRecord() {
         // showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
         // await sendButtonsStates('needPermissions');
         throw error;
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function downloadLogs() {
+    try {
+        const { extension_logs } = await chrome.storage.local.get('extension_logs');
+        let logsToSave = [];
+
+        if (extension_logs) {
+            if (typeof extension_logs === "string") {
+                try {
+                    logsToSave = JSON.parse(extension_logs);
+                } catch (e) {
+                    console.error("Ошибка парсинга логов:", e);
+                    logsToSave = [{ error: "Invalid logs", raw_data: extension_logs }];
+                }
+            } else {
+                logsToSave = extension_logs;
+            }
+        }
+
+        const logsFileName = `extension_logs_${getCurrentDateString(new Date())}.json`;
+        const logsBlob = new Blob([JSON.stringify(logsToSave, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(logsBlob);
+
+        console.log("URL создан для скачивания: ", url);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = logsFileName;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+        console.log(`Логи сохранены локально: ${logsFileName}`);
+        logClientAction(`logs_saved_locally: ${logsFileName}`);
+
+        await clearLogs();
+    } catch (error) {
+        console.error("Ошибка при сохранении логов:", error);
+        logClientAction(`logs_save_error: ${error.message}`);
     }
 }
