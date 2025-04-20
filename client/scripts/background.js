@@ -108,19 +108,27 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 function clearLogs() {
 	return new Promise((resolve, reject) => {
-		chrome.storage.local.remove('extension_logs')
-			.then(() => {
-				console.log('Логи успешно очищены');
-				logClientAction('Логи успешно очищены');
-				resolve();
-			})
-			.catch((error) => {
-				// console.error('Ошибка при очистке логов:', error);
-				logClientAction('Ошибка при очистке логов:', error);
-				reject(error);
-			});
+		// Ставим флаг очистки
+		chrome.storage.local.set({ clearingLogs: true }, () => {
+			// Даем немного времени, чтобы все промисы "logClientAction" завершились
+			setTimeout(() => {
+				chrome.storage.local.remove('extension_logs', () => {
+					if (chrome.runtime.lastError) {
+						console.error('Ошибка при очистке логов:', chrome.runtime.lastError);
+						chrome.storage.local.set({ clearingLogs: false }); // Снимаем флаг даже при ошибке
+						reject(chrome.runtime.lastError);
+					} else {
+						console.log('Логи успешно очищены');
+						logClientAction({ action: 'Логи успешно очищены' });
+						chrome.storage.local.set({ clearingLogs: false }); // Снимаем флаг после успеха
+						resolve();
+					}
+				});
+			}, 100);  // Задержка 100ms перед удалением, чтобы дать шанс завершиться логам
+		});
 	});
 }
+
 
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {

@@ -105,10 +105,10 @@ async function clearLogs() {
     await new Promise((resolve) => {
         chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
             if (response.success) {
-                logClientAction({ action: "Clear logs" });
+                //logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
             } else {
-                logClientAction({ action: "Error while clearing logs", error: response.error });
+                //logClientAction({ action: "Error while clearing logs", error: response.error });
                 // console.error("Ошибка очистки логов:", response.error);
             }
             resolve();
@@ -710,7 +710,18 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('patronymic', message.formData.patronymic || '');
         formData.append('link', message.formData.link || '');
 
-        logClientAction(formData);
+        function formDataToObject(formData) {
+            const obj = {};
+            for (const [key, value] of formData.entries()) {
+                obj[key] = value;
+            }
+            return obj;
+        }
+
+        logClientAction({
+            action: "Receive startRecording formData",
+            formData: formDataToObject(formData),
+        });
 
         if (server_connection) {
             await initSession(formData);
@@ -950,6 +961,7 @@ async function stopRecord() {
                 }
                 logClientAction('Delete tempfiles successful');
             });
+            await clearLogs()
         }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
@@ -988,15 +1000,6 @@ async function stopRecord() {
 
             console.log(`Логи сохранены локально: ${logsFileName}`);
             logClientAction(`logs_saved_locally: ${logsFileName}`);
-
-            (async () => {
-                try {
-                    await clearLogs();
-                    console.log('Операция clearLogs завершена успешно');
-                } catch (error) {
-                    console.error('Ошибка во время выполнения clearLogs:', error);
-                }
-            })();
         } catch (error) {
             console.error("Ошибка при сохранении логов:", error);
             logClientAction(`logs_save_error: ${error.message}`);
