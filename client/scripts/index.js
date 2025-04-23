@@ -390,7 +390,10 @@ window.addEventListener('load', async () => {
 
 buttonElements.permissions.addEventListener('click', () => {
     logClientAction({ action: "Click permissions button" });
-	chrome.runtime.sendMessage({action: 'getPermissions'});
+    chrome.runtime.sendMessage({
+        action: "getPermissions",
+        activateMediaTab: true
+    });
     logClientAction({ action: "Send message", messageType: "getPermissions" });
 });
 
@@ -462,7 +465,8 @@ async function startRecCallback() {
 
     chrome.runtime.sendMessage({
         action: "startRecord",
-        formData: formData
+        formData: formData,
+        activateMediaTab: false
     });
     logClientAction({ action: "Send message", messageType: "startRecord" });
 }
@@ -497,7 +501,8 @@ async function stopRecCallback() {
 	stopRecordButton.setAttribute('disabled', '');
 	startRecordButton.removeAttribute('disabled');
 	await chrome.runtime.sendMessage({
-		action: "stopRecord"
+		action: "stopRecord",
+        activateMediaTab: false
 	});
     logClientAction({ action: "Send message", messageType: "stopRecord" });
 }

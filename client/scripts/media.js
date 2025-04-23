@@ -1,4 +1,4 @@
-import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression, showGlobalVisualCue} from './common.js';
+import { showModalNotify, waitForNotificationSuppression } from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
 import { logClientAction } from './logger.js';
 
@@ -189,7 +189,7 @@ async function getMediaDevices() {
         let streamLossSource = null;
         try {
             logClientAction({ action: "Request screen media" });
-            await showVisualCueAsync(["Пожалуйста, предоставьте доступ к экрану, микрофону и камере. " +
+            await showModalNotify(["Пожалуйста, предоставьте доступ к экрану, микрофону и камере. " +
                         "Не отключайте эти разрешения до окончания записи. " +
                         "Это необходимо для корректной работы системы прокторинга."],
                         "Разрешения для прокторинга");
@@ -198,7 +198,7 @@ async function getMediaDevices() {
                     logClientAction({ action: "User cancels screen selection" });
                     console.error('Пользователь отменил выбор экрана');
                     reject('Пользователь отменил выбор экрана');
-                    await showVisualCueAsync(["Пользователь отменил выбор экрана!", "Выдайте заново разрешения в расширении во всплывающем окне по кнопке Разрешения."], "Ошибка");
+                    await showModalNotify(["Пользователь отменил выбор экрана!", "Выдайте заново разрешения в расширении во всплывающем окне по кнопке Разрешения."], "Ошибка");
                     return;
                 }
                 try {
@@ -241,11 +241,11 @@ async function getMediaDevices() {
                         if (micError.name === 'NotAllowedError') {
                             micPermissionDenied = true;
                             logClientAction({ action: "Microphone permission denied", error: "NotAllowedError" });
-                            await showVisualCueAsync("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
+                            await showModalNotify("Ошибка при доступе к микрофону: NotAllowedError", "Ошибка");
                         } else {
                             logClientAction({ action: "Microphone permission denied" });
                             //alert('Ошибка при доступе к микрофону: ' + micError.message);
-                            await showVisualCueAsync('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
+                            await showModalNotify('Ошибка при доступе к микрофону: ' + micError.message, "Ошибка");
                             stopStreams();
                             reject(micError);
                             return;
@@ -265,12 +265,12 @@ async function getMediaDevices() {
                     } catch (camError) {
                         if (camError.name === 'NotAllowedError') {
                             logClientAction({ action: "Camera permission denied", error: "NotAllowedError" });
-                            await showVisualCueAsync("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
+                            await showModalNotify("Ошибка при доступе к камере: NotAllowedError", "Ошибка");
                             camPermissionDenied = true;
                         } else {
                             logClientAction({ action: "Camera permission denied" });
                             //alert('Ошибка при доступе к камере: ' + camError.message);
-                            await showVisualCueAsync('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
+                            await showModalNotify('Ошибка при доступе к камере: ' + camError.message, "Ошибка");
                             stopStreams();
                             reject(camError);
                             return;
@@ -287,7 +287,7 @@ async function getMediaDevices() {
                         // alert('Не предоставлен доступ к камере или микрофону.\n' +
                         //     'Сейчас откроется вкладка с настройками доступа для этого расширения.\n' +
                         //     'Пожалуйста, убедитесь, что камера и микрофон разрешены.');
-                        await showVisualCueAsync(['Не предоставлен доступ к камере или микрофону.',
+                        await showModalNotify(['Не предоставлен доступ к камере или микрофону.',
                             'Сейчас откроется вкладка с настройками доступа для этого расширения.',
                             'Пожалуйста, убедитесь, что камера и микрофон разрешены, а затем нажмите во всплывающем окне расширения кнопку Разрешения.']);
 
@@ -315,13 +315,13 @@ async function getMediaDevices() {
 
                         if (recorders.combined.state === 'inactive' && recorders.camera.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Разрешение на камеру отозвано.", 
+                            await showModalNotify(["Разрешение на камеру отозвано.",
                                 "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к камере потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к камере потерян!");
+                            await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к камере потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -335,13 +335,13 @@ async function getMediaDevices() {
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Разрешение на захват экрана отозвано.", 
+                            await showModalNotify(["Разрешение на захват экрана отозвано.", 
                                 "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к экрану потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к экрану потерян!");
+                            await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к экрану потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -354,13 +354,13 @@ async function getMediaDevices() {
 
                         if (!recorders.combined || recorders.combined.state === 'inactive') {
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Разрешение на микрофон отозвано.", 
+                            await showModalNotify(["Разрешение на микрофон отозвано.", 
                                 "Дайте доступ заново в расширении во всплывающем окне по кнопке Разрешения."], "Доступ к микрофону потерян!");
                             stopStreams();
                         } else {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
-                            await showVisualCueAsync(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к микрофону потерян!");
+                            await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к микрофону потерян!");
                             invalidStop = true;
                             stopRecord();
                         }
@@ -683,7 +683,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Get media devices success" });
             await sendButtonsStates('readyToRecord');
-            await showVisualCueAsync(["Разрешения получены. Теперь вы можете начать запись.",
+            await showModalNotify(["Разрешения получены. Теперь вы можете начать запись.",
                 "Для удобства уведомление о доступе к вашему экрану можно скрыть или передвинуть. НЕЛЬЗЯ НАЖИМАТЬ НА «Закрыть доступ».",
                 "НЕЛЬЗЯ ОБНОВЛЯТЬ, ЗАКРЫВАТЬ СЛУЖЕБНУЮ ВКЛАДКУ во время записи! НЕЛЬЗЯ ЗАКРЫВАТЬ БРАУЗЕР во время записи!",
                 "Предпросмотр будет отключен. Его можно включить по кнопке на служебной вкладке расширения. По умолчанию звук выключен и включается в плеере.",
@@ -723,25 +723,28 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             await chrome.storage.local.set({ 'session_id': sessionId });
             logClientAction({ action: "Generate session ID locally", sessionId });
         }
-        
+
         startRecord()
         .then(async () => {
             logClientAction({ action: "Start recording succeeds" });
             await sendButtonsStates('recording');
             // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then((suppress) => {
+            waitForNotificationSuppression().then(async (suppress) => {
                 if (!suppress) {
-                    showVisualCueAsync(["Запись экрана, микрофона и камеры началась. " +
+                    await showModalNotify(
+                        ["Запись экрана, микрофона и камеры началась. " +
                         "Не отключайте разрешения этим элементам до окончания записи.",
                         "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
-                        "Идёт запись");
+                        "Идёт запись",
+                        true
+                    );
                 }
-            }); 
+            });
         })
         .catch(async (error) => {
             // В startRecord есть свой обработчик ошибок
             await sendButtonsStates('needPermissions');
-            await showVisualCueAsync(["Ошибка при запуске записи:", error], "Ошибка");
+            await showModalNotify(["Ошибка при запуске записи:", error], "Ошибка");
         });
     }
     else if (message.action === 'uploadVideoMedia') {
@@ -749,7 +752,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
-            await showVisualCueAsync(["Запись успешно отправлена на сервер."], "Запись отправлена");
+            await showModalNotify(["Запись успешно отправлена на сервер."], "Запись отправлена");
         })
         .catch(async () => {
             await sendButtonsStates('failedUpload');
@@ -793,7 +796,7 @@ async function initSession(formData) {
         logClientAction({ action: "Save session ID from server", sessionId });
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
-        await showVisualCueAsync(["Ошибка инициализации сессии", error.message], "Ошибка")
+        await showModalNotify(["Ошибка инициализации сессии", error.message], "Ошибка")
         logClientAction(`Session initialization failed: ${error.message}`);
         logClientAction({ action: "Session initialization fails", error: error.message });
         // startRecordButton.removeAttribute('disabled');
@@ -927,18 +930,26 @@ async function stopRecord() {
         ];
         logClientAction(stats);
         // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-        waitForNotificationSuppression().then((suppress) => {
+        waitForNotificationSuppression().then(async (suppress) => {
             if (!suppress) {
-                showVisualCueAsync(stats, "Запись завершена, статистика:");
+                await showModalNotify(
+                    stats,
+                    "Запись завершена, статистика:",
+                    true
+                );
             }
         });
         if (server_connection && !invalidStop) {
             // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then((suppress) => {
+            waitForNotificationSuppression().then(async (suppress) => {
                 if (!suppress) {
-                    showVisualCueAsync(["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."], "Отправка записи");
+                    await showModalNotify(
+                        ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+                        "Отправка записи",
+                        true
+                    );
                 }
-            });   
+            });
         }
 
         cleanup();

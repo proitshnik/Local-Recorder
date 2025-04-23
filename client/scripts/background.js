@@ -1,4 +1,4 @@
-import {deleteFilesFromTempList, showGlobalVisualCue} from "./common.js";
+import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction } from "./logger.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -84,7 +84,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				chrome.tabs.onUpdated.addListener(listener);
 			});
 		} else {
-			if (!result[0]) {
+			if (!result[0] && message.activateMediaTab) {
 				logClientAction({ action: "Activate existing media.html tab", tabId: result[1] });
 				await chrome.tabs.update(result[1], {active: true});
 			}

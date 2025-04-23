@@ -19,110 +19,213 @@ export async function deleteFilesFromTempList() {
 }
 
 // Асинхронная версия модального уведомления, возвращающая Promise
-export function showVisualCueAsync(messages, title = "Уведомление") {
-    return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: "closePopup" });
+// export function showVisualCueAsync(messages, title = "Уведомление") {
+//     return new Promise((resolve) => {
+//         chrome.runtime.sendMessage({ action: "closePopup" });
 
-        chrome.runtime.sendMessage({ 
-            action: "gotoMediaTab",
-            mediaExtensionUrl: chrome.runtime.getURL("pages/media.html") }, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
-                    logClientAction("Error send gotoMediaTab", chrome.runtime.lastError.message);
-                }
-                else {
-                    console.log('Response gotoMediaTab', response);
-                    logClientAction("Response gotoMediaTab", response);
-                }
-            });
+//         chrome.runtime.sendMessage({ 
+//             action: "gotoMediaTab",
+//             mediaExtensionUrl: chrome.runtime.getURL("pages/media.html") }, (response) => {
+//                 if (chrome.runtime.lastError) {
+//                     console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
+//                     logClientAction({ action: "Error send gotoMediaTab", message: chrome.runtime.lastError.message});
+//                 }
+//                 else {
+//                     // console.log('Response gotoMediaTab', response);
+//                     logClientAction({ action: "Response gotoMediaTab", response});
+//                 }
+//             });
 
-        const existingOverlay = document.getElementById('custom-modal-overlay');
-        if (existingOverlay) existingOverlay.remove();
+//         const existingOverlay = document.getElementById('custom-modal-overlay');
+//         if (existingOverlay) existingOverlay.remove();
 
-        if (!Array.isArray(messages)) {
-            messages = [messages];
-        }
+//         if (!Array.isArray(messages)) {
+//             messages = [messages];
+//         }
 
-        const overlay = document.createElement('div');
-        overlay.id = 'custom-modal-overlay';
+//         const overlay = document.createElement('div');
+//         overlay.id = 'custom-modal-overlay';
 
-        const modal = document.createElement('div');
-        modal.id = 'custom-modal';
+//         const modal = document.createElement('div');
+//         modal.id = 'custom-modal';
 
-        modal.innerHTML = `
-            <h2>${title}</h2>
-            <div class="modal-content">
-                ${messages.map(msg => `<p>${msg}</p>`).join('')}
-            </div>
-            <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
-        `;
+//         modal.innerHTML = `
+//             <h2>${title}</h2>
+//             <div class="modal-content">
+//                 ${messages.map(msg => `<p>${msg}</p>`).join('')}
+//             </div>
+//             <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
+//         `;
 
-        modal.querySelector('#modal-close-btn').addEventListener('click', () => {
-            overlay.remove();
-            document.body.style.overflow = '';
-            resolve();
-        });
+//         modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+//             overlay.remove();
+//             document.body.style.overflow = '';
+//             resolve();
+//         });
 
-        document.body.style.overflow = 'hidden';
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-    });
-}
+//         document.body.style.overflow = 'hidden';
+//         overlay.appendChild(modal);
+//         document.body.appendChild(overlay);
+//     });
+// }
 
-export function showVisualCue(messages, title = "Уведомление") {
+// export function showVisualCue(messages, title = "Уведомление") {
 
+//     chrome.runtime.sendMessage({ action: "closePopup" });
+
+//     const existingOverlay = document.getElementById('custom-modal-overlay');
+//     if (existingOverlay) {
+//         existingOverlay.remove();
+//         logClientAction({ action: "Remove existing modal overlay before showing new one" });
+//     }
+
+//     if (!Array.isArray(messages)) {
+//         messages = [messages];
+//     }
+
+//     const overlay = document.createElement('div');
+//     overlay.id = 'custom-modal-overlay';
+
+//     const modal = document.createElement('div');
+//     modal.id = 'custom-modal';
+
+//     modal.innerHTML = `
+//         <h2>${title}</h2>
+//     <div class="modal-content">
+//       ${messages.map(msg => `<p>${msg}</p>`).join('')}
+//     </div>
+//     <button id="modal-close-btn">
+//       Хорошо. Я прочитал(а).
+//     </button>`;
+
+//     document.body.style.overflow = 'hidden';
+
+//     modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+//         overlay.remove();
+//         document.body.style.overflow = '';
+//         logClientAction({ action: "Close modal overlay by user" });
+//     });
+
+//     overlay.appendChild(modal);
+//     document.body.appendChild(overlay);
+//     logClientAction({ action: "Display modal overlay", title, messages });
+// }
+
+// export function showGlobalVisualCue(messages, title) {
+//     chrome.tabs.query({
+//         active: true,
+//         currentWindow: true
+//     }, (tabs) => {
+//         tabs.forEach((tab) => {
+//             chrome.tabs.sendMessage(tab.id, {
+//                 action: 'showModal',
+//                 title: title,
+//                 message: messages
+//             });
+//             logClientAction({ action: 'Send message to content script', messageType: "showModal", tabId: tab.id, title, messages });
+//         });
+//     });
+// }
+
+export async function showModalNotify(messages, title = "Уведомление", showOnActiveTab = false) {
     chrome.runtime.sendMessage({ action: "closePopup" });
-
-    const existingOverlay = document.getElementById('custom-modal-overlay');
-    if (existingOverlay) {
-        existingOverlay.remove();
-        logClientAction({ action: "Remove existing modal overlay before showing new one" });
-    }
 
     if (!Array.isArray(messages)) {
         messages = [messages];
     }
 
-    const overlay = document.createElement('div');
-    overlay.id = 'custom-modal-overlay';
+    if (showOnActiveTab) {
+        try {
+            return await sendModalNotifyToActiveTab(messages, title);
+        } catch (error) {
+            // console.warn('[sendModalNotifyToActiveTab] Ошибка отправки сообщения:', error.message);
+            const blockedErrors = [
+                'Receiving end does not exist',
+                'Could not establish connection',
+                'No matching service worker',
+                'The message port closed before a response was received.'
+            ];
 
-    const modal = document.createElement('div');
-    modal.id = 'custom-modal';
+            const isBlocked = blockedErrors.some(e => error.message.includes(e));
+            if (isBlocked) {
+                // console.warn('[showModalNotify] Модальное уведомление не доступно на текущей вкладке. Открываем media.html');
 
-    modal.innerHTML = `
-        <h2>${title}</h2>
-    <div class="modal-content">
-      ${messages.map(msg => `<p>${msg}</p>`).join('')}
-    </div>
-    <button id="modal-close-btn">
-      Хорошо. Я прочитал(а).
-    </button>`;
+                return await showModalNotify(messages, title, false);
+            }
+            throw error;
+        }
+    } else {
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage({
+                action: "gotoMediaTab",
+                mediaExtensionUrl: chrome.runtime.getURL("pages/media.html") }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
+                        logClientAction("Error send gotoMediaTab", chrome.runtime.lastError.message);
+                    }
+                    else {
+                        console.log('Response gotoMediaTab', response);
+                        logClientAction("Response gotoMediaTab", response);
+                    }
+                });
 
-    document.body.style.overflow = 'hidden';
+            const existingOverlay = document.getElementById('custom-modal-overlay');
+            if (existingOverlay) existingOverlay.remove();
 
-    modal.querySelector('#modal-close-btn').addEventListener('click', () => {
-        overlay.remove();
-        document.body.style.overflow = '';
-        logClientAction({ action: "Close modal overlay by user" });
-    });
+            const overlay = document.createElement('div');
+            overlay.id = 'custom-modal-overlay';
 
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    logClientAction({ action: "Display modal overlay", title, messages });
+            const modal = document.createElement('div');
+            modal.id = 'custom-modal';
+
+            modal.innerHTML = `
+                <h2>${title}</h2>
+                <div class="modal-content">
+                    ${messages.map(msg => `<p>${msg}</p>`).join('')}
+                </div>
+                <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
+            `;
+
+            modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+                overlay.remove();
+                document.body.style.overflow = '';
+                resolve();
+            });
+
+            document.body.style.overflow = 'hidden';
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        });
+    }
 }
 
-export function showGlobalVisualCue(messages, title) {
-    chrome.tabs.query({
-        active: true,
-        currentWindow: true
-    }, (tabs) => {
-        tabs.forEach((tab) => {
+function sendModalNotifyToActiveTab(messages, title) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (chrome.runtime.lastError) {
+                return reject(new Error(chrome.runtime.lastError.message));
+            }
+
+            const tab = tabs[0];
+            if (!tab || !tab.id) {
+            return reject(new Error('Активная вкладка не найдена'));
+            }
+
             chrome.tabs.sendMessage(tab.id, {
-                action: 'showModal',
-                title: title,
-                message: messages
+                type: 'showModalNotifyOnActiveTab',
+                title,
+                messages
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    return reject(new Error(chrome.runtime.lastError.message));
+                }
+
+                if (typeof response === 'undefined') {
+                    return reject(new Error('Контент-скрипт не ответил'));
+                }
+
+                resolve(response);
             });
-            logClientAction({ action: 'Send message to content script', messageType: "showModal", tabId: tab.id, title, messages });
         });
     });
 }
