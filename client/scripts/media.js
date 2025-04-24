@@ -638,6 +638,28 @@ async function uploadVideo() {
 
         logClientAction({ action: "Send upload request", sessionId: session_id, messageType: "upload_video" });
 
+        const eventSource = new EventSource(`http://127.0.0.1:5000/progress/${session_id}`);
+
+        eventSource.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            if (data.step == 7) {
+                logClientAction({ action: `Data transfer completed` });
+                eventSource.close();
+                await showVisualCueAsync([`Статус: ${data.message}`,
+                    `Процент загрузки: 100`], 'Записи успешно отправлены');
+            } else {
+                await showVisualCueAsync([`Статус: ${data.message}`,
+                    `Процент загрузки: ${data.step * 14}`], 'Идёт отправка...');
+            }
+        };
+        
+        // Срабатывает когда не удаётся установить соединение с источником событий
+        eventSource.onerror = async (err) => {
+            logClientAction({ action: `An error occurred while trying to connect to the server: ${err}` });
+            await showVisualCueAsync([`Произошла ошибка при попытке соединения с сервером: ${err}`], 'Ошибка при соединении');
+            console.error(err);
+        };
+
         fetch('http://127.0.0.1:5000/upload_video', {
             method: "POST",
             body: formData,
@@ -764,7 +786,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
-            await showVisualCueAsync(["Запись успешно отправлена на сервер."], "Запись отправлена");
+            //await showVisualCueAsync(["Запись успешно отправлена на сервер."], "Запись отправлена");
         })
         .catch(async () => {
             await sendButtonsStates('failedUpload');
