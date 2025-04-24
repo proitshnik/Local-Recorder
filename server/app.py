@@ -69,7 +69,7 @@ progress_store = {}
 def sse_progress(id):
     def event_stream():
         while True:
-            progress = progress_store.get(id, {"step": 0, "message": "Waiting"})
+            progress = progress_store.get(id, {"step": 0, "message": "Ожидание запроса"})
             yield f"data: {json.dumps(progress)}\n\n"
             if progress["step"] == 7:
                 del progress_store[id]
