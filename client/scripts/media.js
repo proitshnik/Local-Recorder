@@ -1,6 +1,6 @@
 import { showModalNotify, waitForNotificationSuppression } from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
-import { logClientAction } from './logger.js';
+import { logClientAction, flushLogs } from './logger.js';
 
 var streams = {
     screen: null,
@@ -85,8 +85,7 @@ function generateObjectId() {
 }
 
 function getBrowserFingerprint() {
-    logClientAction({ action: "Get browser fingerprint" });
-    return {
+    const fingerprint = {
         browserVersion: navigator.userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'unknown',
         userAgent: navigator.userAgent,
         language: navigator.language || navigator.userLanguage || 'unknown',
@@ -99,16 +98,21 @@ function getBrowserFingerprint() {
         windowSize: `${window.innerWidth}x${window.innerHeight}`,
         doNotTrack: navigator.doNotTrack || window.doNotTrack || 'unknown'
     };
+
+    logClientAction({ action: "Get browser fingerprint", fingerprint});
+
+    return fingerprint;
 }
 
 async function clearLogs() {
     await new Promise((resolve) => {
         chrome.runtime.sendMessage({ action: "clearLogs" }, (response) => {
             if (response.success) {
-                logClientAction({ action: "Clear logs" });
+                //ЗДЕСЬ НЕ НАДО ЛОГГИРОВАТЬ
+                //logClientAction({ action: "Clear logs" });
                 console.log("Логи очищены перед завершением");
             } else {
-                logClientAction({ action: "Error while clearing logs", error: response.error });
+                //logClientAction({ action: "Error while clearing logs", error: response.error });
                 // console.error("Ошибка очистки логов:", response.error);
             }
             resolve();
@@ -710,12 +714,23 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         formData.append('patronymic', message.formData.patronymic || '');
         formData.append('link', message.formData.link || '');
 
-        logClientAction(formData);
+        function formDataToObject(formData) {
+            const obj = {};
+            for (const [key, value] of formData.entries()) {
+                obj[key] = value;
+            }
+            return obj;
+        }
+
+        logClientAction({
+            action: "Receive startRecording formData",
+            formData: formDataToObject(formData),
+        });
 
         if (server_connection) {
             await initSession(formData);
         } else {
-            logClientAction({ action: "Start recording without server", browserFingerprint: getBrowserFingerprint() });
+            getBrowserFingerprint()
 
             await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
 
@@ -765,12 +780,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'suppressModalNotifyAT') {
         notifications_flag = false;
         console.log('notifications_flag = ', notifications_flag);
-        logClientAction("'notifications_flag = ', notifications_flag")
+        logClientAction(`notifications_flag = ${notifications_flag}`)
     }
 });
 
 async function initSession(formData) {
-    logClientAction({ action: "Start recording via initSession", browserFingerprint: getBrowserFingerprint() });
+    getBrowserFingerprint()
 
     await chrome.storage.local.set({
         'lastRecordTime': new Date().toISOString()
@@ -797,8 +812,7 @@ async function initSession(formData) {
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
         await showModalNotify(["Ошибка инициализации сессии", error.message], "Ошибка")
-        logClientAction(`Session initialization failed: ${error.message}`);
-        logClientAction({ action: "Session initialization fails", error: error.message });
+        logClientAction({ action: "Session initialization failed", error: error.message });
         // startRecordButton.removeAttribute('disabled');
 		// stopRecordButton.setAttribute('disabled', '');
         throw error;
@@ -958,50 +972,11 @@ async function stopRecord() {
         cleanup();
     });
 
+    await delay(500);
+    await flushLogs();
+    await delay(100);
     if (!server_connection) {
-        try {
-            const { extension_logs } = await chrome.storage.local.get('extension_logs');
-            let logsToSave = [];
-
-            if (extension_logs) {
-                if (typeof extension_logs === "string") {
-                    try {
-                        logsToSave = JSON.parse(extension_logs);
-                    } catch (e) {
-                        console.error("Ошибка парсинга логов:", e);
-                        logsToSave = [{ error: "Invalid logs", raw_data: extension_logs }];
-                    }
-                } else {
-                    logsToSave = extension_logs;
-                }
-            }
-
-            const logsFileName = `extension_logs_${getCurrentDateString(new Date())}.json`;
-            const logsBlob = new Blob([JSON.stringify(logsToSave, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(logsBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = logsFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            console.log(`Логи сохранены локально: ${logsFileName}`);
-            logClientAction(`logs_saved_locally: ${logsFileName}`);
-
-            (async () => {
-                try {
-                    await clearLogs();
-                    console.log('Операция clearLogs завершена успешно');
-                } catch (error) {
-                    console.error('Ошибка во время выполнения clearLogs:', error);
-                }
-            })();
-        } catch (error) {
-            console.error("Ошибка при сохранении логов:", error);
-            logClientAction(`logs_save_error: ${error.message}`);
-        }
+        await downloadLogs();
     }
 
     //chrome.runtime.sendMessage({ action: "closePopup" });
@@ -1084,5 +1059,53 @@ async function startRecord() {
         // showVisualCue(["Ошибка при запуске записи:", error], "Ошибка");
         // await sendButtonsStates('needPermissions');
         throw error;
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function downloadLogs() {
+    try {
+        const { extension_logs } = await chrome.storage.local.get('extension_logs');
+        let logsToSave = [];
+
+        if (extension_logs) {
+            if (typeof extension_logs === "string") {
+                try {
+                    logsToSave = JSON.parse(extension_logs);
+                } catch (e) {
+                    console.error("Ошибка парсинга логов:", e);
+                    logsToSave = [{ error: "Invalid logs", raw_data: extension_logs }];
+                }
+            } else {
+                logsToSave = extension_logs;
+            }
+        }
+
+        const logsFileName = `extension_logs_${getCurrentDateString(new Date())}.json`;
+        const logsBlob = new Blob([JSON.stringify(logsToSave, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(logsBlob);
+
+        console.log("URL создан для скачивания: ", url);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = logsFileName;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+        console.log(`Логи сохранены локально: ${logsFileName}`);
+        logClientAction(`logs_saved_locally: ${logsFileName}`);
+
+        await clearLogs();
+    } catch (error) {
+        console.error("Ошибка при сохранении логов:", error);
+        logClientAction(`logs_save_error: ${error.message}`);
     }
 }

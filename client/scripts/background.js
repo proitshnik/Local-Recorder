@@ -1,5 +1,5 @@
 import {deleteFilesFromTempList} from "./common.js";
-import { logClientAction } from "./logger.js";
+import { logClientAction, clearLogs } from "./logger.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.action === 'scheduleCleanup') {
@@ -106,21 +106,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 	}
 });
 
-function clearLogs() {
-	return new Promise((resolve, reject) => {
-		chrome.storage.local.remove('extension_logs')
-			.then(() => {
-				console.log('Логи успешно очищены');
-				logClientAction('Логи успешно очищены');
-				resolve();
-			})
-			.catch((error) => {
-				// console.error('Ошибка при очистке логов:', error);
-				logClientAction('Ошибка при очистке логов:', error);
-				reject(error);
-			});
-	});
-}
 
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
@@ -140,11 +125,11 @@ chrome.runtime.onMessage.addListener(
 			chrome.runtime.sendMessage({ action: 'suppressModalNotifyAT' }, (response) => {
 				if (chrome.runtime.lastError) {
 					console.error('Error send suppressModalNotifyAT', chrome.runtime.lastError.message);
-					logClientAction("Error send suppressModalNotifyAT", chrome.runtime.lastError.message);
+					logClientAction({ action: "Error send suppressModalNotifyAT", message: chrome.runtime.lastError.message});
 				}
 				else {
 					console.log('Response suppressModalNotifyAT', response);
-					logClientAction("Response suppressModalNotifyAT", response);
+					logClientAction({ action: "Response suppressModalNotifyAT", response});
 				}
 			});
 		}
@@ -167,7 +152,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 	const extensionUrl = chrome.runtime.getURL('pages/media.html');
-	logClientAction("onRemoved listener", extensionUrl);
+	logClientAction({action: "onRemoved listener", extensionUrl});
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
