@@ -762,7 +762,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'suppressGlobalVisualCue') {
+    if (message.action === 'suppressModalNotifyAT') {
         notifications_flag = false;
         console.log('notifications_flag = ', notifications_flag);
         logClientAction("'notifications_flag = ', notifications_flag")
@@ -804,16 +804,6 @@ async function initSession(formData) {
         throw error;
     }
 }
-
-// Инициализируем промис, который разрешится, когда придёт сигнал о подавлении уведомления
-let suppressNotificationPromise = new Promise((resolve) => {
-    chrome.runtime.onMessage.addListener((message) => {
-        if (message.action === 'suppressGlobalVisualCue') {
-            logClientAction("suppressNotificationPromise suppressGlobalVisualCue");
-            resolve(true);
-        }
-    });
-});
 
 function stopDuration() {
     const durationMs = new Date() - startTime;

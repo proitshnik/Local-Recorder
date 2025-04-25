@@ -137,14 +137,14 @@ chrome.runtime.onMessage.addListener(
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
 		if (message.action === "stopMediaNotification") {
-			chrome.runtime.sendMessage({ action: 'suppressGlobalVisualCue' }, (response) => {
+			chrome.runtime.sendMessage({ action: 'suppressModalNotifyAT' }, (response) => {
 				if (chrome.runtime.lastError) {
-					console.error('Error send suppressGlobalVisualCue', chrome.runtime.lastError.message);
-					logClientAction("Error send suppressGlobalVisualCue", chrome.runtime.lastError.message);
+					console.error('Error send suppressModalNotifyAT', chrome.runtime.lastError.message);
+					logClientAction("Error send suppressModalNotifyAT", chrome.runtime.lastError.message);
 				}
 				else {
-					console.log('Response suppressGlobalVisualCue', response);
-					logClientAction("Response suppressGlobalVisualCue", response);
+					console.log('Response suppressModalNotifyAT', response);
+					logClientAction("Response suppressModalNotifyAT", response);
 				}
 			});
 		}

@@ -134,8 +134,8 @@ export function waitForNotificationSuppression(timeout = 300) {
     return new Promise((resolve) => {
         // Создаём временный слушатель сообщений для получения сигнала от background.js
         function messageListener(message, sender, sendResponse) {
-            if (message.action === 'suppressGlobalVisualCue') {
-                logClientAction("waitForNotificationSuppression suppressGlobalVisualCue")
+            if (message.action === 'suppressModalNotifyAT') {
+                logClientAction("waitForNotificationSuppression suppressModalNotifyAT")
                 chrome.runtime.onMessage.removeListener(messageListener);
                 resolve(true);
             }
@@ -144,7 +144,7 @@ export function waitForNotificationSuppression(timeout = 300) {
 
         // Если сигнал не придёт за timeout мс, считаем, что уведомление нужно показать
         setTimeout(() => {
-            logClientAction("waitForNotificationSuppression suppressGlobalVisualCue timeout")
+            logClientAction("waitForNotificationSuppression suppressModalNotifyAT timeout")
             chrome.runtime.onMessage.removeListener(messageListener);
             resolve(false);
         }, timeout);

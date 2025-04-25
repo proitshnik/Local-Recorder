@@ -1,4 +1,4 @@
-async function showNotificationModal(messages, title) {
+async function showModalNotifyAT(messages, title) {
     return new Promise((resolve) => {
         const existingOverlay = document.getElementById('custom-modal-overlay');
         if (existingOverlay) existingOverlay.remove();
@@ -31,7 +31,7 @@ async function showNotificationModal(messages, title) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'showModalNotifyOnActiveTab') {
-        showNotificationModal(message.messages, message.title).then(() => {
+        showModalNotifyAT(message.messages, message.title).then(() => {
             sendResponse({ confirmed: true });
         });
         return true;
