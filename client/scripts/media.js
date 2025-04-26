@@ -640,16 +640,18 @@ async function uploadVideo() {
 
         const eventSource = new EventSource(`http://127.0.0.1:5000/progress/${session_id}`);
 
+        const steps = 7;
+
         eventSource.onmessage = async (event) => {
             const data = JSON.parse(event.data);
-            if (data.step == 7) {
-                logClientAction({ action: `Data transfer completed` });
+            if (data.step == steps) {
+                logClientAction({ action: "Data transfer completed" });
                 eventSource.close();
                 await showVisualCueAsync([`Статус: ${data.message}`,
-                    `Процент загрузки: 100`], 'Записи успешно отправлены');
+                    `Отправка завершена на 100 %`], "Записи успешно отправлены");
             } else {
                 await showVisualCueAsync([`Статус: ${data.message}`,
-                    `Процент загрузки: ${data.step * 14}`], 'Идёт отправка...');
+                    `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...");
             }
         };
         
@@ -657,7 +659,8 @@ async function uploadVideo() {
         eventSource.onerror = async (err) => {
             logClientAction({ action: `An error occurred while trying to connect to the server: ${err}` });
             await showVisualCueAsync([`Произошла ошибка при попытке соединения с сервером: ${err}`,
-                'Попробуйте отправить запись ещё раз!'
+                "Попробуйте отправить запись ещё раз!",
+                "Свяжитесь с преподавателем, если не удалось отправить три раза!",
             ], 'Ошибка при соединении');
             eventSource.close();
             console.error(err);
