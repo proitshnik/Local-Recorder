@@ -6,7 +6,7 @@
     overflow: hidden;
     flex-direction: column;
     align-items: center;
-    border: thick double #774030;
+    border: thick double #001c8c;
     background-color: #faf0ec;
     margin: 0px;
 }
@@ -15,7 +15,7 @@
     margin: 1px 0 1px;
     font-size: 18px;
     text-align: center;
-    color: #774030;
+    color: #001c8c;
 }
 
 label {
@@ -30,8 +30,8 @@ label {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background-color: #d7be9b;
-    color: #774030;
+    background-color: #d6c9b8;
+    color: #001c8c;
     border: none;
     font-size: 20px;
     font-weight: bold;
@@ -41,8 +41,8 @@ label {
 }
 
 .help-button:hover {
-    background-color: #774030;
-    color: #d7be9b;
+    background-color: #001c8c;
+    color: #d6c9b8;
 }
 
 .help-button:focus {
@@ -72,19 +72,19 @@ label {
     font-size: 13px;
     margin-bottom: 1px;
     font-weight: bold;
-    color: #774030;
+    color: #001c8c;
 }
 
 /* Валидное поле */
 .input-valid {
-    border-color: #808c5e !important;
+    border-color: #37a728 !important;
     background-color: rgba(40, 167, 69, 0.1);
     box-shadow: inset 0 0 4px rgba(40, 167, 69, 0.4);
 }
 
 /* Невалидное поле */
 .input-invalid {
-    border-color: #991f1f !important;
+    border-color: #dc3545 !important;
     background-color: rgba(220, 53, 69, 0.1);
     box-shadow: inset 0 0 4px rgba(220, 53, 69, 0.4);
 }
@@ -111,7 +111,7 @@ label {
 }
 
 .message-error {
-    color: #991f1f;
+    color: #dc3545;
 }
 
 .no-patronymic-container {
@@ -125,7 +125,7 @@ label {
     height: 12px;
     cursor: pointer;
     appearance: none;
-    border: 1px solid #774030;
+    border: 1px solid #001c8c;
     border-radius: 3px;
     display: flex;
     justify-content: center;
@@ -136,7 +136,7 @@ label {
 .no-patronymic-checkbox:checked::before {
     content: '✔';
     font-size: 12px;
-    color: #774030;
+    color: #001c8c;
     position: absolute;
 }
 
@@ -149,7 +149,7 @@ label {
     font-size: 13px;
     user-select: none;
     cursor: default;
-    color: #774030;
+    color: #001c8c;
 }
 
 .record-section {
@@ -174,7 +174,7 @@ label {
 }
 
 .record-section__button_inactive {
-    background-color: #e6d5be;
+    background-color: #e9c492;
 }
 
 .record-section__button_inprogress {
@@ -182,17 +182,17 @@ label {
 }
 
 .record-section__button_active_permissions {
-    background-color: #33658a;
+    background-color: #00488c;
     color: #faf0ec;
 }
 
 .record-section__button_active_start {
-    background-color: #7b9a5e;
+    background-color: #3cc553;
     color: #faf0ec;
 }
 
 .record-section__button_active_stop {
-    background-color: #991f1f;
+    background-color: #dc3545;
     color: #faf0ec;
 }
 
@@ -202,15 +202,15 @@ label {
 }
 
 .record-section__button_active_permissions:hover {
-    background-color: #229bb3;
+    background-color: #29caca;
 }
 
 .record-section__button_active_start:hover {
-    background-color: #35b949;
+    background-color: #2d9b3d;
 }
 
 .record-section__button_active_stop:hover {
-    background-color: #bf2e2e;
+    background-color: #a72727;
 }
 
 .record-section__button_active_upload:hover {
@@ -248,7 +248,7 @@ label {
 
 .stats-section strong {
     font-weight: bold;
-    color: #774030;
+    color: #001c8c;
 }
 
 .stats-section span {
