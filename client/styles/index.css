@@ -7,7 +7,7 @@
     flex-direction: column;
     align-items: center;
     border: thick double #774030;
-    background-color: #faeedd;
+    background-color: #faf0ec;
     margin: 0px;
 }
 
@@ -183,22 +183,22 @@ label {
 
 .record-section__button_active_permissions {
     background-color: #33658a;
-    color: #faeedd;
+    color: #faf0ec;
 }
 
 .record-section__button_active_start {
     background-color: #7b9a5e;
-    color: #faeedd;
+    color: #faf0ec;
 }
 
 .record-section__button_active_stop {
     background-color: #991f1f;
-    color: #faeedd;
+    color: #faf0ec;
 }
 
 .record-section__button_active_upload {
     background-color: #5d5085;
-    color: #faeedd;
+    color: #faf0ec;
 }
 
 .record-section__button_active_permissions:hover {
