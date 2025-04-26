@@ -20,7 +20,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 	}
 });
 
-var startTime
+var startTime;
 
 function sendStartMessage(formData) {
 	screenCaptureActive = true;

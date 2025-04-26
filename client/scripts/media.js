@@ -1,6 +1,6 @@
 import {showVisualCue, showVisualCueAsync, waitForNotificationSuppression, showGlobalVisualCue} from './common.js';
 import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
-import { logClientAction, flushLogs } from './logger.js';
+import { logClientAction, flushLogs, checkAndCleanLogs } from './logger.js';
 
 var streams = {
     screen: null,
@@ -656,7 +656,10 @@ async function uploadVideo() {
         // Срабатывает когда не удаётся установить соединение с источником событий
         eventSource.onerror = async (err) => {
             logClientAction({ action: `An error occurred while trying to connect to the server: ${err}` });
-            await showVisualCueAsync([`Произошла ошибка при попытке соединения с сервером: ${err}`], 'Ошибка при соединении');
+            await showVisualCueAsync([`Произошла ошибка при попытке соединения с сервером: ${err}`,
+                'Попробуйте отправить запись ещё раз!'
+            ], 'Ошибка при соединении');
+            eventSource.close();
             console.error(err);
         };
 
@@ -680,15 +683,13 @@ async function uploadVideo() {
                     }
                     logClientAction({ action: "Delete temp files succeeds" });
                 });
+                await clearLogs();
+                logClientAction({ action: "Clear logs after upload video" });
             })
             .catch(async (error) => {
                 console.error("Ошибка при отправке видео на сервер:", error);
                 await sendButtonsStates('failedUpload');
                 logClientAction({ action: "Upload video fails", error: error.message, sessionId: session_id });
-            })
-            .finally(async () => {
-                await clearLogs();
-                logClientAction({ action: "Clear logs after upload video" });
             });
     });
 }
@@ -727,6 +728,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
     }
     else if (message.action === 'startRecording') {
+        if (!invalidStop) await checkAndCleanLogs();
         logClientAction({ action: "Receive message", messageType: "startRecording" });
 
         const formData = new FormData();
