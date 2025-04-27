@@ -248,7 +248,7 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.value = '';
         inputElements.patronymic.disabled = true;
         inputElements.patronymic.nextElementSibling.textContent = "";
-        inputElements.patronymic.style.backgroundColor = "#DCDCDC";
+        inputElements.patronymic.style.backgroundColor = "#f1d5ca";
 
         inputElements.patronymic.classList.remove('input-valid', 'input-invalid');
         inputElements.patronymic.dataset.emptyChecked = '';
@@ -310,7 +310,7 @@ window.addEventListener('load', async () => {
                 inputElements.patronymic.value = "";
                 inputElements.patronymic.setAttribute('disabled', '');
                 inputElements.patronymic.nextElementSibling.textContent = "";
-                inputElements.patronymic.style.backgroundColor = "#DCDCDC";
+                inputElements.patronymic.style.backgroundColor = "#f1d5ca";
             }
         } else {
             const input = inputElements[key];
