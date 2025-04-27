@@ -548,7 +548,7 @@ async function addFileToTempList(fileName) {
 const beforeUnloadHandler = (event) => {
     logClientAction({ action: "Trigger beforeunload warning" });
     // TODO
-    // showVisualCueAsync(["Не закрывайте вкладку расширения при записи!", 
+    // showModalNotify(["Не закрывайте вкладку расширения при записи!", 
     //     "Не обновляйте вкладку расширения при записи!",
     //     "Не закрывайте браузер при записи!", 
     //     "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
@@ -647,10 +647,10 @@ async function uploadVideo() {
             if (data.step == steps) {
                 logClientAction({ action: "Data transfer completed" });
                 eventSource.close();
-                await showVisualCueAsync([`Статус: ${data.message}`,
+                await showModalNotify([`Статус: ${data.message}`,
                     `Отправка завершена на 100 %`], "Записи успешно отправлены");
             } else {
-                await showVisualCueAsync([`Статус: ${data.message}`,
+                await showModalNotify([`Статус: ${data.message}`,
                     `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...");
             }
         };
@@ -658,7 +658,7 @@ async function uploadVideo() {
         // Срабатывает когда не удаётся установить соединение с источником событий
         eventSource.onerror = async (err) => {
             logClientAction({ action: `An error occurred while trying to connect to the server: ${err}` });
-            await showVisualCueAsync([`Произошла ошибка при попытке соединения с сервером: ${err}`,
+            await showModalNotify([`Произошла ошибка при попытке соединения с сервером: ${err}`,
                 "Попробуйте отправить запись ещё раз!",
                 "Свяжитесь с преподавателем, если не удалось отправить три раза!",
             ], 'Ошибка при соединении');
@@ -794,7 +794,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         uploadVideo()
         .then(async () => {
             await sendButtonsStates('needPermissions');
-            //await showVisualCueAsync(["Запись успешно отправлена на сервер."], "Запись отправлена");
+            //await showModalNotify(["Запись успешно отправлена на сервер."], "Запись отправлена");
         })
         .catch(async () => {
             await sendButtonsStates('failedUpload');
