@@ -248,7 +248,9 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.value = '';
         inputElements.patronymic.disabled = true;
         inputElements.patronymic.nextElementSibling.textContent = "";
-        inputElements.patronymic.style.backgroundColor = "#f1d5ca";
+        inputElements.patronymic.style.backgroundColor = "#f7c2ae";
+        inputElements.patronymic.style.opacity = 0.5;
+        inputElements.patronymic.placeholder = "";
 
         inputElements.patronymic.classList.remove('input-valid', 'input-invalid');
         inputElements.patronymic.dataset.emptyChecked = '';
@@ -257,6 +259,7 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.value = storedData.savedPatronymic || "";
         inputElements.patronymic.disabled = false;
         inputElements.patronymic.style.backgroundColor = "";
+        inputElements.patronymic.placeholder = "Введите отчество";
         validateInput(inputElements.patronymic);
     }
     saveInputValues();
@@ -310,7 +313,9 @@ window.addEventListener('load', async () => {
                 inputElements.patronymic.value = "";
                 inputElements.patronymic.setAttribute('disabled', '');
                 inputElements.patronymic.nextElementSibling.textContent = "";
-                inputElements.patronymic.style.backgroundColor = "#f1d5ca";
+                inputElements.patronymic.style.backgroundColor = "#f7c2ae";
+                inputElements.patronymic.style.opacity = 0.5;
+                inputElements.patronymic.placeholder = "";
             }
         } else {
             const input = inputElements[key];
