@@ -1,4 +1,4 @@
-import {deleteFilesFromTempList, showGlobalVisualCue} from "./common.js";
+import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction, clearLogs } from "./logger.js";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -84,7 +84,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 				chrome.tabs.onUpdated.addListener(listener);
 			});
 		} else {
-			if (!result[0]) {
+			if (!result[0] && message.activateMediaTab) {
 				logClientAction({ action: "Activate existing media.html tab", tabId: result[1] });
 				await chrome.tabs.update(result[1], {active: true});
 			}
@@ -122,14 +122,14 @@ chrome.runtime.onMessage.addListener(
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
 		if (message.action === "stopMediaNotification") {
-			chrome.runtime.sendMessage({ action: 'suppressGlobalVisualCue' }, (response) => {
+			chrome.runtime.sendMessage({ action: 'suppressModalNotifyAT' }, (response) => {
 				if (chrome.runtime.lastError) {
-					console.error('Error send suppressGlobalVisualCue', chrome.runtime.lastError.message);
-					logClientAction({ action: "Error send suppressGlobalVisualCue", message: chrome.runtime.lastError.message});
+					console.error('Error send suppressModalNotifyAT', chrome.runtime.lastError.message);
+					logClientAction({ action: "Error send suppressModalNotifyAT", message: chrome.runtime.lastError.message});
 				}
 				else {
-					console.log('Response suppressGlobalVisualCue', response);
-					logClientAction({ action: "Response suppressGlobalVisualCue", response});
+					console.log('Response suppressModalNotifyAT', response);
+					logClientAction({ action: "Response suppressModalNotifyAT", response});
 				}
 			});
 		}

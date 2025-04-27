@@ -1,5 +1,5 @@
 .mediatab {
-    background-color: #faeedd;
+    background-color: #faf0ec;
 }
 
 .main {
@@ -42,7 +42,7 @@
 
 
 #custom-modal {
-    background: #ffffff;
+    background: #faf0ec;
     color: #000000;
     padding: 20px;
     border-radius: 8px;
@@ -62,13 +62,13 @@
 
 #modal-close-btn {
     margin-top: 15px;
-    background: #007BFF;
-    color: #ffffff !important;
+    background: #00488c;
+    color: #faf0ec !important;
     border: none;
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 #modal-close-btn:hover {
