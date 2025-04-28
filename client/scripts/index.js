@@ -260,6 +260,7 @@ noPatronymicCheckbox.addEventListener('change', async () => {
         inputElements.patronymic.disabled = false;
         inputElements.patronymic.style.backgroundColor = "";
         inputElements.patronymic.placeholder = "Введите отчество";
+        inputElements.patronymic.style.opacity = 1;
         validateInput(inputElements.patronymic);
     }
     saveInputValues();
