@@ -659,9 +659,10 @@ async function uploadVideo() {
         };
         
         // Срабатывает когда не удаётся установить соединение с источником событий
+        // TODO Наполнить err полезной информацией
         eventSource.onerror = async (err) => {
             logClientAction({ action: `An error occurred while trying to connect to the server: ${err}` });
-            await showModalNotify([`Произошла ошибка при попытке соединения с сервером: ${err}`,
+            await showModalNotify([`Произошла ошибка при попытке соединения с сервером!`,
                 "Попробуйте отправить запись ещё раз!",
                 "Свяжитесь с преподавателем, если не удалось отправить три раза!",
             ], 'Ошибка при соединении');
