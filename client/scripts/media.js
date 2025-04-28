@@ -174,7 +174,7 @@ async function sendButtonsStates(state) {
         state = 'needPermissions';
         logClientAction({ action: "Update buttons states due to missing server connection" });
     }
-    if (await checkOpenedPopup()){ console.log('popup is open', state); chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
+    if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
         if (chrome.runtime.lastError) {
             logClientAction(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
             buttonsStatesSave(state);
@@ -184,8 +184,7 @@ async function sendButtonsStates(state) {
             }
             logClientAction(`Message with state: ${state} sent successfully`);
         }
-        console.log('Response from background script:', response);
-    });}
+    });
     else {
         buttonsStatesSave(state);
         logClientAction(`sendButtonsStates ${state} else`);
