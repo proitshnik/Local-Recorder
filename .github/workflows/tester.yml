@@ -21,7 +21,7 @@ jobs:
       - name: Run server tests
         run: |
           chmod +x tests/run_tests.sh
-          ./tests/run_tests
+          ./tests/run_tests.sh
 
       - name: Stop server
         if: always()
