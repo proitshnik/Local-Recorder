@@ -1,0 +1,30 @@
+import requests
+
+
+def check_integration(url):
+    print(f"Проверка начала сессии по адресу {url}")
+    try:
+        form_data = {
+            "group": "0000",
+            "surname": "Tester",
+            "name": "Test",
+            "patronymic": "Testerovich",
+            "link": "http://test.com"
+        }
+
+        print(f"Создана форма {form_data} для интеграционного тестирования")
+
+        response = requests.post(url, data=form_data)
+        
+        assert response.status_code == 201, f"Ошибка начала сессии. Статус: {response.status_code}. Ответ: {response.text}"
+
+        print(f"Сессия успешно начата с id {response.text}")
+    except Exception as e:
+        print(f'Произошла ошибка: {e}')
+
+
+if __name__ == "__main__":
+    print("---")
+    print("Интеграционный тест (начало сессии)")
+    check_integration(f"http://0.0.0.0:5000/start_session")
+    print("---")

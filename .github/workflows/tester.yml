@@ -1,0 +1,28 @@
+name: Tester for Local proctoring
+
+on:
+  workflow_dispatch:
+    
+jobs:
+  tester:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python packages
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tests/requirements.txt
+    
+      - name: Start server
+        run: docker compose -f server/docker-compose.yml up -d
+
+      - name: Run server tests
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests
+
+      - name: Stop server
+        if: always()
+        run: docker compose -f server/docker-compose.yml down
