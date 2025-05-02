@@ -1,8 +1,6 @@
-import { buttonsStatesSave } from "./common.js";
-import { logClientAction, checkAndCleanLogs } from "./logger.js";
+import { buttonsStatesSave, deleteFiles, getCurrentDateString, showModalNotify } from "./common.js";
+import { logClientAction, checkAndCleanLogs, clearLogs } from "./logger.js";
 
-const startRecordButton = document.querySelector('.record-section__button_record-start');
-const stopRecordButton = document.querySelector('.record-section__button_record-stop');
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
 const permissionsStatus = document.querySelector('#permissions-status');
 const startDate = document.querySelector('#start-date');
@@ -25,7 +23,8 @@ const buttonElements = {
 	permissions: document.querySelector('.record-section__button_permissions'),
 	start: document.querySelector('.record-section__button_record-start'),
 	stop: document.querySelector('.record-section__button_record-stop'),
-	upload: document.querySelector('.record-section__button_upload')
+	upload: document.querySelector('.record-section__button_upload'),
+    help: document.querySelector('.help-button'),
 };
 
 if (!server_connection) {
@@ -89,7 +88,7 @@ const validationRules = {
     }
 };
 
-document.querySelector('#help-button').addEventListener('click', () => {
+buttonElements.help.addEventListener('click', () => {
     const url = chrome.runtime.getURL('pages/help.html');
 
     chrome.tabs.query({}, (tabs) => {
@@ -381,13 +380,22 @@ buttonElements.permissions.addEventListener('click', () => {
 buttonElements.upload.addEventListener('click', async () => {
     logClientAction({ action: "Click upload button" });
     if (!server_connection) return;
-	const files = (await chrome.storage.local.get('fileNames'))['fileNames'];
+	const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'];
 	if (!files) {
 		buttonsStatesSave('needPermissions');
 		updateButtonsStates();
 	}
-	chrome.runtime.sendMessage({action: 'uploadVideoMedia'});
-    logClientAction({ action: "Send message", messageType: "uploadVideoMedia" });
+    logClientAction({ action: "Start uploading video" });
+	uploadVideo()
+    .then(() => {
+        buttonsStatesSave('needPermissions');
+        updateButtonsStates();
+        //await showModalNotify(["Запись успешно отправлена на сервер."], "Запись отправлена");
+    })
+    .catch(() => {
+        buttonsStatesSave('failedUpload');
+        updateButtonsStates();
+    });
 });
 
 async function startRecCallback() {
@@ -420,8 +428,8 @@ async function startRecCallback() {
         return;
     }
 
-    startRecordButton.setAttribute('disabled', '');
-    stopRecordButton.removeAttribute('disabled');
+    buttonElements.start.setAttribute('disabled', '');
+    buttonElements.stop.removeAttribute('disabled');
     saveInputValues();
 
     const now = new Date();
@@ -454,8 +462,8 @@ async function startRecCallback() {
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "disableButtons") {
-        startRecordButton.removeAttribute('disabled');
-        stopRecordButton.setAttribute('disabled', '');
+        buttonElements.start.removeAttribute('disabled');
+        buttonElements.stop.setAttribute('disabled', '');
         logClientAction({ action: "Receive message", messageType: "disableButtons" });
     }
 });
@@ -479,8 +487,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function stopRecCallback() {
     logClientAction({ action: "Click stop record button" });
-	stopRecordButton.setAttribute('disabled', '');
-	startRecordButton.removeAttribute('disabled');
+	buttonElements.stop.setAttribute('disabled', '');
+	buttonElements.start.removeAttribute('disabled');
 	await chrome.runtime.sendMessage({
 		action: "stopRecord",
         activateMediaTab: false
@@ -488,8 +496,8 @@ async function stopRecCallback() {
     logClientAction({ action: "Send message", messageType: "stopRecord" });
 }
 
-startRecordButton.addEventListener('click', startRecCallback);
-stopRecordButton.addEventListener('click', stopRecCallback);
+buttonElements.start.addEventListener('click', startRecCallback);
+buttonElements.stop.addEventListener('click', stopRecCallback);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'updateButtonStates') {
@@ -508,3 +516,120 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         logClientAction({ action: "Receive message", messageType: "updateButtonStates" });
     }
 });
+
+async function uploadVideo() {
+    chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
+        if (!session_id) {
+            console.error("Session ID не найден в хранилище");
+            logClientAction({ action: `Upload fails due to missing session ID ${session_id}` });
+            return;
+        }
+
+        const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+        if (!files.length) {
+            logClientAction("Ошибка при поиске записей");
+            throw new Error(`Ошибка при поиске записей`);
+        }
+
+        const formData = new FormData();
+        const rootDirectory = await navigator.storage.getDirectory();
+
+        for (const filename of files) {
+            if (filename.includes('screen')) {
+                formData.append('screen_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            } else {
+                formData.append('camera_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
+            }
+        }
+        
+        formData.append("id", session_id);
+        const metadata = (await chrome.storage.local.get('metadata'))['metadata'] || {};
+        formData.append("metadata", metadata);
+
+        //logClientAction({ action: "Prepare upload payload", sessionId: session_id, fileNames: [combinedFileName, cameraFileName] });
+
+        if (extension_logs) {
+            let logsToSend;
+            if (typeof extension_logs === "string") {
+                try {
+                    logsToSend = JSON.parse(extension_logs);
+                } catch (e) {
+                    console.error("Ошибка парсинга логов:", e);
+                    logsToSend = [{ error: "Invalid logs", raw_data: extension_logs }];
+                    logClientAction({ action: "Parse logs error", error: e.message });
+                }
+            } else {
+                logsToSend = extension_logs;
+            }
+
+            const logsBlob = new Blob([JSON.stringify(logsToSend, null, 2)], { type: 'application/json' });
+            formData.append("logs", logsBlob, "extension_logs.json");
+
+            const logsFileName = `extension_logs_${session_id}_${getCurrentDateString(new Date())}.json`;
+            const url = URL.createObjectURL(logsBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = logsFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            logClientAction({ action: "Download logs file", fileName: logsFileName });
+        }
+
+        logClientAction({ action: "Send upload request", sessionId: session_id, messageType: "upload_video" });
+
+        const eventSource = new EventSource(`http://127.0.0.1:5000/progress/${session_id}`);
+
+        const steps = 7;
+
+        eventSource.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            if (data.step == steps) {
+                logClientAction({ action: "Data transfer completed" });
+                eventSource.close();
+                await showModalNotify([`Статус: ${data.message}`,
+                    `Отправка завершена на 100 %`], "Записи успешно отправлены");
+            } else {
+                await showModalNotify([`Статус: ${data.message}`,
+                    `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...");
+            }
+        };
+        
+        // Срабатывает когда не удаётся установить соединение с источником событий
+        // TODO Наполнить err полезной информацией
+        eventSource.onerror = async (err) => {
+            logClientAction({ action: `An error occurred while trying to connect to the server: ${JSON.stringify(err)}` });
+            eventSource.close();
+            await showModalNotify([`Произошла ошибка при попытке соединения с сервером!`,
+                "Попробуйте отправить запись ещё раз!",
+                "Свяжитесь с преподавателем, если не удалось отправить три раза!",
+            ], 'Ошибка при соединении');
+        };
+
+        fetch('http://127.0.0.1:5000/upload_video', {
+            method: "POST",
+            body: formData,
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(`Ошибка при загрузке видео: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log("Видео успешно отправлено:", result);
+                logClientAction({ action: "Upload video succeeds", sessionId: session_id });
+            })
+            .then(async () => {
+                await deleteFiles();
+                await clearLogs();
+                logClientAction({ action: "Clear logs after upload video" });
+            })
+            .catch(error => {
+                console.error("Ошибка при отправке видео на сервер:", error);
+                buttonsStatesSave('failedUpload');
+                updateButtonsStates();
+                logClientAction({ action: "Upload video fails", error: error.message, sessionId: session_id });
+            });
+    });
+}
