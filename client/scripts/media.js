@@ -188,28 +188,6 @@ async function sendButtonsStates(state) {
     }
 }
 
-function getScreenStream() {
-    return new Promise((resolve, reject) => {
-        chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
-            if (!streamId) return reject('Экран не выбран');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        mandatory: {
-                            chromeMediaSource: 'desktop',
-                            chromeMediaSourceId: streamId,
-                        }
-                    }
-                });
-                resolve(stream);
-            } catch (e) {
-                reject(e);
-            }
-        });
-    });
-}
-
-
 async function setupMultiScreenRecording(initialStreamId, displays) {
     const firstStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -296,9 +274,47 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
 
     const multiStream = canvas.captureStream(15);
     logClientAction({ action: "Canvas stream created for multi-monitor", screens: streamsList.length });
-    return multiStream;
+    return [multiStream, streamsList];
 }
 
+let previousDisplayCount = 0;
+let displayCheckInterval;
+function startDisplayMonitoring(screenStream, checkInterval = 2000) {
+    checkDisplays(screenStream);
+    displayCheckInterval = setInterval(() => {
+        checkDisplays(screenStream);
+    }, checkInterval);
+}
+
+function stopDisplayMonitoring() {
+    if (displayCheckInterval) {
+        clearInterval(displayCheckInterval);
+    }
+}
+
+async function checkDisplays(screenStream) {
+    try {
+        const displays = await new Promise(res => chrome.system.display.getInfo(res));
+        if (displays.length < previousDisplayCount && previousDisplayCount > 0) {
+            console.warn(`Экран отключен! Было: ${previousDisplayCount}, стало: ${displays.length}`);
+            handleScreenDisconnected(screenStream);
+        }
+        previousDisplayCount = displays.length;
+    } catch (error) {
+        console.error('Ошибка при проверке экранов:', error);
+    }
+}
+
+async function handleScreenDisconnected(screenStream) {
+    stopDisplayMonitoring();
+    const videoTracks = screenStream.getVideoTracks();
+    if (videoTracks.length > 0 && videoTracks[0].readyState !== 'ended') {
+        // Принудительно останавливаем трек
+        videoTracks[0].stop();
+    }
+    await showModalNotify("Беспроводной экран был отключен", "Запись остановлена");
+    stopRecord();
+}
 
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
@@ -323,10 +339,12 @@ async function getMediaDevices() {
 
                 const displays = await new Promise(res => chrome.system.display.getInfo(res));
 
+                let streamsList = null;
                 if (displays.length > 1) {
                     try {
                         const multiStream = await setupMultiScreenRecording(streamId, displays);
-                        streams.screen = multiStream;
+                        streams.screen = multiStream[0];
+                        streamsList = multiStream[1];
                     } catch (err) {
                         console.error("Multi‑screen setup failed, fallback to single:", err);
                     }
@@ -336,7 +354,7 @@ async function getMediaDevices() {
                     logClientAction({ action: "User grants screen access" });
 
 
-
+                    startDisplayMonitoring(streams.screen);
                     if (!streams.screen) {
                         console.log("multiscreen didn't work");
                         streams.screen = await navigator.mediaDevices.getUserMedia({
