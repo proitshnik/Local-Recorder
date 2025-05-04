@@ -188,6 +188,81 @@ async function sendButtonsStates(state) {
     }
 }
 
+function getScreenStream() {
+    return new Promise((resolve, reject) => {
+        chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
+            if (!streamId) return reject('Экран не выбран');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: streamId,
+                        }
+                    }
+                });
+                resolve(stream);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+}
+
+
+async function setupMultiScreenRecording(displays) {
+    // получаем по одному потоку на каждый монитор
+    console.log("displays number: ", displays.length);
+    const screenStreams = [];
+    for (let i = 0; i < displays.length; i++) {
+        try {
+            const s = await getScreenStream();
+            screenStreams.push(s);
+            logClientAction({ action: `Got stream for monitor ${i+1}` });
+        } catch (err) {
+            console.warn(`Не удалось получить поток для монитора ${i+1}:`, err);
+        }
+    }
+    if (screenStreams.length === 0) throw new Error("Не получено ни одного экрана");
+
+    // создаём видео‑элементы для каждого потока
+    const videos = screenStreams.map(s => {
+        const v = document.createElement('video');
+        v.srcObject = s;
+        v.play();
+        return v;
+    });
+
+    // вычисляем размер canvas: ширина = сумма ширин, высота = максимум высот
+    const widths = displays.map(d => d.bounds.width);
+    const heights = displays.map(d => d.bounds.height);
+    const totalWidth = widths.reduce((a,b)=>a+b,0);
+    const maxHeight = Math.max(...heights);
+    const scale = window.devicePixelRatio || 1;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = totalWidth * scale;
+    canvas.height = maxHeight * scale;
+    const ctx = canvas.getContext('2d');
+
+    // отрисовываем все видео рядом
+    (function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let x = 0;
+        for (let i = 0; i < videos.length; i++) {
+            ctx.drawImage(videos[i], x, 0,
+                displays[i].bounds.width * scale,
+                displays[i].bounds.height * scale);
+            x += displays[i].bounds.width * scale;
+        }
+        requestAnimationFrame(draw);
+    })();
+
+    // возвращаем canvas‑поток
+    return canvas.captureStream(/* FPS, например 15 */);
+}
+
+
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         let streamLossSource = null;
@@ -197,6 +272,9 @@ async function getMediaDevices() {
                         "Не отключайте эти разрешения до окончания записи. " +
                         "Это необходимо для корректной работы системы прокторинга."],
                         "Разрешения для прокторинга");
+
+
+
             chrome.desktopCapture.chooseDesktopMedia(['screen'], async (streamId) => {
                 if (!streamId) {
                     logClientAction({ action: "User cancels screen selection" });
@@ -205,28 +283,45 @@ async function getMediaDevices() {
                     await showModalNotify(["Пользователь отменил выбор экрана!", "Выдайте заново разрешения в расширении во всплывающем окне по кнопке Разрешения."], "Ошибка");
                     return;
                 }
+
+                const displays = await new Promise(res => chrome.system.display.getInfo(res));
+
+                if (displays.length > 1) {
+                    try {
+                        const multiStream = await setupMultiScreenRecording(displays);
+                        streams.screen = multiStream;
+                    } catch (err) {
+                        console.error("Multi‑screen setup failed, fallback to single:", err);
+                    }
+                }
+
                 try {
                     logClientAction({ action: "User grants screen access" });
 
-                    streams.screen = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            mandatory: {
-                                chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: streamId,
-                                width: { 
-                                    ideal: 1920, 
-                                    max: Math.min(2560, screen.width),
-                                    min: Math.min(1440, screen.width)
-                                },
-                                height: { 
-                                    ideal: 1080,
-                                    max: Math.min(1440, screen.height),
-                                    min: Math.min(810, screen.height)
-                                },
-                                frameRate: { ideal: 20, max: 20, min: 15 }
+
+
+                    if (!streams.screen) {
+                        console.log("multiscreen didn't work");
+                        streams.screen = await navigator.mediaDevices.getUserMedia({
+                            video: {
+                                mandatory: {
+                                    chromeMediaSource: 'desktop',
+                                    chromeMediaSourceId: streamId,
+                                    width: {
+                                        ideal: 1920,
+                                        max: Math.min(2560, screen.width),
+                                        min: Math.min(1440, screen.width)
+                                    },
+                                    height: {
+                                        ideal: 1080,
+                                        max: Math.min(1440, screen.height),
+                                        min: Math.min(810, screen.height)
+                                    },
+                                    frameRate: { ideal: 20, max: 20, min: 15 }
+                                }
                             }
-                        },
-                    });
+                        });
+                    }
 
                     if (!streams.screen || streams.screen.getVideoTracks().length === 0) {
                         logClientAction({ action: "Screen stream not available" });
