@@ -590,10 +590,10 @@ async function uploadVideo() {
                 logClientAction({ action: "Data transfer completed" });
                 eventSource.close();
                 await showModalNotify([`Статус: ${data.message}`,
-                    `Отправка завершена на 100 %`], "Записи успешно отправлены", true);
+                    `Отправка завершена на 100 %`], "Записи успешно отправлены", true, true);
             } else {
                 await showModalNotify([`Статус: ${data.message}`,
-                    `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...", true);
+                    `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...", true, true);
             }
         };
         
@@ -605,7 +605,7 @@ async function uploadVideo() {
             await showModalNotify([`Произошла ошибка при попытке соединения с сервером!`,
                 "Попробуйте отправить запись ещё раз!",
                 "Свяжитесь с преподавателем, если не удалось отправить три раза!",
-            ], 'Ошибка при соединении', true);
+            ], 'Ошибка при соединении', true, true);
         };
 
         fetch('http://127.0.0.1:5000/upload_video', {
