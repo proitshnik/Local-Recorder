@@ -210,56 +210,93 @@ function getScreenStream() {
 }
 
 
-async function setupMultiScreenRecording(displays) {
-    // получаем по одному потоку на каждый монитор
-    console.log("displays number: ", displays.length);
-    const screenStreams = [];
-    for (let i = 0; i < displays.length; i++) {
-        try {
-            const s = await getScreenStream();
-            screenStreams.push(s);
-            logClientAction({ action: `Got stream for monitor ${i+1}` });
-        } catch (err) {
-            console.warn(`Не удалось получить поток для монитора ${i+1}:`, err);
+async function setupMultiScreenRecording(initialStreamId, displays) {
+    // массив всех streamId, первый уже выбран пользователем
+    const chosenIds = [ initialStreamId ];
+    console.log('initialStreamId: ', initialStreamId);
+    // 1) получаем getUserMedia для первого экрана
+    const firstStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+            mandatory: {
+                chromeMediaSource: 'desktop',
+                chromeMediaSourceId: initialStreamId,
+                maxWidth: displays[0].bounds.width,
+                maxHeight: displays[0].bounds.height,
+                frameRate: 15
+            }
         }
-    }
-    if (screenStreams.length === 0) throw new Error("Не получено ни одного экрана");
+    });
+    const streamsList = [ firstStream ];
 
-    // создаём видео‑элементы для каждого потока
-    const videos = screenStreams.map(s => {
+    // 2) для каждого дополнительного монитора — спрашиваем новый streamId
+    for (let i = 1; i < displays.length; i++) {
+        let sid = null;
+        // цикл until пользователь выберет не тот же монитор
+        while (true) {
+            sid = await new Promise(resolve =>
+                chrome.desktopCapture.chooseDesktopMedia(['screen'], resolve)
+            );
+            if (!sid) {
+                throw new Error('Пользователь отменил выбор дополнительного экрана');
+            }
+            if (!chosenIds.includes(sid)) break;
+            // если выбрал тот же — попросим выбрать другой
+            await showModalNotify(
+                "Вы уже выбрали этот монитор. Пожалуйста, выберите другой.",
+                "Выбор монитора"
+            );
+        }
+        chosenIds.push(sid);
+        console.log('new sid: ', sid);
+        // получаем MediaStream для этого монитора
+        const s = await navigator.mediaDevices.getUserMedia({
+            video: {
+                mandatory: {
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: sid,
+                    maxWidth: displays[i].bounds.width,
+                    maxHeight: displays[i].bounds.height,
+                    frameRate: 15
+                }
+            }
+        });
+        streamsList.push(s);
+    }
+
+    // 3) объединяем все video‑потоки на одном canvas
+    const scale = window.devicePixelRatio || 1;
+    const totalWidth = displays.reduce((sum,d)=>sum + d.bounds.width, 0) * scale;
+    const maxHeight = Math.max(...displays.map(d=>d.bounds.height)) * scale;
+    const canvas = document.createElement('canvas');
+    canvas.width = totalWidth;
+    canvas.height = maxHeight;
+    const ctx = canvas.getContext('2d');
+
+    // подготовим <video> для каждого потока
+    const videos = streamsList.map(strm => {
         const v = document.createElement('video');
-        v.srcObject = s;
+        v.srcObject = strm;
         v.play();
         return v;
     });
 
-    // вычисляем размер canvas: ширина = сумма ширин, высота = максимум высот
-    const widths = displays.map(d => d.bounds.width);
-    const heights = displays.map(d => d.bounds.height);
-    const totalWidth = widths.reduce((a,b)=>a+b,0);
-    const maxHeight = Math.max(...heights);
-    const scale = window.devicePixelRatio || 1;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = totalWidth * scale;
-    canvas.height = maxHeight * scale;
-    const ctx = canvas.getContext('2d');
-
-    // отрисовываем все видео рядом
+    // рисуем в loop
     (function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         let x = 0;
-        for (let i = 0; i < videos.length; i++) {
-            ctx.drawImage(videos[i], x, 0,
-                displays[i].bounds.width * scale,
-                displays[i].bounds.height * scale);
-            x += displays[i].bounds.width * scale;
+        for (let idx = 0; idx < videos.length; idx++) {
+            const w = displays[idx].bounds.width * scale;
+            const h = displays[idx].bounds.height * scale;
+            ctx.drawImage(videos[idx], x, 0, w, h);
+            x += w;
         }
         requestAnimationFrame(draw);
     })();
 
-    // возвращаем canvas‑поток
-    return canvas.captureStream(/* FPS, например 15 */);
+    // итоговый поток
+    const multiStream = canvas.captureStream(15);
+    logClientAction({ action: "Canvas stream created for multi-monitor", screens: chosenIds.length });
+    return multiStream;
 }
 
 
@@ -288,7 +325,7 @@ async function getMediaDevices() {
 
                 if (displays.length > 1) {
                     try {
-                        const multiStream = await setupMultiScreenRecording(displays);
+                        const multiStream = await setupMultiScreenRecording(streamId, displays);
                         streams.screen = multiStream;
                     } catch (err) {
                         console.error("Multi‑screen setup failed, fallback to single:", err);
