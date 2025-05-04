@@ -558,18 +558,49 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 window.addEventListener('unload', () => {
     logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
     if (recorders.camera || recorders.screen) {
-        buttonsStatesSave('needPermissions');
+        let bState;
+        chrome.storage.local.get('bState').then(result => {
+            bState = result.bState;
+            logClientAction({"action": "Get bState when media load", bState});
+            if (bState == 'readyUpload' || bState == 'failedUpload') {
+                logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
+            }
+            else {
+                logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+            }
+        }).catch(error => {
+            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+            logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+            buttonsStatesSave('needPermissions');
+        });
     }
 })
 
 window.addEventListener('load', () => {
     logClientAction({ action: "Load media.html tab" });
     Object.values(streams).some(async (stream) => {
-        if (stream === null) {
-            logClientAction({ action: "Some stream is null - request permissions" });
-            await sendButtonsStates('needPermissions');
-            return true;
-        }
+        let bState;
+        chrome.storage.local.get('bState').then(result => {
+            bState = result.bState;
+            console.log(bState);
+            logClientAction({"action": "Get bState when media load", bState});
+            if (bState == 'readyUpload' || bState == 'failedUpload') {
+                logClientAction({ action: `Tab media.html load - but current state is ${bState}` });
+            }
+            else if (stream === null) {
+                logClientAction({ action: "Some stream is null - request permissions. Tab media.html load - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+                return true;
+            }
+        }).catch(error => {
+            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+            if (stream === null) {
+                logClientAction({ action: "Some stream is null - request permissions. Tab media.html load - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+                return true;
+            }
+        });
     });
 });
 
