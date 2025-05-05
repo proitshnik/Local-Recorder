@@ -1,4 +1,5 @@
 import requests
+import sys
 
 
 def check_integration(url):
@@ -21,6 +22,7 @@ def check_integration(url):
         print(f"Сессия успешно начата с id {response.text}")
     except Exception as e:
         print(f'Произошла ошибка: {e}')
+        sys.exit(1)
 
 
 if __name__ == "__main__":
