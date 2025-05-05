@@ -135,23 +135,6 @@ chrome.runtime.onMessage.addListener(
 	}
 );
 
-chrome.runtime.onMessage.addListener(
-	function(message, sender, sendResponse) {
-		if (message.action === "stopMediaNotification") {
-			chrome.runtime.sendMessage({ action: 'suppressModalNotifyAT' }, (response) => {
-				if (chrome.runtime.lastError) {
-					console.error('Error send suppressModalNotifyAT', chrome.runtime.lastError.message);
-					logClientAction({ action: "Error send suppressModalNotifyAT", message: chrome.runtime.lastError.message});
-				}
-				else {
-					console.log('Response suppressModalNotifyAT', response);
-					logClientAction({ action: "Response suppressModalNotifyAT", response});
-				}
-			});
-		}
-	}
-);
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.type === 'screenCaptureStatus') {
 		logClientAction({ action: "listener screenCaptureStatus", active: message.active });
