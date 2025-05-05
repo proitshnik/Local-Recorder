@@ -1,6 +1,6 @@
 import { showModalNotify, waitForNotificationSuppression } from './common.js';
-import { deleteFilesFromTempList, buttonsStatesSave } from "./common.js";
-import { logClientAction, flushLogs } from './logger.js';
+import { buttonsStatesSave, deleteFiles, getCurrentDateString } from "./common.js";
+import { logClientAction, flushLogs, checkAndCleanLogs } from './logger.js';
 
 var streams = {
     screen: null,
@@ -179,6 +179,9 @@ async function sendButtonsStates(state) {
             logClientAction(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
             buttonsStatesSave(state);
         } else {
+            if (!response || !response.hasOwnProperty('status') || response.status !== 'success') {
+                buttonsStatesSave(state);
+            }
             logClientAction(`Message with state: ${state} sent successfully`);
         }
     });
@@ -506,12 +509,6 @@ async function handleFileSave(handle, name) {
     }
 }
 
-const getCurrentDateString = (date) => {
-    logClientAction({ action: "Generate current date string" });
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T` + 
-    `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-}
-
 const getFormattedDateString = (date) => {
     logClientAction({ action: "Generate human-readable date string" });
 
@@ -548,7 +545,7 @@ async function addFileToTempList(fileName) {
 const beforeUnloadHandler = (event) => {
     logClientAction({ action: "Trigger beforeunload warning" });
     // TODO
-    // showVisualCueAsync(["Не закрывайте вкладку расширения при записи!", 
+    // showModalNotify(["Не закрывайте вкладку расширения при записи!", 
     //     "Не обновляйте вкладку расширения при записи!",
     //     "Не закрывайте браузер при записи!", 
     //     "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
@@ -560,116 +557,52 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 window.addEventListener('unload', () => {
     logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
-    buttonsStatesSave('needPermissions');
+    if (recorders.camera || recorders.screen) {
+        let bState;
+        chrome.storage.local.get('bState').then(result => {
+            bState = result.bState;
+            logClientAction({"action": "Get bState when media load", bState});
+            if (bState == 'readyUpload' || bState == 'failedUpload') {
+                logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
+            }
+            else {
+                logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+            }
+        }).catch(error => {
+            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+            logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+            buttonsStatesSave('needPermissions');
+        });
+    }
 })
 
 window.addEventListener('load', () => {
     logClientAction({ action: "Load media.html tab" });
     Object.values(streams).some(async (stream) => {
-        if (stream === null) {
-            logClientAction({ action: "Some stream is null - request permissions" });
-            await sendButtonsStates('needPermissions');
-            return true;
-        }
+        let bState;
+        chrome.storage.local.get('bState').then(result => {
+            bState = result.bState;
+            console.log(bState);
+            logClientAction({"action": "Get bState when media load", bState});
+            if (bState == 'readyUpload' || bState == 'failedUpload') {
+                logClientAction({ action: `Tab media.html load - but current state is ${bState}` });
+            }
+            else if (stream === null) {
+                logClientAction({ action: "Some stream is null - request permissions. Tab media.html load - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+                return true;
+            }
+        }).catch(error => {
+            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+            if (stream === null) {
+                logClientAction({ action: "Some stream is null - request permissions. Tab media.html load - save state as needPermissions" });
+                buttonsStatesSave('needPermissions');
+                return true;
+            }
+        });
     });
 });
-
-// Функция для отправки видео на сервер после завершения записи
-async function uploadVideo() {
-    chrome.storage.local.get(['session_id', 'extension_logs'], async ({ session_id, extension_logs }) => {
-        if (!session_id) {
-            console.error("Session ID не найден в хранилище");
-            logClientAction({ action: `Upload fails due to missing session ID ${session_id}` });
-            return;
-        }
-
-        const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
-        if (!files.length) {
-            logClientAction("Ошибка при поиске записей");
-            throw new Error(`Ошибка при поиске записей`);
-        }
-
-        const formData = new FormData();
-
-        for (const filename of files) {
-            if (filename.includes('screen')) {
-                formData.append('screen_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
-            } else {
-                formData.append('camera_video', await (await rootDirectory.getFileHandle(filename, {create: false})).getFile(), filename);
-            }
-        }
-        
-        formData.append("id", session_id);
-
-        await setMetadatasRecordOff();
-        formData.append("metadata", JSON.stringify(metadata));
-
-        logClientAction({ action: "Prepare upload payload", sessionId: session_id, fileNames: [combinedFileName, cameraFileName] });
-
-        if (extension_logs) {
-            let logsToSend;
-            if (typeof extension_logs === "string") {
-                try {
-                    logsToSend = JSON.parse(extension_logs);
-                } catch (e) {
-                    console.error("Ошибка парсинга логов:", e);
-                    logsToSend = [{ error: "Invalid logs", raw_data: extension_logs }];
-                    logClientAction({ action: "Parse logs error", error: e.message });
-                }
-            } else {
-                logsToSend = extension_logs;
-            }
-
-            const logsBlob = new Blob([JSON.stringify(logsToSend, null, 2)], { type: 'application/json' });
-            formData.append("logs", logsBlob, "extension_logs.json");
-
-            const logsFileName = `extension_logs_${session_id}_${getCurrentDateString(new Date())}.json`;
-            const url = URL.createObjectURL(logsBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = logsFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            logClientAction({ action: "Download logs file", fileName: logsFileName });
-        }
-
-        logClientAction({ action: "Send upload request", sessionId: session_id, messageType: "upload_video" });
-
-        fetch('http://127.0.0.1:5000/upload_video', {
-            method: "POST",
-            body: formData,
-        })
-            .then(async (response) => {
-                if (!response.ok) {
-                    throw new Error(`Ошибка при загрузке видео: ${response.status}`);
-                }
-                const result = await response.json();
-                console.log("Видео успешно отправлено:", result);
-                logClientAction({ action: "Upload video succeeds", sessionId: session_id });
-            })
-            .then(async () => {
-                await deleteFilesFromTempList();
-                chrome.alarms.get('dynamicCleanup', (alarm) => {
-                    if (alarm) {
-                        chrome.alarms.clear('dynamicCleanup');
-                    }
-                    logClientAction({ action: "Delete temp files succeeds" });
-                });
-            })
-            .catch(async (error) => {
-                console.error("Ошибка при отправке видео на сервер:", error);
-                await sendButtonsStates('failedUpload');
-                logClientAction({ action: "Upload video fails", error: error.message, sessionId: session_id });
-            })
-            .finally(async () => {
-                await clearLogs();
-                logClientAction({ action: "Clear logs after upload video" });
-            });
-    });
-}
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === 'stopRecording') {
@@ -677,10 +610,15 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         if (recorders.combined || recorders.camera) {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
+            await setMetadatasRecordOff();
+            chrome.storage.local.set({'metadata': JSON.stringify(metadata)});
             await sendButtonsStates('readyToUpload');
         }
     }
     else if (message.action === 'getPermissionsMedia') {
+        if (!invalidStop) {
+            await deleteFiles();
+        }
         logClientAction({ action: "Receive message", messageType: "getPermissionsMedia" });
         server_connection = (await chrome.storage.local.get('server_connection'))['server_connection'];
         getMediaDevices()
@@ -705,6 +643,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
     }
     else if (message.action === 'startRecording') {
+        if (!invalidStop) await checkAndCleanLogs();
         logClientAction({ action: "Receive message", messageType: "startRecording" });
 
         const formData = new FormData();
@@ -760,17 +699,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             // В startRecord есть свой обработчик ошибок
             await sendButtonsStates('needPermissions');
             await showModalNotify(["Ошибка при запуске записи:", error], "Ошибка");
-        });
-    }
-    else if (message.action === 'uploadVideoMedia') {
-        logClientAction('Start uploading command received');
-        uploadVideo()
-        .then(async () => {
-            await sendButtonsStates('needPermissions');
-            await showModalNotify(["Запись успешно отправлена на сервер."], "Запись отправлена");
-        })
-        .catch(async () => {
-            await sendButtonsStates('failedUpload');
         });
     }
 });
@@ -958,13 +886,7 @@ async function stopRecord() {
 
         cleanup();
         if (!server_connection) {
-            await deleteFilesFromTempList();
-            chrome.alarms.get('dynamicCleanup', (alarm) => {
-                if (alarm) {
-                    chrome.alarms.clear('dynamicCleanup');
-                }
-                logClientAction('Delete tempfiles successful');
-            });
+            await deleteFiles();
         }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
@@ -1109,3 +1031,43 @@ async function downloadLogs() {
         logClientAction(`logs_save_error: ${error.message}`);
     }
 }
+
+async function showModalNotifyMedia(messages, title) {
+    return new Promise((resolve) => {
+        const existingOverlay = document.getElementById('custom-modal-overlay');
+        if (existingOverlay) existingOverlay.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'custom-modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.id = 'custom-modal';
+
+        modal.innerHTML = `
+            <h2>${title}</h2>
+            <div class="modal-content">
+                ${messages.map(msg => `<p>${msg}</p>`).join('')}
+            </div>
+            <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
+        `;
+
+        modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+            overlay.remove();
+            document.body.style.overflow = '';
+            resolve();
+        });
+
+        document.body.style.overflow = 'hidden';
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+    });
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'showModalNotifyOnMedia') {
+        showModalNotifyMedia(message.messages, message.title).then(() => {
+            sendResponse({ confirmed: true });
+        });
+        return true;
+    }
+});

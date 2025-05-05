@@ -1,6 +1,7 @@
 import json
 import os
-from flask import Flask, request, jsonify, render_template
+import time
+from flask import Flask, request, Response, jsonify, render_template
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
@@ -62,6 +63,26 @@ def start_session():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+progress_store = {}
+
+@app.route("/progress/<id>")
+def sse_progress(id):
+    def event_stream():
+        while True:
+            progress = progress_store.get(id, {"step": 0, "message": "Ожидание запроса"})
+            yield f"data: {json.dumps(progress)}\n\n"
+            if progress["step"] == 7:
+                del progress_store[id]
+                break
+            time.sleep(1)
+    
+    return Response(
+        event_stream(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache"
+        }
+    )
 
 @app.route("/upload_video", methods=["POST"])
 def upload_video():
@@ -70,14 +91,20 @@ def upload_video():
         if "screen_video" not in request.files or "camera_video" not in request.files or "id" not in request.form:
             return jsonify({"error": "Отсутствует видеофайл или ID сессии"}), 400
         
+        id = request.form["id"]
+        
+        progress_store[id] = {"step": 1, "message": "Начало обработки данных"}
+        
         screen_video = request.files.getlist("screen_video")
         camera_video = request.files.getlist("camera_video")
-
-        id = request.form["id"]
+        
         metadata = json.loads(request.form["metadata"])
+
+        progress_store[id] = {"step": 2, "message": "Метаданные получены"}
 
         session = sessions_collection.find_one({"_id": ObjectId(id)})
         if not session:
+            progress_store[id] = {"step": -1, "message": "Сессия не найдена"}
             return jsonify({"error": "Сессия не найдена"}), 404
 
         session_end = datetime.now(timezone.utc)
@@ -93,6 +120,8 @@ def upload_video():
             video.save(screen_video_path)
             screen_video_paths.append(screen_video_path)
         
+        progress_store[id] = {"step": 3, "message": "Получены и сохранены записи экрана"}
+        
         for video in camera_video:
             camera_extension = os.path.splitext(video.filename)[1] or ".mp4"
             camera_video_name = f"{id}_camera_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{camera_extension}"
@@ -100,17 +129,24 @@ def upload_video():
             video.save(camera_video_path)
             camera_video_paths.append(camera_video_path)
 
+        progress_store[id] = {"step": 4, "message": "Получены и сохранены записи камеры"}
+
         logs_file = request.files.get("logs")
         if logs_file:
             logs_extension = os.path.splitext(logs_file.filename)[1] or ".json"
             logs_file_name = f"{id}_logs_{session['session_date_start'].replace('-', '')}T{session['session_time_start'].replace(':', '')}_{session['surname']}{logs_extension}"
             logs_file_path = os.path.join(UPLOAD_FOLDER, logs_file_name)
             logs_file.save(logs_file_path)
+
+            progress_store[id] = {"step": 5, "message": "Получены и сохранены логи"}
         else:
+            progress_store[id] = {"step": 5, "message": "Логи не были получены"}
             logs_file_path = None
 
         status = 'good'
-        if (len(screen_video_paths) > 1 or len(camera_video_paths) > 1): status = 'bad'
+        if (len(screen_video_paths) > 1 or len(camera_video_paths) > 1): 
+            progress_store[id] = {"step": 6, "message": f"Статус записи плохой: получено {len(screen_video_paths)} записей экрана и {len(camera_video_paths)} записей камеры"}
+            status = 'bad'
 
         sessions_collection.update_one(
             {"_id": ObjectId(id)},
@@ -124,6 +160,7 @@ def upload_video():
                 "logs_path": logs_file_path
             }}
         )
+        progress_store[id] = {"step": 7, "message": "Данные загружены в базу данных"}
 
         return jsonify({"message": "Видео и логи успешно загружены", "screen_video_paths": screen_video_paths, "camera_video_paths": camera_video_paths, "logs_path": logs_file_path}), 200
     except Exception as e:

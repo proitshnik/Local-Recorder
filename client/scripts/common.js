@@ -18,7 +18,7 @@ export async function deleteFilesFromTempList() {
     }
 }
 
-export async function showModalNotify(messages, title = "Уведомление", showOnActiveTab = false) {
+export async function showModalNotify(messages, title = "Уведомление", showOnActiveTab = false, mediaIntependent=false) {
     chrome.runtime.sendMessage({ action: "closePopup" });
 
     logClientAction({ action: "showModalNotify", showOnActiveTab});
@@ -44,7 +44,7 @@ export async function showModalNotify(messages, title = "Уведомление"
             if (isBlocked) {
                 // console.warn('[showModalNotify] Модальное уведомление не доступно на текущей вкладке. Открываем media.html');
                 logClientAction({ action: "showModalNotify", info: "Modal notification is not available on the current tab. Open media.html."});
-                return await showModalNotify(messages, title, false);
+                return await showModalNotify(messages, title, false, mediaIntependent);
             }
             throw error;
         }
@@ -63,32 +63,55 @@ export async function showModalNotify(messages, title = "Уведомление"
                     }
                 });
 
-            const existingOverlay = document.getElementById('custom-modal-overlay');
-            if (existingOverlay) existingOverlay.remove();
+            if (!mediaIntependent) {
+                const existingOverlay = document.getElementById('custom-modal-overlay');
+                if (existingOverlay) existingOverlay.remove();
 
-            const overlay = document.createElement('div');
-            overlay.id = 'custom-modal-overlay';
+                const overlay = document.createElement('div');
+                overlay.id = 'custom-modal-overlay';
 
-            const modal = document.createElement('div');
-            modal.id = 'custom-modal';
+                const modal = document.createElement('div');
+                modal.id = 'custom-modal';
 
-            modal.innerHTML = `
-                <h2>${title}</h2>
-                <div class="modal-content">
-                    ${messages.map(msg => `<p>${msg}</p>`).join('')}
-                </div>
-                <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
-            `;
+                modal.innerHTML = `
+                    <h2>${title}</h2>
+                    <div class="modal-content">
+                        ${messages.map(msg => `<p>${msg}</p>`).join('')}
+                    </div>
+                    <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
+                `;
 
-            modal.querySelector('#modal-close-btn').addEventListener('click', () => {
-                overlay.remove();
-                document.body.style.overflow = '';
-                resolve();
-            });
+                modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+                    overlay.remove();
+                    document.body.style.overflow = '';
+                    resolve();
+                });
 
-            document.body.style.overflow = 'hidden';
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
+                document.body.style.overflow = 'hidden';
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+            } else {
+                
+                chrome.runtime.sendMessage({
+                    type: "showModalNotifyOnMedia",
+                    messages: messages,
+                    title: title
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        logClientAction({ action: "showModalNotifyOnMedia", error: chrome.runtime.lastError.message});
+                        return reject(new Error(chrome.runtime.lastError.message));
+                    }
+    
+                    if (typeof response === 'undefined') {
+                        logClientAction({ action: "showModalNotifyOnMedia", error: "Media didn't respond"});
+                        return reject(new Error("Media не ответил"));
+                    }
+    
+                    logClientAction({ action: "showModalNotifyOnMedia"});
+    
+                    resolve(response);
+                });
+            }
         });
     }
 }
@@ -154,4 +177,20 @@ export function waitForNotificationSuppression(timeout = 300) {
 export function buttonsStatesSave(state) {
 	chrome.storage.local.set({'bState': state});
     logClientAction({ action: "Save buttons states"});
+}
+
+export async function deleteFiles() {
+    await deleteFilesFromTempList();
+    chrome.alarms.get('dynamicCleanup', (alarm) => {
+        if (alarm) {
+            chrome.alarms.clear('dynamicCleanup');
+        }
+        logClientAction({ action: "Delete temp files succeeds" });    
+    });
+}
+
+export function getCurrentDateString(date) {
+    logClientAction({ action: "Generate current date string" });
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T` + 
+    `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }

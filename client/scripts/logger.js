@@ -88,3 +88,28 @@ export function clearLogs() {
         });
     });
 }
+
+export async function checkAndCleanLogs() {
+    const now = new Date();
+    const delTime = 24 * 60 * 60 * 1000;
+    const timeAgo = new Date(now.getTime() - delTime);
+
+    const lastRecord = await chrome.storage.local.get('lastRecordTime');
+    const lastRecordTime = lastRecord.lastRecordTime ? new Date(lastRecord.lastRecordTime) : null;
+
+    if (!lastRecordTime || lastRecordTime < timeAgo) {
+        const logsResult = await chrome.storage.local.get('extension_logs');
+        if (logsResult.extension_logs) {
+            const logs = JSON.parse(logsResult.extension_logs);
+            const cleanedLogs = logs.filter(log => {
+                const logTime = new Date(log.time_act);
+                return (now - logTime) <= delTime;
+            });
+
+            await chrome.storage.local.set({
+                'extension_logs': JSON.stringify(cleanedLogs)
+            });
+            logClientAction({ action: "Clean old logs" });
+        }
+    }
+}
