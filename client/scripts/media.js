@@ -189,6 +189,7 @@ async function sendButtonsStates(state) {
 }
 
 async function setupMultiScreenRecording(initialStreamId, displays) {
+    logClientAction({ action: "Starting multi-screen recording setup", displaysCount: displays.length });
     const firstStream = await navigator.mediaDevices.getUserMedia({
         video: {
             mandatory: {
@@ -200,20 +201,24 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
             }
         }
     });
-
+    logClientAction({ action: "Primary screen stream obtained", streamId: initialStreamId });
     const streamsList = [ firstStream ];
     // streamId меняется, поэтому будем проверять по label
     const chosenLabels = [
         firstStream.getVideoTracks()[0].label
     ];
-
+    logClientAction({ action: "Primary screen added", label: chosenLabels[0] });
     for (let i = 1; i < displays.length; i++) {
         let added = false;
         while (!added) {
+            logClientAction({ action: "Requesting additional screen", screenIndex: i });
             const sid = await new Promise(resolve =>
                 chrome.desktopCapture.chooseDesktopMedia(['screen'], resolve)
             );
-            if (!sid) throw new Error('Пользователь отменил выбор дополнительного экрана');
+            if (!sid) {
+                logClientAction({ action: "User canceled additional screen selection", screenIndex: i });
+                throw new Error('Пользователь отменил выбор дополнительного экрана');
+            }
 
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -226,11 +231,12 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
                     }
                 }
             });
-
+            logClientAction({ action: "Additional screen stream obtained", screenIndex: i, streamId: sid });
             const track = stream.getVideoTracks()[0];
             const label = track.label;
 
             if (chosenLabels.includes(label)) {
+                logClientAction({ action: "Duplicate screen detected", screenIndex: i, label });
                 stream.getTracks().forEach(t => t.stop());
                 await showModalNotify(
                     "Этот монитор вы уже выбрали. Пожалуйста, укажите другой.",
@@ -242,24 +248,26 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
             chosenLabels.push(label);
             streamsList.push(stream);
             added = true;
+            logClientAction({ action: "Additional screen added", screenIndex: i, label });
         }
     }
 
-    const scale = window.devicePixelRatio || 1;
+    const scale = 1;
     const totalWidth = displays.reduce((sum,d)=>sum + d.bounds.width, 0) * scale;
     const maxHeight  = Math.max(...displays.map(d=>d.bounds.height)) * scale;
     const canvas = document.createElement('canvas');
     canvas.width  = totalWidth;
     canvas.height = maxHeight;
     const ctx = canvas.getContext('2d');
-
+    ctx.imageSmoothingEnabled = false;
+    logClientAction({ action: "Canvas created", dimensions: { width: totalWidth, height: maxHeight } });
     const videos = streamsList.map(strm => {
         const v = document.createElement('video');
         v.srcObject = strm;
         v.play();
         return v;
     });
-
+    logClientAction({ action: "Video elements created", count: videos.length });
     (function draw() {
         ctx.clearRect(0,0,canvas.width,canvas.height);
         let x = 0;
@@ -271,15 +279,28 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
         }
         requestAnimationFrame(draw);
     })();
-
+    logClientAction({ action: "Canvas drawing started" });
     const multiStream = canvas.captureStream(15);
-    logClientAction({ action: "Canvas stream created for multi-monitor", screens: streamsList.length });
-    return [multiStream, streamsList];
+    logClientAction({
+        action: "Canvas stream created for multi-monitor",
+        screens: streamsList.length,
+        streamInfo: {
+            width: canvas.width,
+            height: canvas.height,
+            fps: 15
+        }
+    });
+    return multiStream;
 }
 
 let previousDisplayCount = 0;
 let displayCheckInterval;
 function startDisplayMonitoring(screenStream, checkInterval = 2000) {
+    logClientAction({
+        action: "Starting display monitoring",
+        interval: checkInterval,
+        initialDisplayCount: previousDisplayCount
+    });
     checkDisplays(screenStream);
     displayCheckInterval = setInterval(() => {
         checkDisplays(screenStream);
@@ -289,13 +310,21 @@ function startDisplayMonitoring(screenStream, checkInterval = 2000) {
 function stopDisplayMonitoring() {
     if (displayCheckInterval) {
         clearInterval(displayCheckInterval);
+        logClientAction({ action: "Display monitoring stopped" });
     }
 }
 
 async function checkDisplays(screenStream) {
     try {
+        logClientAction({ action: "Checking displays status" });
         const displays = await new Promise(res => chrome.system.display.getInfo(res));
         if (displays.length < previousDisplayCount && previousDisplayCount > 0) {
+            logClientAction({
+                action: "Display disconnected",
+                previousCount: previousDisplayCount,
+                currentCount: displays.length,
+                message
+            });
             console.warn(`Экран отключен! Было: ${previousDisplayCount}, стало: ${displays.length}`);
             handleScreenDisconnected(screenStream);
         }
@@ -306,14 +335,21 @@ async function checkDisplays(screenStream) {
 }
 
 async function handleScreenDisconnected(screenStream) {
+    logClientAction({ action: "Handling screen disconnection" });
     stopDisplayMonitoring();
     const videoTracks = screenStream.getVideoTracks();
     if (videoTracks.length > 0 && videoTracks[0].readyState !== 'ended') {
         // Принудительно останавливаем трек
+        logClientAction({
+            action: "Forcibly stopping video track",
+            trackId: videoTracks[0].id,
+            trackLabel: videoTracks[0].label
+        });
         videoTracks[0].stop();
     }
     await showModalNotify("Беспроводной экран был отключен", "Запись остановлена");
     stopRecord();
+    logClientAction({ action: "Recording stopped due to screen disconnection" });
 }
 
 async function getMediaDevices() {
@@ -339,12 +375,10 @@ async function getMediaDevices() {
 
                 const displays = await new Promise(res => chrome.system.display.getInfo(res));
 
-                let streamsList = null;
                 if (displays.length > 1) {
                     try {
                         const multiStream = await setupMultiScreenRecording(streamId, displays);
-                        streams.screen = multiStream[0];
-                        streamsList = multiStream[1];
+                        streams.screen = multiStream;
                     } catch (err) {
                         console.error("Multi‑screen setup failed, fallback to single:", err);
                     }
