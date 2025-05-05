@@ -1,4 +1,7 @@
 # Локальный прокторинг
+
+![Alt text](client/assets/docs/newPopupDesign.png)
+
 ## Поддерживаемые браузеры
 ### Расширение предназначено для работы с браузером Google Chrome. Требуемая версия браузера Google Chrome 134 и выше.
 
