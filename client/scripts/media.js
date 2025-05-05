@@ -259,7 +259,7 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
     canvas.width  = totalWidth;
     canvas.height = maxHeight;
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
     logClientAction({ action: "Canvas created", dimensions: { width: totalWidth, height: maxHeight } });
     const videos = streamsList.map(strm => {
         const v = document.createElement('video');
@@ -268,8 +268,12 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
         return v;
     });
     logClientAction({ action: "Video elements created", count: videos.length });
-    (function draw() {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const fps = 15;
+    let useRAF = true;
+    let intervalId = null;
+    function drawFrame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         let x = 0;
         for (let idx = 0; idx < videos.length; idx++) {
             const w = displays[idx].bounds.width * scale;
@@ -277,20 +281,31 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
             ctx.drawImage(videos[idx], x, 0, w, h);
             x += w;
         }
-        requestAnimationFrame(draw);
-    })();
-    logClientAction({ action: "Canvas drawing started" });
-    const multiStream = canvas.captureStream(15);
-    logClientAction({
-        action: "Canvas stream created for multi-monitor",
-        screens: streamsList.length,
-        streamInfo: {
-            width: canvas.width,
-            height: canvas.height,
-            fps: 15
+    }
+    function drawLoop() {
+        drawFrame();
+        if (useRAF) {
+            requestAnimationFrame(drawLoop);
+        }
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            useRAF = false;
+            if (!intervalId) {
+                intervalId = setInterval(drawFrame, 1000 / fps);
+            }
+        } else {
+            useRAF = true;
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            requestAnimationFrame(drawLoop);
         }
     });
-    return multiStream;
+    logClientAction({ action: "Canvas drawing started with combined RAF/Interval" });
+    requestAnimationFrame(drawLoop);
+    return canvas.captureStream(fps);
 }
 
 let previousDisplayCount = 0;
@@ -580,7 +595,7 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 128_000,
-                        videoBitsPerSecond: 500_000,
+                        videoBitsPerSecond: 1_500_000,
                     });
                     logClientAction({ action: "Create combined recorder" });
                     
