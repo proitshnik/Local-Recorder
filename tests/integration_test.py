@@ -26,5 +26,5 @@ def check_integration(url):
 if __name__ == "__main__":
     print("---")
     print("Интеграционный тест (начало сессии)")
-    check_integration(f"http://0.0.0.0:5000/start_session")
+    check_integration(f"http://127.0.0.1:5000/start_session")
     print("---")
