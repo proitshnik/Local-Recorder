@@ -195,8 +195,16 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
             mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: initialStreamId,
-                maxWidth: displays[0].bounds.width,
-                maxHeight: displays[0].bounds.height,
+                width: {
+                    ideal: 1920,
+                    max: Math.min(2560, screen.width),
+                    min: Math.min(1440, screen.width)
+                },
+                height: {
+                    ideal: 1080,
+                    max: Math.min(1440, screen.height),
+                    min: Math.min(810, screen.height)
+                },
                 frameRate: 15
             }
         }
@@ -225,8 +233,16 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
                     mandatory: {
                         chromeMediaSource: 'desktop',
                         chromeMediaSourceId: sid,
-                        maxWidth: displays[i].bounds.width,
-                        maxHeight: displays[i].bounds.height,
+                        width: {
+                            ideal: 1920,
+                            max: Math.min(2560, screen.width),
+                            min: Math.min(1440, screen.width)
+                        },
+                        height: {
+                            ideal: 1080,
+                            max: Math.min(1440, screen.height),
+                            min: Math.min(810, screen.height)
+                        },
                         frameRate: 15
                     }
                 }
@@ -595,7 +611,7 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 128_000,
-                        videoBitsPerSecond: 1_500_000,
+                        videoBitsPerSecond: 500_000,
                     });
                     logClientAction({ action: "Create combined recorder" });
                     
