@@ -1,4 +1,4 @@
-import { showModalNotify, waitForNotificationSuppression } from './common.js';
+import { showModalNotify } from './common.js';
 import { buttonsStatesSave, deleteFiles, getCurrentDateString } from "./common.js";
 import { logClientAction, flushLogs, checkAndCleanLogs } from './logger.js';
 
@@ -682,18 +682,13 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         .then(async () => {
             logClientAction({ action: "Start recording succeeds" });
             await sendButtonsStates('recording');
-            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then(async (suppress) => {
-                if (!suppress) {
-                    await showModalNotify(
-                        ["Запись экрана, микрофона и камеры началась. " +
-                        "Не отключайте разрешения этим элементам до окончания записи.",
-                        "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
-                        "Идёт запись",
-                        true
-                    );
-                }
-            });
+            await showModalNotify(
+                ["Запись экрана, микрофона и камеры началась. " +
+                "Не отключайте разрешения этим элементам до окончания записи.",
+                "Чтобы завершить запись, нажмите кнопку «Остановить запись» во всплывающем окне расширения прокторинга."],
+                "Идёт запись",
+                true
+            );
         })
         .catch(async (error) => {
             // В startRecord есть свой обработчик ошибок
@@ -861,27 +856,19 @@ async function stopRecord() {
             "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
         logClientAction(stats);
-        // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-        waitForNotificationSuppression().then(async (suppress) => {
-            if (!suppress) {
-                await showModalNotify(
-                    stats,
-                    "Запись завершена, статистика:",
-                    true
-                );
-            }
-        });
+
+        await showModalNotify(
+            stats,
+            "Запись завершена, статистика:",
+            true
+        );
+
         if (server_connection && !invalidStop) {
-            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then(async (suppress) => {
-                if (!suppress) {
-                    await showModalNotify(
-                        ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
-                        "Отправка записи",
-                        true
-                    );
-                }
-            });
+            await showModalNotify(
+                ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+                "Отправка записи",
+                true
+            );
         }
 
         cleanup();
