@@ -202,8 +202,11 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
         }
     });
     logClientAction({ action: "Primary screen stream obtained", streamId: initialStreamId });
-    const streamsList = [firstStream];
-    const chosenLabels = [firstStream.getVideoTracks()[0].label];
+    const streamsList = [ firstStream ];
+    // streamId меняется, поэтому будем проверять по label
+    const chosenLabels = [
+        firstStream.getVideoTracks()[0].label
+    ];
     logClientAction({ action: "Primary screen added", label: chosenLabels[0] });
     for (let i = 1; i < displays.length; i++) {
         let added = false;
@@ -216,6 +219,7 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
                 logClientAction({ action: "User canceled additional screen selection", screenIndex: i });
                 throw new Error('Пользователь отменил выбор дополнительного экрана');
             }
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     mandatory: {
@@ -227,9 +231,12 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
                     }
                 }
             });
+            logClientAction({ action: "Additional screen stream obtained", screenIndex: i, streamId: sid });
             const track = stream.getVideoTracks()[0];
             const label = track.label;
+
             if (chosenLabels.includes(label)) {
+                logClientAction({ action: "Duplicate screen detected", screenIndex: i, label });
                 stream.getTracks().forEach(t => t.stop());
                 await showModalNotify(
                     "Этот монитор вы уже выбрали. Пожалуйста, укажите другой.",
@@ -237,33 +244,23 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
                 );
                 continue;
             }
+
             chosenLabels.push(label);
             streamsList.push(stream);
             added = true;
             logClientAction({ action: "Additional screen added", screenIndex: i, label });
         }
     }
-    const scale = 1;
-    const oversampleFactor = 2;
-    const totalWidth = displays.reduce((sum, d) => sum + d.bounds.width, 0);
-    const maxHeight = Math.max(...displays.map(d => d.bounds.height));
 
+    const scale = 1;
+    const totalWidth = displays.reduce((sum,d)=>sum + d.bounds.width, 0) * scale;
+    const maxHeight  = Math.max(...displays.map(d=>d.bounds.height)) * scale;
     const canvas = document.createElement('canvas');
-    canvas.width = totalWidth * scale * oversampleFactor;
-    canvas.height = maxHeight * scale * oversampleFactor;
+    canvas.width  = totalWidth;
+    canvas.height = maxHeight;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = totalWidth * scale;
-    previewCanvas.height = maxHeight * scale;
-    const previewCtx = previewCanvas.getContext('2d');
-    previewCtx.imageSmoothingEnabled = true;
-    logClientAction({
-        action: "Canvas created",
-        hiRes: { width: canvas.width, height: canvas.height },
-        loRes: { width: previewCanvas.width, height: previewCanvas.height }
-    });
+    logClientAction({ action: "Canvas created", dimensions: { width: totalWidth, height: maxHeight } });
     const videos = streamsList.map(strm => {
         const v = document.createElement('video');
         v.srcObject = strm;
@@ -272,32 +269,29 @@ async function setupMultiScreenRecording(initialStreamId, displays) {
     });
     logClientAction({ action: "Video elements created", count: videos.length });
     (function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         let x = 0;
         for (let idx = 0; idx < videos.length; idx++) {
-            const w = displays[idx].bounds.width * scale * oversampleFactor;
-            const h = displays[idx].bounds.height * scale * oversampleFactor;
+            const w = displays[idx].bounds.width * scale;
+            const h = displays[idx].bounds.height * scale;
             ctx.drawImage(videos[idx], x, 0, w, h);
             x += w;
         }
-        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
         requestAnimationFrame(draw);
     })();
-    logClientAction({ action: "Canvas draw loop started" });
-    const multiStream = previewCanvas.captureStream(15);
+    logClientAction({ action: "Canvas drawing started" });
+    const multiStream = canvas.captureStream(15);
     logClientAction({
-        action: "Final capture stream created",
+        action: "Canvas stream created for multi-monitor",
         screens: streamsList.length,
-        outputStream: {
-            width: previewCanvas.width,
-            height: previewCanvas.height,
+        streamInfo: {
+            width: canvas.width,
+            height: canvas.height,
             fps: 15
         }
     });
     return multiStream;
 }
-
 
 let previousDisplayCount = 0;
 let displayCheckInterval;
