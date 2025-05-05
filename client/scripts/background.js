@@ -1,6 +1,22 @@
 import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction, clearLogs } from "./logger.js";
 
+let screenCaptureActive = false;
+
+function setScreenCaptureActive(state) {
+	screenCaptureActive = state;
+	chrome.storage.local.set({ screenCaptureActive: state }, () => {
+		logClientAction({ action: "Persist screenCaptureActive", state });
+	});
+}
+
+chrome.storage.local.get(['screenCaptureActive'], (result) => {
+	if (typeof result.screenCaptureActive === 'boolean') {
+		screenCaptureActive = result.screenCaptureActive;
+		logClientAction({ action: "Restored screenCaptureActive from storage", active: screenCaptureActive });
+	}
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.action === 'scheduleCleanup') {
 		logClientAction({ action: "Receive message", messageType: "scheduleCleanup" });
@@ -23,7 +39,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 var startTime;
 
 function sendStartMessage(formData) {
-	screenCaptureActive = true;
+	setScreenCaptureActive(true);
 	logClientAction({ action: "Send message", messageType: "startRecording" });
     chrome.runtime.sendMessage({
         action: 'startRecording',
@@ -97,7 +113,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 			logClientAction({ action: "Send message", messageType: `${message.action}Media` });
 		}
 	} else if (message.action === 'stopRecord') {
-		screenCaptureActive = false;
+		setScreenCaptureActive(false);
 		logClientAction({ action: "Receive message", messageType: "stopRecord" });
 		chrome.runtime.sendMessage({
 			action: 'stopRecording'
@@ -136,16 +152,14 @@ chrome.runtime.onMessage.addListener(
 	}
 );
 
-let screenCaptureActive = false;
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.type === 'screenCaptureStatus') {
-		logClientAction("listener screenCaptureStatus");
-		screenCaptureActive = message.active;
+		logClientAction({ action: "listener screenCaptureStatus", active: message.active });
+		setScreenCaptureActive(message.active);
 		sendResponse({ success: true });
 	}
 	if (message.type === 'getScreenCaptureStatus') {
-		logClientAction("listener getScreenCaptureStatus");
+		logClientAction({ action: "listener getScreenCaptureStatus", active: screenCaptureActive });
 		sendResponse({ active: screenCaptureActive });
 	}
 });
@@ -156,7 +170,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 
 	chrome.tabs.query({ url: extensionUrl }, function(tabs) {
 		if (tabs.length === 0) {
-			screenCaptureActive = false;
+			setScreenCaptureActive(false);
 			const durationMs = new Date() - startTime;
 
 			const seconds = Math.floor((durationMs / 1000) % 60);
