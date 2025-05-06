@@ -83,3 +83,21 @@ def test_patronymic_field_validation(page: Page, extension_id: str) -> None:
 
     patronymic_input.fill("иванович")
     expect(patronymic_input).to_have_class(re.compile(r".*input-invalid.*"))
+
+def test_link_field_validation(page: Page, extension_id: str) -> None:
+    page.goto(f"chrome-extension://{extension_id}/pages/index.html")
+
+    link_input = page.locator("#link_input")
+
+
+    link_input.fill("https://se.moevm.info/doku.php/start")
+    expect(link_input).to_have_class(re.compile(r".*input-valid.*"))
+        
+def test_no_patronymic_checkbox_validation(page: Page, extension_id: str) -> None:
+    page.goto(f"chrome-extension://{extension_id}/pages/index.html")
+
+    checkbox = page.locator("#no_patronymic_checkbox")
+    patronymic_input = page.locator("#patronymic_input")
+
+    checkbox.click()
+    expect(patronymic_input).to_be_disabled()
