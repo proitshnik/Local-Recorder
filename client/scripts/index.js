@@ -1,4 +1,4 @@
-import { buttonsStatesSave, deleteFiles, getCurrentDateString, showModalNotify } from "./common.js";
+import { buttonsStatesSave } from "./common.js";
 import { logClientAction, checkAndCleanLogs, clearLogs } from "./logger.js";
 
 const noPatronymicCheckbox = document.querySelector('#no_patronymic_checkbox');
