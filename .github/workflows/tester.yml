@@ -20,6 +20,27 @@ jobs:
       - name: Start server
         run: docker compose -f server/docker-compose.yml up -d
 
+      - name: Check server availability
+        run: |
+          attempt=1
+          max_attempts=10
+          sleep_time=5
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Проверка  доступности сервера, попытка $attempt"
+            if curl http://localhost:5000 --output /dev/null --fail --head --silent; then
+              echo "Сервер запущен!"
+              exit 0
+            else
+              echo "Сервер не отвечает, пауза между попытками $sleep_time секунд"
+              sleep $sleep_time
+              ((attempt++))
+            fi
+          done
+          
+          echo "Сервер недоступен после $max_attempts попыток"
+          exit 1
+
       - name: Run server tests
         run: |
           chmod +x tests/run_tests.sh
