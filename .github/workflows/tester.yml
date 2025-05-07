@@ -14,6 +14,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -r tests/requirements.txt
+      
       - name: Install playwright packages
         run: playwright install
     
@@ -43,8 +44,13 @@ jobs:
 
       - name: Run server tests
         run: |
-          chmod +x tests/run_tests.sh
-          cd tests && ./run_tests.sh
+          chmod +x tests/run_server_tests.sh
+          cd tests && ./run_server_tests.sh
+
+      - name: Run client tests
+        run: |
+          chmod +x tests/run_client_tests.sh
+          cd tests && ./run_client_tests.sh
 
       - name: Stop server
         if: always()
