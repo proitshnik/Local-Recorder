@@ -93,3 +93,23 @@ Form check https://github.com/moevm/mse1h2025-prctr/issues/63 PR https://github.
 
 README update https://github.com/moevm/mse1h2025-prctr/issues/62 PR https://github.com/moevm/mse1h2025-prctr/pull/66
 
+# Итерация 3.
+
+## Протокол четвертого созвона с заказчиком:
+https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%BA%D0%BE%D0%BB#%D1%81%D0%BE%D0%B7%D0%B2%D0%BE%D0%BD-%D1%81-%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA%D0%BE%D0%BC-4----01042025
+
+## Протокол пятого созвона с заказчиком:
+https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%BA%D0%BE%D0%BB#%D1%81%D0%BE%D0%B7%D0%B2%D0%BE%D0%BD-%D1%81-%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA%D0%BE%D0%BC-5----06052025
+
+## Презентация:
+https://drive.google.com/file/d/1HCHkVX3XkN_hNTGxafmVB8oCVKOyM6Sb/view
+
+## Демо версии 1.3.0:
+ 
+
+## v1.3.0 Local proctoring
+https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.3.0 
+
+## Issue итерации:
+
+
