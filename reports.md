@@ -111,5 +111,66 @@ https://drive.google.com/file/d/1HCHkVX3XkN_hNTGxafmVB8oCVKOyM6Sb/view
 https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.3.0 
 
 ## Issue итерации:
+Early initialization with server https://github.com/moevm/mse1h2025-prctr/issues/54 PR https://github.com/moevm/mse1h2025-prctr/pull/74
+
+Dynamic popup stats https://github.com/moevm/mse1h2025-prctr/issues/68 PR https://github.com/moevm/mse1h2025-prctr/pull/83
+
+Button functionality https://github.com/moevm/mse1h2025-prctr/issues/69 PR https://github.com/moevm/mse1h2025-prctr/pull/77
+ 
+Control close tab browser https://github.com/moevm/mse1h2025-prctr/issues/71 PR https://github.com/moevm/mse1h2025-prctr/pull/89 
+
+GUI not all data https://github.com/moevm/mse1h2025-prctr/issues/72 PR https://github.com/moevm/mse1h2025-prctr/pull/73 
+
+Room link field https://github.com/moevm/mse1h2025-prctr/issues/75 PR https://github.com/moevm/mse1h2025-prctr/pull/76 
+
+Server off client ability https://github.com/moevm/mse1h2025-prctr/issues/78 PR https://github.com/moevm/mse1h2025-prctr/pull/92 
+
+Preview modes https://github.com/moevm/mse1h2025-prctr/issues/79 PR https://github.com/moevm/mse1h2025-prctr/pull/91 
+
+Multiple pages permission settings https://github.com/moevm/mse1h2025-prctr/issues/80 PR https://github.com/moevm/mse1h2025-prctr/pull/81 
+
+Optimize records size https://github.com/moevm/mse1h2025-prctr/issues/82 PR https://github.com/moevm/mse1h2025-prctr/pull/88 
+
+Release attacher https://github.com/moevm/mse1h2025-prctr/issues/85 PR https://github.com/moevm/mse1h2025-prctr/pull/86 
+
+Update input checking https://github.com/moevm/mse1h2025-prctr/issues/87 PR https://github.com/moevm/mse1h2025-prctr/pull/95 
+
+Cue improvements https://github.com/moevm/mse1h2025-prctr/issues/90 PR https://github.com/moevm/mse1h2025-prctr/pull/107 
+
+Screen permissions https://github.com/moevm/mse1h2025-prctr/issues/93 PR https://github.com/moevm/mse1h2025-prctr/pull/96  (to https://github.com/moevm/mse1h2025-prctr/pull/105 )
+
+Camera permissions https://github.com/moevm/mse1h2025-prctr/issues/94 PR https://github.com/moevm/mse1h2025-prctr/pull/105 
+
+Extension icon https://github.com/moevm/mse1h2025-prctr/issues/97 PR https://github.com/moevm/mse1h2025-prctr/pull/99 
+
+Add detailed description readme https://github.com/moevm/mse1h2025-prctr/issues/98 PR https://github.com/moevm/mse1h2025-prctr/pull/118
+
+Extension help https://github.com/moevm/mse1h2025-prctr/issues/100 PR https://github.com/moevm/mse1h2025-prctr/pull/102
+
+Remove second cue https://github.com/moevm/mse1h2025-prctr/issues/101 PR https://github.com/moevm/mse1h2025-prctr/pull/110
+
+Add logs and cues https://github.com/moevm/mse1h2025-prctr/issues/103 PR https://github.com/moevm/mse1h2025-prctr/pull/104
+
+Save logs server down https://github.com/moevm/mse1h2025-prctr/issues/109 PR https://github.com/moevm/mse1h2025-prctr/pull/108
+
+Fix log clearing https://github.com/moevm/mse1h2025-prctr/issues/111 PR https://github.com/moevm/mse1h2025-prctr/pull/106
+
+Add size popup optimization https://github.com/moevm/mse1h2025-prctr/issues/112 PR https://github.com/moevm/mse1h2025-prctr/pull/114
+
+Fix gotoMediaTab error port https://github.com/moevm/mse1h2025-prctr/issues/113 PR https://github.com/moevm/mse1h2025-prctr/pull/117
+
+Improve log stability https://github.com/moevm/mse1h2025-prctr/issues/115 PR https://github.com/moevm/mse1h2025-prctr/pull/130
+
+Fix show cue on active tab https://github.com/moevm/mse1h2025-prctr/issues/116 PR https://github.com/moevm/mse1h2025-prctr/pull/132
+
+Update documentation https://github.com/moevm/mse1h2025-prctr/issues/124 PR https://github.com/moevm/mse1h2025-prctr/pull/126
+
+Improve upload scenario https://github.com/moevm/mse1h2025-prctr/issues/127 PR https://github.com/moevm/mse1h2025-prctr/pull/133
+
+Fix screen status loss during proctoring https://github.com/moevm/mse1h2025-prctr/issues/135 PR https://github.com/moevm/mse1h2025-prctr/pull/140
+
+Add tests for server https://github.com/moevm/mse1h2025-prctr/issues/138 PR https://github.com/moevm/mse1h2025-prctr/pull/139
+
+Add func test for input https://github.com/moevm/mse1h2025-prctr/issues/143 PR https://github.com/moevm/mse1h2025-prctr/pull/146 
 
 
