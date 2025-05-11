@@ -538,11 +538,11 @@ async function addFileToTempList(fileName) {
     const tempFiles = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
     if (!tempFiles.includes(fileName)) {
         logClientAction({ action: "Add file to temp list", fileName });
-        tempFiles.push(fileName);
+        const updatedFiles = [ ...tempFiles, fileName ];
+        return chrome.storage.local.set({ 'tempFiles': updatedFiles });
     } else {
         logClientAction({ action: "File already exists in temp list", fileName });
     }
-    return chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
