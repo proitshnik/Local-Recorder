@@ -173,4 +173,4 @@ Add tests for server https://github.com/moevm/mse1h2025-prctr/issues/138 PR http
 
 Add func test for input https://github.com/moevm/mse1h2025-prctr/issues/143 PR https://github.com/moevm/mse1h2025-prctr/pull/146 
 
-
+Fix multi init in one session https://github.com/moevm/mse1h2025-prctr/issues/145 PR https://github.com/moevm/mse1h2025-prctr/pull/151
