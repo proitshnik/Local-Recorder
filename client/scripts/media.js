@@ -34,7 +34,7 @@ var endTime = undefined;
 
 var server_connection = undefined;
 var notifications_flag = true;
-var invalidStop = false;
+var invalidStop = undefined;
 
 var metadata = {
     screen: {
@@ -191,6 +191,11 @@ async function sendButtonsStates(state) {
     }
 }
 
+const updateInvalidStopValue = (flag) => {
+    invalidStop = flag;
+    chrome.storage.local.set({ 'invalidStop': flag });
+}
+
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         let streamLossSource = null;
@@ -329,7 +334,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к камере потерян!");
-                            invalidStop = true;
+                            updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -349,7 +354,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к экрану потерян!");
-                            invalidStop = true;
+                            updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -368,7 +373,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к микрофону потерян!");
-                            invalidStop = true;
+                            updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -488,7 +493,6 @@ async function cleanup() {
     cameraPreview.srcObject = null;
     recorders.combined = null;
     recorders.camera = null;
-    invalidStop = false;
     console.log('Все потоки и запись остановлены.');
     logClientAction({ action: "Complete cleanup" });
 }
@@ -534,11 +538,11 @@ async function addFileToTempList(fileName) {
     const tempFiles = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
     if (!tempFiles.includes(fileName)) {
         logClientAction({ action: "Add file to temp list", fileName });
-        tempFiles.push(fileName);
+        const updatedFiles = [ ...tempFiles, fileName ];
+        return chrome.storage.local.set({ 'tempFiles': updatedFiles });
     } else {
         logClientAction({ action: "File already exists in temp list", fileName });
     }
-    return chrome.storage.local.set({'tempFiles': tempFiles});
 }
 
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
@@ -577,13 +581,12 @@ window.addEventListener('unload', () => {
     }
 })
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     logClientAction({ action: "Load media.html tab" });
     Object.values(streams).some(async (stream) => {
         let bState;
         chrome.storage.local.get('bState').then(result => {
             bState = result.bState;
-            console.log(bState);
             logClientAction({"action": "Get bState when media load", bState});
             if (bState == 'readyUpload' || bState == 'failedUpload') {
                 logClientAction({ action: `Tab media.html load - but current state is ${bState}` });
@@ -602,6 +605,7 @@ window.addEventListener('load', () => {
             }
         });
     });
+    invalidStop = (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
 });
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
@@ -643,6 +647,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
     }
     else if (message.action === 'startRecording') {
+        updateInvalidStopValue(
+            (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false
+        );
         if (!invalidStop) await checkAndCleanLogs();
         logClientAction({ action: "Receive message", messageType: "startRecording" });
 
@@ -665,18 +672,20 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             action: "Receive startRecording formData",
             formData: formDataToObject(formData),
         });
+        if (!invalidStop) {
+            if (server_connection) {
+                await initSession(formData);
+            } else {
+                getBrowserFingerprint()
 
-        if (server_connection) {
-            await initSession(formData);
-        } else {
-            getBrowserFingerprint()
+                await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
 
-            await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
-
-            const sessionId = generateObjectId();
-            await chrome.storage.local.set({ 'session_id': sessionId });
-            logClientAction({ action: "Generate session ID locally", sessionId });
+                const sessionId = generateObjectId();
+                await chrome.storage.local.set({ 'session_id': sessionId });
+                logClientAction({ action: "Generate session ID locally", sessionId });
+            }
         }
+        updateInvalidStopValue(false);
 
         startRecord()
         .then(async () => {
@@ -741,8 +750,6 @@ async function initSession(formData) {
         console.error("Ошибка инициализации сессии", error);
         await showModalNotify(["Ошибка инициализации сессии", error.message], "Ошибка")
         logClientAction({ action: "Session initialization failed", error: error.message });
-        // startRecordButton.removeAttribute('disabled');
-		// stopRecordButton.setAttribute('disabled', '');
         throw error;
     }
 }
@@ -900,8 +907,6 @@ async function stopRecord() {
     if (!server_connection) {
         await downloadLogs();
     }
-
-    //chrome.runtime.sendMessage({ action: "closePopup" });
     logClientAction('Recording stopping');
 }
 
