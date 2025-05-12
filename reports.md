@@ -104,8 +104,8 @@ https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%
 ## Презентация:
 https://drive.google.com/file/d/1HCHkVX3XkN_hNTGxafmVB8oCVKOyM6Sb/view
 
-## Демо версии 1.3.0:
- 
+## Короткое демо версии 1.3.0:
+https://drive.google.com/file/d/18NBuVsu0IaV5LMXs1xj806S8pRyK-Nkz/view
 
 ## v1.3.0 Local proctoring
 https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.3.0 
