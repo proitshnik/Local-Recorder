@@ -108,7 +108,10 @@ https://drive.google.com/file/d/1HCHkVX3XkN_hNTGxafmVB8oCVKOyM6Sb/view
 https://drive.google.com/file/d/18NBuVsu0IaV5LMXs1xj806S8pRyK-Nkz/view
 
 ## v1.3.0 Local proctoring
-https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.3.0 
+https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.3.0
+
+## Tester for Local proctoring Github Actions
+https://github.com/moevm/mse1h2025-prctr/actions/workflows/tester.yml
 
 ## Issue итерации:
 Early initialization with server https://github.com/moevm/mse1h2025-prctr/issues/54 PR https://github.com/moevm/mse1h2025-prctr/pull/74
