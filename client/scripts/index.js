@@ -375,6 +375,11 @@ buttonElements.permissions.addEventListener('click', () => {
         activateMediaTab: true
     });
     logClientAction({ action: "Send message", messageType: "getPermissions" });
+    if (server_connection) {
+        inputElements.link.value = "";
+        saveInputValues();
+        logClientAction("Clear link field");
+    }
 });
 
 buttonElements.upload.addEventListener('click', async () => {
@@ -489,10 +494,21 @@ async function stopRecCallback() {
     logClientAction({ action: "Click stop record button" });
 	buttonElements.stop.setAttribute('disabled', '');
 	buttonElements.start.removeAttribute('disabled');
-	await chrome.runtime.sendMessage({
-		action: "stopRecord",
-        activateMediaTab: false
-	});
+	await chrome.runtime.sendMessage({action: "stopRecord", activateMediaTab: false}, async (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Error send stopRecord', chrome.runtime.lastError.message);
+            logClientAction({ action: "Error send stopRecord", message: chrome.runtime.lastError.message});
+        }
+        else {
+            if (!server_connection){
+                inputElements.link.value = "";
+                inputElements.link.classList.remove('input-valid');
+                saveInputValues();
+                logClientAction("Clear link field");
+            }
+        }
+    });
+
     logClientAction({ action: "Send message", messageType: "stopRecord" });
 }
 
@@ -619,6 +635,11 @@ async function uploadVideo() {
                 const result = await response.json();
                 console.log("Видео успешно отправлено:", result);
                 logClientAction({ action: "Upload video succeeds", sessionId: session_id });
+
+                inputElements.link.value = "";
+                inputElements.link.classList.remove('input-valid', 'input-invalid');
+                saveInputValues();
+                logClientAction("Clear link field");
             })
             .then(async () => {
                 await deleteFiles();
