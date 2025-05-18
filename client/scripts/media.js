@@ -191,9 +191,9 @@ async function sendButtonsStates(state) {
     }
 }
 
-const updateInvalidStopValue = (flag) => {
+const updateInvalidStopValue = async (flag) => {
     invalidStop = flag;
-    chrome.storage.local.set({ 'invalidStop': flag });
+    await chrome.storage.local.set({ 'invalidStop': flag });
 }
 
 async function getMediaDevices() {
@@ -241,7 +241,15 @@ async function getMediaDevices() {
                         throw new Error('Не удалось получить видеопоток с экрана');
                     }
 
-                    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: true });
+                    chrome.runtime.sendMessage(
+                        { type: 'screenCaptureStatus', active: true },
+                        (response) => {
+                            if (chrome.runtime.lastError) {
+                                logClientAction(`Screen capture status sending failed. Error: ${chrome.runtime.lastError.message}`);
+                                return;
+                            }
+                            logClientAction(`Screen capture status sending was successful: ${response}`);
+                    });
 
                     let micPermissionDenied = false;
                     let camPermissionDenied = false;
@@ -310,6 +318,12 @@ async function getMediaDevices() {
                             action: 'closeTabAndOpenTab',
                             mediaExtensionUrl: mediaExtensionUrl,
                             settingsUrl: settingsUrl
+                        }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                logClientAction(`Close tab and open tab was failed. Error: ${chrome.runtime.lastError.message}`);
+                                return;
+                            }
+                            logClientAction(`Close tab and open tab was successful: ${response}`);
                         });
 
                         logClientAction({ action: "Redirect to permission settings" });
@@ -340,7 +354,15 @@ async function getMediaDevices() {
                     };
 
                     streams.screen.getVideoTracks()[0].onended = async function () {
-                        chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
+                        chrome.runtime.sendMessage(
+                            { type: 'screenCaptureStatus', active: false },
+                            (response) => {
+                                if (chrome.runtime.lastError) {
+                                    logClientAction(`Screen capture status sending failed. Error: ${chrome.runtime.lastError.message}`);
+                                    return;
+                                }
+                                logClientAction(`Screen capture status sending was successful: ${response}`);
+                        });
                         if (streamLossSource) return;
                         streamLossSource = 'screen';
                         logClientAction('Screen stream ended');
@@ -615,7 +637,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             stopRecord();
             await setMetadatasRecordOff();
-            chrome.storage.local.set({'metadata': JSON.stringify(metadata)});
+            await chrome.storage.local.set({'metadata': JSON.stringify(metadata)});
             await sendButtonsStates('readyToUpload');
         }
     }
@@ -754,7 +776,7 @@ async function initSession(formData) {
     }
 }
 
-function stopDuration() {
+async function stopDuration() {
     const durationMs = new Date() - startTime;
 
     const seconds = Math.floor((durationMs / 1000) % 60);
@@ -765,22 +787,30 @@ function stopDuration() {
         `${minutes.toString().padStart(2, '0')}:` +
         `${seconds.toString().padStart(2, '0')}`;
 
-    chrome.storage.local.set({
-        'timeStr': timeStr
-    }, function() {
-        console.log('timeStr saved to storage');
-        logClientAction("stopDuration timeStr saved to storage");
-    });
+    await chrome.storage.local.set({ 'timeStr': timeStr });
+    logClientAction("stopDuration timeStr saved to storage");
 
-    chrome.runtime.sendMessage({type: 'stopRecordSignal'}, function(response) {
-        console.log('stopRecordSignal sent');
-        logClientAction("stopDuration stopRecordSignal sent");
+    chrome.runtime.sendMessage({type: 'stopRecordSignal'}, (response) => {
+        if (chrome.runtime.lastError) {
+            logClientAction(`Stop record signal is failed. Error: ${chrome.runtime.lastError.message}`);
+            return;
+        }
+        logClientAction(`stopDuration stopRecordSignal received: ${response}`);
     });
 }
 
 async function stopRecord() {
     if (!invalidStop) stopDuration();
-    chrome.runtime.sendMessage({ type: 'screenCaptureStatus', active: false });
+    
+    chrome.runtime.sendMessage(
+        { type: 'screenCaptureStatus', active: false },
+        (response) => {
+            if (chrome.runtime.lastError) {
+                logClientAction(`Screen capture status sending failed. Error: ${chrome.runtime.lastError.message}`);
+                return;
+            }
+            logClientAction(`Screen capture status sending was successful: ${response}`);
+    });
   
     isRecording = false;
     isPreviewEnabled = false;
@@ -945,14 +975,6 @@ async function startRecord() {
         await addFileToTempList(cameraFileName);
         logClientAction('Files added to temp list');
 
-        chrome.storage.local.set({
-            'fileNames': {
-                screen: combinedFileName,
-                camera: cameraFileName
-            }
-        });
-        logClientAction({ action: "Save fileNames to storage" });
-
         await chrome.runtime.sendMessage({
             action: 'scheduleCleanup',
             delayMinutes: 245
@@ -977,7 +999,6 @@ async function startRecord() {
 
         console.log('Запись начата');
         logClientAction('recording_started');
-        //chrome.runtime.sendMessage({ action: "closePopup" });
     } catch (error) {
         console.error('Ошибка при запуске записи:', error.message);
         logClientAction({ action: "Fail to start recording", error: error.message });
