@@ -11,7 +11,7 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=development
     volumes:
-      - .:/app:Z
+      - app-data:/app/data
     networks:
       - app-network
 
@@ -26,6 +26,7 @@ services:
 
 volumes:
   mongo-data:
+  app-data:
 
 networks:
   app-network:
