@@ -118,3 +118,44 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+    .main {
+        padding: 15px;
+    }
+    .main__header {
+        font-size: 1.4rem;
+    }
+    .preview-container {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .combined__preview,
+    .camera__preview {
+        width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .main {
+        padding: 10px;
+    }
+    .main__header {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+    }
+    .preview-label {
+        font-size: 1rem;
+    }
+    #preview-toggle-btn {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px;
+    }
+    .preview-toggle-block {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+}
