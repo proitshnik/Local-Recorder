@@ -2,7 +2,7 @@ import json
 import os
 import time
 from flask import Flask, request, Response, jsonify, render_template, abort, send_from_directory
-from werkzeug.utils import safe_join 
+from werkzeug.security import safe_join 
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
