@@ -1,7 +1,8 @@
 import json
 import os
 import time
-from flask import Flask, request, Response, jsonify, render_template
+from flask import Flask, request, Response, jsonify, render_template, abort, send_from_directory
+from werkzeug.utils import safe_join 
 from pymongo import MongoClient
 import gridfs
 from bson import ObjectId
@@ -18,6 +19,8 @@ sessions_collection = db["sessions"]
 
 UPLOAD_FOLDER = "data"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+DATA_FOLDER = "/app/" + UPLOAD_FOLDER
 
 
 @app.route("/start_session", methods=["POST"])
@@ -217,6 +220,20 @@ def get_sessions():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+ALLOWED_EXTENSIONS = {'.mp4', '.json'}
+
+@app.route("/open/<path:filename>")
+def open_file(filename):
+    if not any(filename.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+        abort(403)
+        
+    safe_path = safe_join(DATA_FOLDER, filename)
+    
+    if safe_path is None or not os.path.isfile(safe_path):
+        abort(404)
+        
+    return send_from_directory(DATA_FOLDER, filename, as_attachment=False)
 
 
 # @app.route('/get/<file_id>', methods=['GET'])
