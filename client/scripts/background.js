@@ -1,5 +1,6 @@
 import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction, clearLogs } from "./logger.js";
+import { showModalNotify, sendButtonsStates, deleteFiles } from './common.js';
 
 let screenCaptureActive = false;
 
@@ -119,29 +120,94 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 			action: 'stopRecording'
 		});
 		logClientAction({ action: "Send message", messageType: "stopRecording" });
-	} else if (message.action === 'uploadVideo') {
-		const result = await checkTabState();
-		if (result === undefined) {
-			const tab = await chrome.tabs.create({
-				url: chrome.runtime.getURL('pages/media.html'),
-				index: 0,
-				pinned: true,
-				active: false
-			});
-			await new Promise((resolve) => {
-				const listener = (tabId, changed) => {
-					if (tabId === tab.id && changed.status === 'complete') {
-						chrome.tabs.onUpdated.removeListener(listener);
-						resolve();
-					}
-				};
-				chrome.tabs.onUpdated.addListener(listener);
-			});
-			chrome.tabs.sendMessage(tab.id, { action: 'uploadVideoMedia' });
-		} else {
-			chrome.tabs.sendMessage(result[1], { action: 'uploadVideoMedia' });
-		}
 }});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'uploadVideo') {
+        uploadVideo().then(() => sendResponse({ status: "done" }));
+        return true;
+    }
+});
+
+async function uploadVideo() {
+    const { session_id } = await chrome.storage.local.get(['session_id']);
+
+    if (!session_id) {
+        console.error("Session ID не найден");
+        logClientAction({ action: `Upload fails due to missing session ID ${session_id}` });
+        return;
+    }
+
+    const files = (await chrome.storage.local.get('tempFiles'))['tempFiles'] || [];
+    if (!files.length) {
+        logClientAction("Ошибка при поиске записей");
+        throw new Error(`Ошибка при поиске записей`);
+    }
+
+    const formData = new FormData();
+    const rootDirectory = await navigator.storage.getDirectory();
+
+    for (const filename of files) {
+        const file = await (await rootDirectory.getFileHandle(filename)).getFile();
+        if (filename.includes('screen')) {
+            formData.append('screen_video', file, filename);
+        } else {
+            formData.append('camera_video', file, filename);
+        }
+    }
+
+    formData.append("id", session_id);
+    const metadata = (await chrome.storage.local.get('metadata'))['metadata'] || {};
+    formData.append("metadata", metadata);
+
+    logClientAction({ action: "Send upload request", sessionId: session_id });
+
+    const eventSource = new EventSource(`http://127.0.0.1:5000/progress/${session_id}`);
+    const steps = 7;
+
+    eventSource.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        const percent = data.step * Math.floor(100 / steps);
+        if (data.step == steps) {
+            eventSource.close();
+            await showModalNotify([`Статус: ${data.message}`, `Отправка завершена на 100 %`], "Записи успешно отправлены", true);
+        } else {
+            await showModalNotify([`Статус: ${data.message}`, `Отправка завершена на ${percent} %`], "Идёт отправка...", true);
+        }
+    };
+
+    eventSource.onerror = async (err) => {
+        eventSource.close();
+        logClientAction({ action: `EventSource error`, error: err });
+        await showModalNotify([
+            "Ошибка соединения с сервером!",
+            "Попробуйте отправить запись ещё раз.",
+            "Свяжитесь с преподавателем, если не удаётся загрузить."
+        ], 'Ошибка', true);
+    };
+
+    fetch('http://127.0.0.1:5000/upload_video', {
+        method: "POST",
+        body: formData,
+    })
+        .then(async (response) => {
+            if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+            const result = await response.json();
+            console.log("Видео успешно отправлено:", result);
+            logClientAction({ action: "Upload succeeded", sessionId: session_id });
+        })
+        .then(async () => {
+            sendButtonsStates('needPermissions');
+            await deleteFiles();
+            await clearLogs();
+            logClientAction({ action: "Очистка после загрузки" });
+        })
+        .catch(error => {
+            console.error("Ошибка загрузки:", error);
+            sendButtonsStates('failedUpload');
+            logClientAction({ action: "Upload failed", error: error.message });
+        });
+}
 
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
@@ -228,10 +294,40 @@ function openTab(url) {
 chrome.runtime.onMessage.addListener(
 	function(message, sender, sendResponse) {
 		if (message.action === 'gotoMediaTab') {
-			logClientAction("listener gotoMediaTab");
-			// Активируем вкладку media.html (по URL, переданному в message.mediaExtensionUrl)
-			openTab(message.mediaExtensionUrl);
+			(async () => {
+				logClientAction("listener gotoMediaTab");
+
+				const result = await checkTabState();
+				if (result === undefined) {
+					const tab = await chrome.tabs.create({
+						url: chrome.runtime.getURL('pages/media.html'),
+						index: 0,
+						pinned: true,
+						active: true
+					});
+					await new Promise((resolve) => {
+						const listener = (tabId, changed) => {
+							if (tabId === tab.id && changed.status === 'complete') {
+								chrome.tabs.onUpdated.removeListener(listener);
+								resolve();
+							}
+						};
+						chrome.tabs.onUpdated.addListener(listener);
+					});
+				} else {
+					const mediaExtensionUrl = chrome.runtime.getURL("pages/media.html");
+					openTab(mediaExtensionUrl);
+				}
+				sendResponse({ status: "done" });
+			})();
+
+			return true;
 		}
+	}
+);
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, sendResponse) {
 	  if (message.action === "closeTabAndOpenTab") {
 			chrome.tabs.query({ url: message.mediaExtensionUrl }, (tabs) => {
 				if (tabs && tabs.length > 0) {

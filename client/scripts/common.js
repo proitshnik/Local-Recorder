@@ -51,8 +51,7 @@ export async function showModalNotify(messages, title = "Уведомление"
     } else {
         return new Promise((resolve) => {
             chrome.runtime.sendMessage({
-                action: "gotoMediaTab",
-                mediaExtensionUrl: chrome.runtime.getURL("pages/media.html") }, (response) => {
+                action: "gotoMediaTab" }, (response) => {
                     if (chrome.runtime.lastError) {
                         console.error('Error send gotoMediaTab', chrome.runtime.lastError.message);
                         logClientAction({ action: "Error send gotoMediaTab", message: chrome.runtime.lastError.message});
@@ -172,4 +171,34 @@ export function getCurrentDateString(date) {
     logClientAction({ action: "Generate current date string" });
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T` + 
     `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+}
+
+async function checkOpenedPopup() {
+	let a = await chrome.runtime.getContexts({contextTypes: ['POPUP']});
+	const isPopupOpen = a.length > 0;
+	logClientAction({ action: "Check if popup is open", popupOpen: isPopupOpen.toString() });
+	return isPopupOpen;
+}
+
+export async function sendButtonsStates(state) {
+	const server_connection = await chrome.storage.local.get('server_connection');
+	if (state === 'readyToUpload' && !server_connection) {
+		state = 'needPermissions';
+		logClientAction({ action: "Update buttons states due to missing server connection" });
+	}
+	if (await checkOpenedPopup()) chrome.runtime.sendMessage({action: 'updateButtonStates', state: state}, (response) => {
+		if (chrome.runtime.lastError) {
+			logClientAction(`Message with state: ${state} failed. Error: ${chrome.runtime.lastError.message}`);
+			buttonsStatesSave(state);
+		} else {
+			if (!response || !response.hasOwnProperty('status') || response.status !== 'success') {
+				buttonsStatesSave(state);
+			}
+			logClientAction(`Message with state: ${state} sent successfully`);
+		}
+	});
+	else {
+		buttonsStatesSave(state);
+		logClientAction(`sendButtonsStates ${state} else`);
+	}
 }
