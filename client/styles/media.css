@@ -54,10 +54,11 @@
 
 #custom-modal h2 {
     margin-top: 0;
+    font-size: 1.2rem;
 }
 
 #custom-modal p {
-    margin: 10px 0;
+    font-size: 1rem;
 }
 
 #modal-close-btn {
@@ -135,6 +136,23 @@
         width: 100%;
         height: auto;
     }
+    #custom-modal {
+        padding: 16px;
+    }
+
+    #custom-modal h2 {
+        font-size: 1rem;
+    }
+
+    #custom-modal p {
+        font-size: 0.9rem;
+    }
+
+    #modal-close-btn {
+        font-size: 1rem;
+        padding: 8px 16px;
+    }
+
 }
 
 @media (max-width: 480px) {
@@ -157,5 +175,23 @@
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
+    }
+    #custom-modal {
+        max-width: 95%;
+        padding: 14px;
+    }
+
+    #custom-modal h2 {
+        font-size: 0.9rem;
+    }
+
+    #custom-modal p {
+        font-size: 0.8rem;
+    }
+
+    #modal-close-btn {
+        font-size: 0.8rem;
+        padding: 10px;
+        width: 100%;
     }
 }
