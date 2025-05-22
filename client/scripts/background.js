@@ -1,6 +1,46 @@
 import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction, clearLogs } from "./logger.js";
 
+const DEV_MODE = true;
+
+const CURRENT_VERSION = chrome.runtime.getManifest().version;
+
+function handleExtensionUpdate() {
+    chrome.storage.local.get(null, (items) => {
+        const storedVersion = items.version;
+
+        const shouldForceReset = DEV_MODE || storedVersion !== CURRENT_VERSION;
+
+        if (shouldForceReset) {
+        console.log(`[Extension] Reset triggered. DevMode: ${DEV_MODE}, Version changed: ${storedVersion} → ${CURRENT_VERSION}`);
+
+        const preservedData = {};
+        if (items.inputElementsValue) {
+            preservedData.inputElementsValue = items.inputElementsValue;
+        }
+
+        chrome.storage.local.clear(() => {
+            chrome.storage.local.set({
+            ...preservedData,
+            version: CURRENT_VERSION
+            }, () => {
+            console.log('[Extension] Storage cleared, inputElementsValue preserved, version updated.');
+            });
+        });
+        } else {
+            console.log('[Extension] Version unchanged and not in dev mode:', CURRENT_VERSION);
+        }
+    });
+}
+
+chrome.runtime.onStartup.addListener(() => {
+    handleExtensionUpdate();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+    handleExtensionUpdate();
+});
+
 let screenCaptureActive = false;
 
 function setScreenCaptureActive(state) {
