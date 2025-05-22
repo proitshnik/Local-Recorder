@@ -348,7 +348,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к камере потерян!");
-                            updateInvalidStopValue(true);
+                            await updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -376,7 +376,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к экрану потерян!");
-                            updateInvalidStopValue(true);
+                            await updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -395,7 +395,7 @@ async function getMediaDevices() {
                             stopDuration();
                             await sendButtonsStates('needPermissions');
                             await showModalNotify(["Текущие записи завершатся. Чтобы продолжить запись заново, выдайте разрешения в расширении во всплывающем окне по кнопке Разрешения и начните запись."], "Доступ к микрофону потерян!");
-                            updateInvalidStopValue(true);
+                            await updateInvalidStopValue(true);
                             stopRecord();
                         }
                     };
@@ -669,7 +669,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
     }
     else if (message.action === 'startRecording') {
-        updateInvalidStopValue(
+        await updateInvalidStopValue(
             (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false
         );
         if (!invalidStop) await checkAndCleanLogs();
@@ -707,7 +707,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
                 logClientAction({ action: "Generate session ID locally", sessionId });
             }
         }
-        updateInvalidStopValue(false);
+        await updateInvalidStopValue(false);
 
         startRecord()
         .then(async () => {
