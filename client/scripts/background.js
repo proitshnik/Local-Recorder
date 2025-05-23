@@ -1,7 +1,7 @@
 import {deleteFilesFromTempList} from "./common.js";
 import { logClientAction, clearLogs } from "./logger.js";
 
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 const CURRENT_VERSION = chrome.runtime.getManifest().version;
 
@@ -9,24 +9,27 @@ function handleExtensionUpdate() {
     chrome.storage.local.get(null, (items) => {
         const storedVersion = items.version;
 
-        const shouldForceReset = DEV_MODE || storedVersion !== CURRENT_VERSION;
+        const resettableStates = ['readyToRecord', 'recording'];
+        const currentState = items.bState;
+
+        const shouldForceReset = DEV_MODE || storedVersion !== CURRENT_VERSION || resettableStates.includes(currentState);
 
         if (shouldForceReset) {
-        console.log(`[Extension] Reset triggered. DevMode: ${DEV_MODE}, Version changed: ${storedVersion} → ${CURRENT_VERSION}`);
+            console.log(`[Extension] Reset triggered. DevMode: ${DEV_MODE}, Version changed: ${storedVersion} → ${CURRENT_VERSION}`);
 
-        const preservedData = {};
-        if (items.inputElementsValue) {
-            preservedData.inputElementsValue = items.inputElementsValue;
-        }
+            const preservedData = {};
+            if (items.inputElementsValue) {
+                preservedData.inputElementsValue = items.inputElementsValue;
+            }
 
-        chrome.storage.local.clear(() => {
-            chrome.storage.local.set({
-            ...preservedData,
-            version: CURRENT_VERSION
-            }, () => {
-            console.log('[Extension] Storage cleared, inputElementsValue preserved, version updated.');
+            chrome.storage.local.clear(() => {
+                chrome.storage.local.set({
+                ...preservedData,
+                version: CURRENT_VERSION
+                }, () => {
+                console.log('[Extension] Storage cleared, inputElementsValue preserved, version updated.');
+                });
             });
-        });
         } else {
             console.log('[Extension] Version unchanged and not in dev mode:', CURRENT_VERSION);
         }
