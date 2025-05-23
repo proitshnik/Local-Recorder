@@ -171,7 +171,7 @@ async function checkOpenedPopup() {
 
 function updateMicFill(level) {
     const micFill = document.getElementById('mic-fill');
-    const clamped = Math.min(1, Math.max(0, level * 8));
+    const clamped = Math.min(1, Math.max(0, level * 16));
     micFill.style.transform = `scaleY(${clamped})`;
 }
 

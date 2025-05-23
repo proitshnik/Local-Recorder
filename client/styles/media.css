@@ -119,19 +119,21 @@
     cursor: not-allowed;
 }
 
-.combined-wrapper {
+.camera-wrapper {
     position: relative;
     display: inline-block;
 }
 
 .mic-level-indicator {
     position: absolute;
-    bottom: 8px;
-    right: 225px;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
     width: 24px;
     height: 24px;
     z-index: 10;
-    pointer-events: none; /* чтобы не мешал кликам по плееру */
+    pointer-events: none;
 }
 
 .mic-base, .mic-fill {
