@@ -118,3 +118,25 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.mic-icon {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 32px;
+    height: 32px;
+    background: url('../assets/icons/mic.svg') center center no-repeat;
+    background-size: contain;
+    z-index: 10;
+    opacity: 0.8;
+    transition: filter 0.2s, opacity 0.2s;
+}
+
+.mic-silent { filter: grayscale(100%) brightness(0.5); }
+.mic-low    { filter: none; opacity: 1; }
+.mic-high   { filter: drop-shadow(0 0 4px red); opacity: 1; }

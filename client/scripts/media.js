@@ -264,6 +264,38 @@ async function getMediaDevices() {
                         }
                     }
 
+                    if (!micPermissionDenied) {
+                        const audioCtx = new AudioContext();
+                        const micSourceNode = audioCtx.createMediaStreamSource(streams.microphone);
+                        const analyser = audioCtx.createAnalyser();
+                        analyser.fftSize = 256;
+                        micSourceNode.connect(analyser);
+
+                        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                        const micIcon = document.getElementById('mic-icon');
+
+                        function updateMicIcon() {
+                            analyser.getByteTimeDomainData(dataArray);
+                            // вычисляем среднеквадратичное отклонение для шума
+                            let sum = 0;
+                            for (let i = 0; i < dataArray.length; i++) {
+                                const v = dataArray[i] / 128 - 1;
+                                sum += v * v;
+                            }
+                            const rms = Math.sqrt(sum / dataArray.length);
+                            // меняем класс иконки в зависимости от порогов
+                            if (rms < 0.02) {
+                                micIcon.className = 'mic-icon mic-silent';
+                            } else if (rms < 0.1) {
+                                micIcon.className = 'mic-icon mic-low';
+                            } else {
+                                micIcon.className = 'mic-icon mic-high';
+                            }
+                            requestAnimationFrame(updateMicIcon);
+                        }
+                        requestAnimationFrame(updateMicIcon);
+                    }
+
                     try {
                         streams.camera = await navigator.mediaDevices.getUserMedia({ 
                             video: {
