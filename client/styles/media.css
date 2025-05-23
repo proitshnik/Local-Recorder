@@ -119,24 +119,42 @@
     cursor: not-allowed;
 }
 
-.preview-wrapper {
+.combined-wrapper {
     position: relative;
     display: inline-block;
 }
 
-.mic-icon {
+.mic-level-indicator {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 32px;
-    height: 32px;
-    background: url('../assets/icons/mic.svg') center center no-repeat;
-    background-size: contain;
+    bottom: 8px;
+    right: 225px;
+    width: 24px;
+    height: 24px;
     z-index: 10;
-    opacity: 0.8;
-    transition: filter 0.2s, opacity 0.2s;
+    pointer-events: none; /* чтобы не мешал кликам по плееру */
 }
 
-.mic-silent { filter: grayscale(100%) brightness(0.5); }
-.mic-low    { filter: none; opacity: 1; }
-.mic-high   { filter: drop-shadow(0 0 4px red); opacity: 1; }
+.mic-base, .mic-fill {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: url('../assets/icons/mic.svg') center center no-repeat;
+    background-size: contain;
+}
+
+.mic-base {
+    filter: grayscale(100%) brightness(0.4);
+}
+
+.mic-fill {
+    background-color: white;
+    -webkit-mask: url('../assets/icons/mic.svg') center center no-repeat;
+    -webkit-mask-size: contain;
+    mask: url('../assets/icons/mic.svg') center center no-repeat;
+    mask-size: contain;
+
+    transform-origin: bottom;
+    transform: scaleY(0);
+    transition: transform 0.1s linear;
+}
+

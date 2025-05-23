@@ -169,6 +169,12 @@ async function checkOpenedPopup() {
     return isPopupOpen;
 }
 
+function updateMicFill(level) {
+    const micFill = document.getElementById('mic-fill');
+    const clamped = Math.min(1, Math.max(0, level * 8));
+    micFill.style.transform = `scaleY(${clamped})`;
+}
+
 async function sendButtonsStates(state) {
     if (state === 'readyToUpload' && !server_connection) {
         state = 'needPermissions';
@@ -272,28 +278,24 @@ async function getMediaDevices() {
                         micSourceNode.connect(analyser);
 
                         const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                        const micIcon = document.getElementById('mic-icon');
+                        const micIcon = document.getElementById('mic-fill');
 
-                        function updateMicIcon() {
+                        function updateMicFillLoop() {
                             analyser.getByteTimeDomainData(dataArray);
-                            // вычисляем среднеквадратичное отклонение для шума
+
                             let sum = 0;
                             for (let i = 0; i < dataArray.length; i++) {
                                 const v = dataArray[i] / 128 - 1;
                                 sum += v * v;
                             }
                             const rms = Math.sqrt(sum / dataArray.length);
-                            // меняем класс иконки в зависимости от порогов
-                            if (rms < 0.02) {
-                                micIcon.className = 'mic-icon mic-silent';
-                            } else if (rms < 0.1) {
-                                micIcon.className = 'mic-icon mic-low';
-                            } else {
-                                micIcon.className = 'mic-icon mic-high';
-                            }
-                            requestAnimationFrame(updateMicIcon);
+
+                            updateMicFill(rms);
+
+                            requestAnimationFrame(updateMicFillLoop);
                         }
-                        requestAnimationFrame(updateMicIcon);
+
+                        requestAnimationFrame(updateMicFillLoop);
                     }
 
                     try {
