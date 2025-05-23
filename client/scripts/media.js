@@ -170,9 +170,12 @@ async function checkOpenedPopup() {
 }
 
 function updateMicFill(level) {
-    const micFill = document.getElementById('mic-fill');
-    const clamped = Math.min(1, Math.max(0, level * 16));
-    micFill.style.transform = `scaleY(${clamped})`;
+    const fill = document.querySelector('.mic-fill');
+    if (!fill) return;
+    const boosted = Math.sqrt(level * 16); // коэффициент отвечающий за чувствительность
+    const clamped = Math.min(1, Math.max(0, boosted));
+    const percent = (1 - clamped) * 100;
+    fill.style.transform = `translateY(${percent}%)`;
 }
 
 async function sendButtonsStates(state) {

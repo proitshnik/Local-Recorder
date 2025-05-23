@@ -124,7 +124,7 @@
     display: inline-block;
 }
 
-.mic-level-indicator {
+.mic-indicator {
     position: absolute;
     top: 100%;
     left: 50%;
@@ -136,27 +136,32 @@
     pointer-events: none;
 }
 
-.mic-base, .mic-fill {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+.mic-base {
+    width: 100%;
+    height: 100%;
     background: url('../assets/icons/mic.svg') center center no-repeat;
     background-size: contain;
-}
-
-.mic-base {
     filter: grayscale(100%) brightness(0.4);
 }
 
-.mic-fill {
-    background-color: white;
-    -webkit-mask: url('../assets/icons/mic.svg') center center no-repeat;
-    -webkit-mask-size: contain;
-    mask: url('../assets/icons/mic.svg') center center no-repeat;
-    mask-size: contain;
+.mic-fill-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
 
+.mic-fill {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    opacity: 0.6;
     transform-origin: bottom;
-    transform: scaleY(0);
+    transform: translateY(100%);
     transition: transform 0.1s linear;
 }
+
 
