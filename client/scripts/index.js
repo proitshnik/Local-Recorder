@@ -502,12 +502,12 @@ async function stopRecCallback() {
             logClientAction({ action: "Error send stopRecord", message: chrome.runtime.lastError.message});
         }
         else {
+            updateInvalidStopValue(false);
             if (!server_connection){
                 inputElements.link.value = "";
                 inputElements.link.classList.remove('input-valid');
                 saveInputValues();
                 logClientAction("Clear link field");
-                chrome.storage.local.set({ 'invalidStop': false });
                 chrome.storage.local.set({ 'sessionId': null });
             }
         }
@@ -644,7 +644,7 @@ async function uploadVideo() {
                 inputElements.link.classList.remove('input-valid', 'input-invalid');
                 saveInputValues();
                 logClientAction("Clear link field");
-                chrome.storage.local.set({ 'invalidStop': false });
+                updateInvalidStopValue(false);
                 chrome.storage.local.set({ 'sessionId': null });
             })
             .then(async () => {
