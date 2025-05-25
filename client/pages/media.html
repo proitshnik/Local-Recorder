@@ -14,8 +14,21 @@
         <button id="preview-toggle-btn" disabled>Включить</button>
     </div>
     <div class="preview-container">
-        <video class="combined__preview" controls autoplay></video>
-        <video class="camera__preview" autoplay muted></video>
+        <video
+            class="combined__preview"
+            controlsList="nofullscreen nodownload noremoteplayback"
+            controls autoplay 
+            playsinline disablePictureInPicture
+        ></video>
+        <div class="camera-wrapper">
+            <video class="camera__preview" autoplay muted></video>
+            <div class="mic-indicator">
+                <div class="mic-base"></div>
+                <div class="mic-fill-container">
+                    <div class="mic-fill"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 <script type="module" src="../scripts/media.js"></script>

@@ -55,6 +55,8 @@ var metadata = {
     }
 };
 
+combinedPreview.addEventListener('contextmenu', e => e.preventDefault(), {capture: true});
+
 const stopStreams = () => {
     Object.entries(streams).forEach(([stream, value]) => {
         if (value) {
@@ -169,6 +171,15 @@ async function checkOpenedPopup() {
     return isPopupOpen;
 }
 
+function updateMicFill(level) {
+    const fill = document.querySelector('.mic-fill');
+    if (!fill) return;
+    const boosted = Math.sqrt(level * 16); // коэффициент отвечающий за чувствительность
+    const clamped = Math.min(1, Math.max(0, boosted));
+    const percent = (1 - clamped) * 100;
+    fill.style.transform = `translateY(${percent}%)`;
+}
+
 async function sendButtonsStates(state) {
     if (state === 'readyToUpload' && !server_connection) {
         state = 'needPermissions';
@@ -262,6 +273,34 @@ async function getMediaDevices() {
                             reject(micError);
                             return;
                         }
+                    }
+
+                    if (!micPermissionDenied) {
+                        const audioCtx = new AudioContext();
+                        const micSourceNode = audioCtx.createMediaStreamSource(streams.microphone);
+                        const analyser = audioCtx.createAnalyser();
+                        analyser.fftSize = 256;
+                        micSourceNode.connect(analyser);
+
+                        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                        const micIcon = document.getElementById('mic-fill');
+
+                        function updateMicFillLoop() {
+                            analyser.getByteTimeDomainData(dataArray);
+
+                            let sum = 0;
+                            for (let i = 0; i < dataArray.length; i++) {
+                                const v = dataArray[i] / 128 - 1;
+                                sum += v * v;
+                            }
+                            const rms = Math.sqrt(sum / dataArray.length);
+
+                            updateMicFill(rms);
+
+                            requestAnimationFrame(updateMicFillLoop);
+                        }
+
+                        requestAnimationFrame(updateMicFillLoop);
                     }
 
                     try {
@@ -404,7 +443,7 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 128_000,
-                        videoBitsPerSecond: 500_000,
+                        videoBitsPerSecond: 2_500_000,
                     });
                     logClientAction({ action: "Create combined recorder" });
                     
