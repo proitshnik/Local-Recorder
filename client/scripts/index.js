@@ -8,7 +8,7 @@ const recordTime = document.querySelector('#record-time')
 
 let timerInterval = null;
 let startTime = null;
-let server_connection = true;
+let server_connection = false;
 chrome.storage.local.set({'server_connection': server_connection});
 
 const inputElements = {
