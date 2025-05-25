@@ -375,7 +375,7 @@ buttonElements.permissions.addEventListener('click', () => {
         activateMediaTab: true
     });
     logClientAction({ action: "Send message", messageType: "getPermissions" });
-    if (server_connection) {
+    if (server_connection && !invalidStop) {
         inputElements.link.value = "";
         saveInputValues();
         logClientAction("Clear link field");
