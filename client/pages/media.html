@@ -20,7 +20,15 @@
             controls autoplay 
             playsinline disablePictureInPicture
         ></video>
-        <video class="camera__preview" autoplay muted></video>
+        <div class="camera-wrapper">
+            <video class="camera__preview" autoplay muted></video>
+            <div class="mic-indicator">
+                <div class="mic-base"></div>
+                <div class="mic-fill-container">
+                    <div class="mic-fill"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 <script type="module" src="../scripts/media.js"></script>
