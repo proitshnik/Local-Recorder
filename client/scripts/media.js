@@ -205,6 +205,13 @@ const updateInvalidStopValue = (flag) => {
     chrome.storage.local.set({ 'invalidStop': flag });
 }
 
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.invalidStop) {
+        invalidStop = changes.invalidStop.newValue;
+        logClientAction({ action: "Update invalidStop value", invalidStop: invalidStop.toString() });
+    }
+});
+
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         let streamLossSource = null;

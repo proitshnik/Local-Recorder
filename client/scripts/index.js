@@ -368,13 +368,15 @@ window.addEventListener('load', async () => {
     });
 });
 
-buttonElements.permissions.addEventListener('click', () => {
+buttonElements.permissions.addEventListener('click', async () => {
     logClientAction({ action: "Click permissions button" });
     chrome.runtime.sendMessage({
         action: "getPermissions",
         activateMediaTab: true
     });
     logClientAction({ action: "Send message", messageType: "getPermissions" });
+
+    let invalidStop = (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
     if (server_connection && !invalidStop) {
         inputElements.link.value = "";
         saveInputValues();
@@ -502,7 +504,7 @@ async function stopRecCallback() {
             logClientAction({ action: "Error send stopRecord", message: chrome.runtime.lastError.message});
         }
         else {
-            updateInvalidStopValue(false);
+            chrome.storage.local.set({ 'invalidStop': false });
             if (!server_connection){
                 inputElements.link.value = "";
                 inputElements.link.classList.remove('input-valid');
@@ -644,7 +646,7 @@ async function uploadVideo() {
                 inputElements.link.classList.remove('input-valid', 'input-invalid');
                 saveInputValues();
                 logClientAction("Clear link field");
-                updateInvalidStopValue(false);
+                chrome.storage.local.set({ 'invalidStop': false });
                 chrome.storage.local.set({ 'sessionId': null });
             })
             .then(async () => {
