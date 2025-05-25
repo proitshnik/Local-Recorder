@@ -443,7 +443,7 @@ async function getMediaDevices() {
                     recorders.combined = new MediaRecorder(streams.combined, {
                         mimeType: 'video/mp4; codecs="avc1.64001E, opus"',
                         audioBitsPerSecond: 128_000,
-                        videoBitsPerSecond: 500_000,
+                        videoBitsPerSecond: 2_500_000,
                     });
                     logClientAction({ action: "Create combined recorder" });
                     
