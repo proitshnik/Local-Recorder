@@ -80,6 +80,11 @@
 .preview-label {
     font-size: 18px;
     font-weight: 500;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .preview-toggle-block {
@@ -108,12 +113,12 @@
 }
 
 #preview-toggle-btn.disabled {
-    background-color: #dc3545;
+    background-color: #00488c;
     color: #faf0ec;
 }
 
 #preview-toggle-btn.disabled:hover {
-    background-color: #c82333;
+    background-color: #0160c5;
     color: #faf0ec;
 }
 
