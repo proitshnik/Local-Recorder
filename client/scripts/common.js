@@ -49,7 +49,7 @@ export async function showModalNotify(messages, title = "Уведомление"
             throw error;
         }
     } else {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({
                 action: "gotoMediaTab",
                 mediaExtensionUrl: chrome.runtime.getURL("pages/media.html") }, (response) => {
@@ -91,7 +91,6 @@ export async function showModalNotify(messages, title = "Уведомление"
                 overlay.appendChild(modal);
                 document.body.appendChild(overlay);
             } else {
-                
                 chrome.runtime.sendMessage({
                     type: "showModalNotifyOnMedia",
                     messages: messages,
