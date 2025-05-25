@@ -81,11 +81,14 @@ export async function showModalNotify(messages, title = "Уведомление"
                     <button id="modal-close-btn">Хорошо. Я прочитал(а).</button>
                 `;
 
-                modal.querySelector('#modal-close-btn').addEventListener('click', () => {
+                const closeButton = modal.querySelector('#modal-close-btn');
+                const closeModalHandler = () => {
+                    closeButton.removeEventListener('click', closeModalHandler);
                     overlay.remove();
                     document.body.style.overflow = '';
                     resolve();
-                });
+                }
+                closeButton.addEventListener('click', closeModalHandler);
 
                 document.body.style.overflow = 'hidden';
                 overlay.appendChild(modal);
