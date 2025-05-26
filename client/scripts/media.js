@@ -207,6 +207,13 @@ const updateInvalidStopValue = (flag) => {
     chrome.storage.local.set({ 'invalidStop': flag });
 }
 
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.invalidStop) {
+        invalidStop = changes.invalidStop.newValue;
+        logClientAction({ action: "Update invalidStop value", invalidStop: invalidStop.toString() });
+    }
+});
+
 async function getMediaDevices() {
     return new Promise(async (resolve, reject) => {
         let streamLossSource = null;
@@ -720,7 +727,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
                 await chrome.storage.local.set({ 'lastRecordTime': new Date().toISOString() });
 
                 const sessionId = generateObjectId();
-                await chrome.storage.local.set({ 'session_id': sessionId });
+                await chrome.storage.local.set({ 'sessionId': sessionId });
                 logClientAction({ action: "Generate session ID locally", sessionId });
             }
         }
@@ -781,9 +788,9 @@ async function initSession(formData) {
         const result = await response.json();
         const sessionId = result.id;
 
-        await chrome.storage.local.set({ 'session_id': sessionId });
+        await chrome.storage.local.set({ 'sessionId': sessionId });
 
-        console.log('session_id успешно сохранён!');
+        console.log('sessionId успешно сохранён!');
         logClientAction({ action: "Save session ID from server", sessionId });
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
