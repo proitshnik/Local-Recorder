@@ -375,6 +375,20 @@ window.addEventListener('load', async () => {
 });
 
 buttonElements.permissions.addEventListener('click', async () => {
+    let bState;
+    chrome.storage.local.get('bState').then(result => {
+        bState = result.bState;
+        logClientAction({"action": "Get bState when click button permissions", bState});
+        if (bState == 'failedUpload') {
+            logClientAction({ action: `Link should be cleared - current state is ${bState}` });
+        }
+        else {
+            logClientAction({ action: "Link shouldn't be cleared" });
+        }
+    }).catch(error => {
+        logClientAction({"action": "Error getting bState when click button permissions", "error": error.message});
+    });
+
     logClientAction({ action: "Click permissions button" });
     chrome.runtime.sendMessage({
         action: "getPermissions",
@@ -383,7 +397,7 @@ buttonElements.permissions.addEventListener('click', async () => {
     logClientAction({ action: "Send message", messageType: "getPermissions" });
 
     invalidStop = (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
-    if (server_connection && !invalidStop) {
+    if (server_connection && !invalidStop && bState == "failedUpload") {
         inputElements.link.value = "";
         saveInputValues();
         logClientAction("Clear link field");
