@@ -631,6 +631,7 @@ async function uploadVideo() {
             if (data.step == steps) {
                 logClientAction({ action: "Data transfer completed" });
                 eventSource.close();
+                // TODO Fix notify showing #142, ибо если закрыть popup здесь ничего не произойдет
                 await showModalNotify([`Статус: ${data.message}`,
                     `Отправка завершена на 100 %`], "Записи успешно отправлены", true, true);
                 inputElements.link.value = "";
