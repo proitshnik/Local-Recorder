@@ -10,6 +10,12 @@ let timerInterval = null;
 let startTime = null;
 let server_connection = true;
 chrome.storage.local.set({'server_connection': server_connection});
+let invalidStop = (chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
+
+const updateInvalidStopValue = (flag) => {
+    invalidStop = flag;
+    chrome.storage.local.set({ 'invalidStop': flag });
+}
 
 const inputElements = {
 	group: document.querySelector('#group_input'),
@@ -376,7 +382,7 @@ buttonElements.permissions.addEventListener('click', async () => {
     });
     logClientAction({ action: "Send message", messageType: "getPermissions" });
 
-    let invalidStop = (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
+    invalidStop = (await chrome.storage.local.get('invalidStop'))['invalidStop'] || false;
     if (server_connection && !invalidStop) {
         inputElements.link.value = "";
         saveInputValues();
@@ -504,7 +510,7 @@ async function stopRecCallback() {
             logClientAction({ action: "Error send stopRecord", message: chrome.runtime.lastError.message});
         }
         else {
-            chrome.storage.local.set({ 'invalidStop': false });
+            updateInvalidStopValue(false);
             if (!server_connection){
                 inputElements.link.value = "";
                 inputElements.link.classList.remove('input-valid');
@@ -646,7 +652,7 @@ async function uploadVideo() {
                 inputElements.link.classList.remove('input-valid', 'input-invalid');
                 saveInputValues();
                 logClientAction("Clear link field");
-                chrome.storage.local.set({ 'invalidStop': false });
+                updateInvalidStopValue(false);
                 chrome.storage.local.set({ 'sessionId': null });
             })
             .then(async () => {
