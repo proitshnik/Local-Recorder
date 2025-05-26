@@ -187,6 +187,13 @@ https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%
 https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%BA%D0%BE%D0%BB#%D1%81%D0%BE%D0%B7%D0%B2%D0%BE%D0%BD-%D1%81-%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA%D0%BE%D0%BC-7----23052025
 
 ## Презентация:
+https://drive.google.com/file/d/18ry4xXnDvNXAAzFlCJBaW8hKYXRxtqs5/view
+
+## Демо версии 1.4.0:
+https://drive.google.com/file/d/1l5OltpQY1qCG7BRE5_6_sKOFeedz6Kok/view
+
+## v1.4.0 Local proctoring
+https://github.com/moevm/mse1h2025-prctr/releases/tag/v1.4.0
 
 ## Issue итерации:
 
