@@ -633,6 +633,10 @@ async function uploadVideo() {
                 eventSource.close();
                 await showModalNotify([`Статус: ${data.message}`,
                     `Отправка завершена на 100 %`], "Записи успешно отправлены", true, true);
+                inputElements.link.value = "";
+                inputElements.link.classList.remove('input-valid', 'input-invalid');
+                saveInputValues();
+                logClientAction("Clear link field");
             } else {
                 await showModalNotify([`Статус: ${data.message}`,
                     `Отправка завершена на ${data.step * Math.floor(100 / steps)} %`], "Идёт отправка...", true, true);
@@ -661,11 +665,6 @@ async function uploadVideo() {
                 const result = await response.json();
                 console.log("Видео успешно отправлено:", result);
                 logClientAction({ action: "Upload video succeeds", sessionId: sessionId });
-
-                inputElements.link.value = "";
-                inputElements.link.classList.remove('input-valid', 'input-invalid');
-                saveInputValues();
-                logClientAction("Clear link field");
                 updateInvalidStopValue(false);
                 chrome.storage.local.set({ 'sessionId': null });
             })
