@@ -380,10 +380,10 @@ buttonElements.permissions.addEventListener('click', async () => {
         bState = result.bState;
         logClientAction({"action": "Get bState when click button permissions", bState});
         if (bState == 'failedUpload') {
-            logClientAction({ action: `Link should be cleared - current state is ${bState}` });
+            logClientAction({ action: "Link should be cleared" });
         }
         else {
-            logClientAction({ action: "Link shouldn't be cleared" });
+            logClientAction({ action: `Link shouldn't be cleared  - current state is ${bState}` });
         }
     }).catch(error => {
         logClientAction({"action": "Error getting bState when click button permissions", "error": error.message});
