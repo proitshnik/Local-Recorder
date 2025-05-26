@@ -60,13 +60,33 @@ document.addEventListener("DOMContentLoaded", function () {
         searchResults.forEach(session => {
             // Сбор данных для оптимизированного столбца с полями с путями до файлов
             session[fields2column] = fields2column.split("\n").map(key => key.trim())
-            .map(key => session[key])
-            .join("\n");
+            .map(key => {
+                const value = session[key];
+                let items = [];
+
+                if (Array.isArray(value)) {
+                    items = value;
+                } else if (typeof value === 'string') {
+                    items = value.split(" ");
+                } else {
+                    return "";
+                }
+
+                const links = items.map(item => {
+                    const file = item.replace(/^data\//, "");
+                    return `<a href="/open/${file}" target="_blank">${item}</a>`;
+                });
+
+                return links.join(" ");
+            })
+            .join("<br><br>");
 
             const row = document.createElement("tr");
             columns.forEach(column => {
                 const td = document.createElement("td");
-                if (typeof session[column] === "string") {
+                if (column === fields2column) {
+                    td.innerHTML = session[column];
+                } else if (typeof session[column] === "string") {
                     td.textContent = session[column];
                 } else if (session[column] === null || session[column] === undefined) {
                     td.textContent = "";

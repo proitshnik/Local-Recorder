@@ -54,10 +54,11 @@
 
 #custom-modal h2 {
     margin-top: 0;
+    font-size: 1.2rem;
 }
 
 #custom-modal p {
-    margin: 10px 0;
+    font-size: 1rem;
 }
 
 #modal-close-btn {
@@ -79,6 +80,11 @@
 .preview-label {
     font-size: 18px;
     font-weight: 500;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .preview-toggle-block {
@@ -97,24 +103,147 @@
 }
 
 #preview-toggle-btn.enabled {
-    background-color: #28a745;
-    color: black;
+    background-color: #00488c;
+    color: #faf0ec;
 }
 
 #preview-toggle-btn.enabled:hover {
-    background-color: #218838;
+    background-color: #0160c5; 
+    color: #faf0ec;
 }
 
 #preview-toggle-btn.disabled {
-    background-color: #dc3545;
-    color: black;
+    background-color: #00488c;
+    color: #faf0ec;
 }
 
 #preview-toggle-btn.disabled:hover {
-    background-color: #c82333;
+    background-color: #0160c5;
+    color: #faf0ec;
 }
 
 #preview-toggle-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .main {
+        padding: 15px;
+    }
+    .main__header {
+        font-size: 1.4rem;
+    }
+    .preview-container {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .combined__preview,
+    .camera__preview {
+        width: 100%;
+        height: auto;
+    }
+    #custom-modal {
+        padding: 16px;
+    }
+
+    #custom-modal h2 {
+        font-size: 1rem;
+    }
+
+    #custom-modal p {
+        font-size: 0.9rem;
+    }
+
+    #modal-close-btn {
+        font-size: 1rem;
+        padding: 8px 16px;
+    }
+
+}
+
+@media (max-width: 480px) {
+    .main {
+        padding: 10px;
+    }
+    .main__header {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+    }
+    .preview-label {
+        font-size: 1rem;
+    }
+    #preview-toggle-btn {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px;
+    }
+    .preview-toggle-block {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    #custom-modal {
+        max-width: 95%;
+        padding: 14px;
+    }
+
+    #custom-modal h2 {
+        font-size: 0.9rem;
+    }
+
+    #custom-modal p {
+        font-size: 0.8rem;
+    }
+
+    #modal-close-btn {
+        font-size: 0.8rem;
+        padding: 10px;
+        width: 100%;
+    }
+}
+
+.camera-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.mic-indicator {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    width: 24px;
+    height: 24px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.mic-base {
+    width: 100%;
+    height: 100%;
+    background: url('../assets/icons/mic.svg') center center no-repeat;
+    background-size: contain;
+    filter: grayscale(100%) brightness(0.4);
+}
+
+.mic-fill-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.mic-fill {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    opacity: 0.6;
+    transform-origin: bottom;
+    transform: translateY(100%);
+    transition: transform 0.1s linear;
 }
