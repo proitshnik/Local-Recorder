@@ -177,3 +177,27 @@ Add tests for server https://github.com/moevm/mse1h2025-prctr/issues/138 PR http
 Add func test for input https://github.com/moevm/mse1h2025-prctr/issues/143 PR https://github.com/moevm/mse1h2025-prctr/pull/146 
 
 Fix multi init in one session https://github.com/moevm/mse1h2025-prctr/issues/145 PR https://github.com/moevm/mse1h2025-prctr/pull/151
+
+# Итерация 4.
+
+## Протокол шестого созвона с заказчиком:
+https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%BA%D0%BE%D0%BB#%D1%81%D0%BE%D0%B7%D0%B2%D0%BE%D0%BD-%D1%81-%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA%D0%BE%D0%BC-6----23052025
+
+## Протокол седьмого созвона с заказчиком:
+https://github.com/moevm/mse1h2025-prctr/wiki/%D0%9F%D1%80%D0%BE%D1%82%D0%BE%D0%BA%D0%BE%D0%BB#%D1%81%D0%BE%D0%B7%D0%B2%D0%BE%D0%BD-%D1%81-%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA%D0%BE%D0%BC-7----23052025
+
+## Презентация:
+
+## Issue итерации:
+
+Add dynamic microphone icon https://github.com/moevm/mse1h2025-prctr/issues/174 PR https://github.com/moevm/mse1h2025-prctr/pull/183
+
+Fix preview full screen https://github.com/moevm/mse1h2025-prctr/issues/168 PR https://github.com/moevm/mse1h2025-prctr/pull/181
+
+Improve extension appearance https://github.com/moevm/mse1h2025-prctr/issues/134 PR https://github.com/moevm/mse1h2025-prctr/pull/180
+
+Add support update https://github.com/moevm/mse1h2025-prctr/issues/136 PR https://github.com/moevm/mse1h2025-prctr/pull/182
+
+Docker server optimization https://github.com/moevm/mse1h2025-prctr/issues/84 PR https://github.com/moevm/mse1h2025-prctr/pull/178
+
+Add room link clearing https://github.com/moevm/mse1h2025-prctr/issues/119 PR https://github.com/moevm/mse1h2025-prctr/pull/184
