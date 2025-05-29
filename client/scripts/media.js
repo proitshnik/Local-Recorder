@@ -594,11 +594,10 @@ async function addFileToTempList(fileName) {
 // системное ограничение браузера позволяет выводить пользовательское уведомление только после алерта (в целях безопасности)
 const beforeUnloadHandler = (event) => {
     logClientAction({ action: "Trigger beforeunload warning" });
-    // TODO
-    // showModalNotify(["Не закрывайте вкладку расширения при записи!", 
-    //     "Не обновляйте вкладку расширения при записи!",
-    //     "Не закрывайте браузер при записи!", 
-    //     "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
+    showModalNotify(["Не закрывайте вкладку расширения при записи!", 
+        "Не обновляйте вкладку расширения при записи!",
+        "Не закрывайте браузер при записи!", 
+        "При закрытии или обновлении вкладки расширения (речь не о всплывающем окне расширения), а также закрытии самого браузера запись будет прервана!"], "Внимание!");
     event.preventDefault();
     event.returnValue = true;
 };
@@ -607,23 +606,27 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 window.addEventListener('unload', () => {
     logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+    let bState;
+    chrome.storage.local.get('bState').then(result => {
+        bState = result.bState;
+        logClientAction({"action": "Get bState when media load", bState});
+
+    }).catch(error => {
+        logClientAction({"action": "Error getting bState when media load", "error": error.message});
+        logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+        buttonsStatesSave('needPermissions');
+    });
     if (recorders.camera || recorders.screen) {
-        let bState;
-        chrome.storage.local.get('bState').then(result => {
-            bState = result.bState;
-            logClientAction({"action": "Get bState when media load", bState});
-            if (bState == 'readyUpload' || bState == 'failedUpload') {
-                logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
-            }
-            else {
-                logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
-                buttonsStatesSave('needPermissions');
-            }
-        }).catch(error => {
-            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+        if (bState == 'readyUpload' || bState == 'failedUpload') {
+            logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
+        }
+        else {
             logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
             buttonsStatesSave('needPermissions');
-        });
+        }
+    }
+    if (bState == 'readyToRecord' || bState == 'recording') {
+        buttonsStatesSave('needPermissions');
     }
 })
 
@@ -770,10 +773,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function initSession(formData) {
     getBrowserFingerprint()
 
-    await chrome.storage.local.set({
-        'lastRecordTime': new Date().toISOString()
-    });
-
     try {
         const response = await fetch('http://127.0.0.1:5000/start_session', {
             method: 'POST',
@@ -792,6 +791,10 @@ async function initSession(formData) {
 
         console.log('sessionId успешно сохранён!');
         logClientAction({ action: "Save session ID from server", sessionId });
+
+        await chrome.storage.local.set({
+            'lastRecordTime': new Date().toISOString()
+        });
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
         await showModalNotify(["Ошибка инициализации сессии", error.message], "Ошибка")
@@ -914,32 +917,24 @@ async function stopRecord() {
             "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
         logClientAction(stats);
-        // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-        waitForNotificationSuppression().then(async (suppress) => {
-            if (!suppress) {
-                await showModalNotify(
-                    stats,
-                    "Запись завершена, статистика:",
-                    true
-                );
-            }
-        });
-        if (server_connection && !invalidStop) {
-            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then(async (suppress) => {
-                if (!suppress) {
-                    await showModalNotify(
-                        ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
-                        "Отправка записи",
-                        true
-                    );
-                }
-            });
-        }
 
         cleanup();
         if (!server_connection) {
             await deleteFiles();
+        }
+        
+        await showModalNotify(
+            stats,
+            "Запись завершена, статистика:",
+            true
+        );
+
+        if (server_connection && !invalidStop) {
+            await showModalNotify(
+                ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+                "Отправка записи",
+                true
+            );
         }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
