@@ -606,23 +606,27 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 window.addEventListener('unload', () => {
     logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+    let bState;
+    chrome.storage.local.get('bState').then(result => {
+        bState = result.bState;
+        logClientAction({"action": "Get bState when media load", bState});
+
+    }).catch(error => {
+        logClientAction({"action": "Error getting bState when media load", "error": error.message});
+        logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
+        buttonsStatesSave('needPermissions');
+    });
     if (recorders.camera || recorders.screen) {
-        let bState;
-        chrome.storage.local.get('bState').then(result => {
-            bState = result.bState;
-            logClientAction({"action": "Get bState when media load", bState});
-            if (bState == 'readyUpload' || bState == 'failedUpload') {
-                logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
-            }
-            else {
-                logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
-                buttonsStatesSave('needPermissions');
-            }
-        }).catch(error => {
-            logClientAction({"action": "Error getting bState when media load", "error": error.message});
+        if (bState == 'readyUpload' || bState == 'failedUpload') {
+            logClientAction({ action: `Tab media.html unload - but current state is ${bState}` });
+        }
+        else {
             logClientAction({ action: "Tab media.html unload - save state as needPermissions" });
             buttonsStatesSave('needPermissions');
-        });
+        }
+    }
+    if (bState == 'readyToRecord' || bState == 'recording') {
+        buttonsStatesSave('needPermissions');
     }
 })
 
