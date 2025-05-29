@@ -917,6 +917,11 @@ async function stopRecord() {
             "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
         logClientAction(stats);
+
+        cleanup();
+        if (!server_connection) {
+            await deleteFiles();
+        }
         
         await showModalNotify(
             stats,
@@ -930,11 +935,6 @@ async function stopRecord() {
                 "Отправка записи",
                 true
             );
-        }
-
-        cleanup();
-        if (!server_connection) {
-            await deleteFiles();
         }
     }).catch(error => {
         console.error("Ошибка при остановке записи:", error);
