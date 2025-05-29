@@ -769,10 +769,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function initSession(formData) {
     getBrowserFingerprint()
 
-    await chrome.storage.local.set({
-        'lastRecordTime': new Date().toISOString()
-    });
-
     try {
         const response = await fetch('http://127.0.0.1:5000/start_session', {
             method: 'POST',
@@ -791,6 +787,10 @@ async function initSession(formData) {
 
         console.log('sessionId успешно сохранён!');
         logClientAction({ action: "Save session ID from server", sessionId });
+
+        await chrome.storage.local.set({
+            'lastRecordTime': new Date().toISOString()
+        });
     } catch (error) {
         console.error("Ошибка инициализации сессии", error);
         await showModalNotify(["Ошибка инициализации сессии", error.message], "Ошибка")
