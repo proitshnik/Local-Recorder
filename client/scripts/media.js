@@ -913,27 +913,19 @@ async function stopRecord() {
             "Файл с логами сохранен в папку загрузок по умолчанию."
         ];
         logClientAction(stats);
-        // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-        waitForNotificationSuppression().then(async (suppress) => {
-            if (!suppress) {
-                await showModalNotify(
-                    stats,
-                    "Запись завершена, статистика:",
-                    true
-                );
-            }
-        });
+        
+        await showModalNotify(
+            stats,
+            "Запись завершена, статистика:",
+            true
+        );
+
         if (server_connection && !invalidStop) {
-            // После остановки записи ждём либо подтверждения подавления, либо, по истечении таймаута, выполняем уведомление
-            waitForNotificationSuppression().then(async (suppress) => {
-                if (!suppress) {
-                    await showModalNotify(
-                        ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
-                        "Отправка записи",
-                        true
-                    );
-                }
-            });
+            await showModalNotify(
+                ["Для отправки записи необходимо нажать кнопку «Отправить» во всплывающем окне расширения прокторинга."],
+                "Отправка записи",
+                true
+            );
         }
 
         cleanup();
